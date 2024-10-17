@@ -390,7 +390,7 @@ static void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
             gDPSetRenderMode(gDisplayListHead++, modeList->modes[i], mode2List->modes[i]);
 
             if (configFullBright) {
-                gSPClearGeometryMode(gDisplayListHead++, G_LIGHTING);
+                gSPClearGeometryMode(gDisplayListHead++, G_SHADE);
             }
             while (currList != NULL) {
                 detect_and_skip_mtx_interpolation(&currList->transform, &currList->transformPrev);

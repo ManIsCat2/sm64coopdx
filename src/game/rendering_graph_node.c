@@ -355,6 +355,14 @@ static u8 increment_mat_stack(void) {
     return TRUE;
 }
 
+// Unreferenced light group
+static const Lights1 unshadelight = gdSPDefLights1(
+    0, 0, 0,
+    0, 0, 0, 0x28, 0x28, 0x28
+);
+
+
+extern bool configFullBright;
 /**
  * Process a master list node.
  */
@@ -380,6 +388,10 @@ static void geo_process_master_list_sub(struct GraphNodeMasterList *node) {
     for (s32 i = 0; i < GFX_NUM_MASTER_LISTS; i++) {
         if ((currList = node->listHeads[i]) != NULL) {
             gDPSetRenderMode(gDisplayListHead++, modeList->modes[i], mode2List->modes[i]);
+
+            if (configFullBright) {
+                gSPClearGeometryMode(gDisplayListHead++, G_LIGHTING);
+            }
             while (currList != NULL) {
                 detect_and_skip_mtx_interpolation(&currList->transform, &currList->transformPrev);
                 if ((u32) gMtxTblSize < sizeof(gMtxTbl) / sizeof(gMtxTbl[0])) {

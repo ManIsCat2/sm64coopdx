@@ -89,7 +89,7 @@ jobs:
         timeout-minutes: 15
         
       - name: Build
-        run: chmod 777 -R . && /entrypoint.sh git clone https://github.com/${GITHUB_REPOSITORY}.git . && /entrypoint.sh git checkout "${GITHUB_REF_NAME}" && chmod +x .github/build-sm64coopdx-in-termux-docker.sh && /entrypoint.sh .github/build-sm64coopdx-in-termux-docker.sh ${{ matrix.architecture }}
+        run: chmod 777 -R . && /entrypoint.sh git config --global safe.directory '*' && /entrypoint.sh git clone https://github.com/${GITHUB_REPOSITORY}.git . && /entrypoint.sh git checkout "${GITHUB_REF_NAME}" && chmod +x .github/build-sm64coopdx-in-termux-docker.sh && /entrypoint.sh .github/build-sm64coopdx-in-termux-docker.sh ${{ matrix.architecture }}
 
 
       - uses: actions/upload-artifact@v4.6.0

@@ -13,5 +13,5 @@ const GeoLayout boo_castle_geo[] = {
       GEO_CLOSE_NODE(),
    GEO_CLOSE_NODE(),
 GEO_CLOSE_NODE(), //! more close than open nodes
-GEO_END(),
+GEO_END(),//Hello sir, I would like to ask if I can be part of the game team. I'm not going to do anything wrong and I have experience. I've already created 3D games, but alone.
 };

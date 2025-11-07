@@ -75,6 +75,11 @@
 
 #include "pc/mumble/mumble.h"
 
+#ifdef OPENXR_ENABLED
+#include "pc/openxr/openxr_manager.h"
+#include "pc/openxr/vr_camera.h"
+#endif
+
 #if defined(_WIN32) || defined(_WIN64)
 #include <windows.h>
 #endif
@@ -316,6 +321,13 @@ void *audio_thread(UNUSED void *arg) {
 }
 
 void produce_one_frame(void) {
+#ifdef OPENXR_ENABLED
+    // Update OpenXR state and get head pose
+    openxr_update();
+    // Update VR camera with head tracking
+    vr_camera_update();
+#endif
+
     CTX_EXTENT(CTX_NETWORK, network_update);
 
     CTX_EXTENT(CTX_INTERP, patch_interpolations_before);
@@ -373,6 +385,9 @@ void audio_shutdown(void) {
 }
 
 void game_deinit(void) {
+#ifdef OPENXR_ENABLED
+    openxr_shutdown();
+#endif
     if (gGameInited) { configfile_save(configfile_name()); }
     controller_shutdown();
     audio_custom_shutdown();
@@ -550,6 +565,17 @@ int main(int argc, char *argv[]) {
     djui_console_message_dequeue();
 
     show_update_popup();
+
+#ifdef OPENXR_ENABLED
+    // Initialize OpenXR context (non-fatal if it fails)
+    if (openxr_init()) {
+        LOG_INFO("OpenXR context initialized successfully");
+        vr_camera_init();
+        LOG_INFO("VR camera initialized");
+    } else {
+        LOG_INFO("OpenXR context initialization failed, continuing without VR support");
+    }
+#endif
 
     // initialize network
     if (gCLIOpts.network == NT_CLIENT) {

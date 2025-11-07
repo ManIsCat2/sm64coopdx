@@ -46,6 +46,8 @@ ENHANCE_LEVEL_TEXTURES ?= 1
 DISCORD_SDK ?= 1
 # Enable CoopNet SDK (used for CoopNet server hosting)
 COOPNET ?= 1
+# Enable OpenXR support (for VR)
+OPENXR ?= 0
 # Enable docker build workarounds
 DOCKERBUILD ?= 0
 # Sets your optimization level for building.
@@ -557,6 +559,10 @@ ifeq ($(DISCORD_SDK),1)
   SRC_DIRS += src/pc/discord
 endif
 
+ifeq ($(OPENXR),1)
+  SRC_DIRS += src/pc/openxr
+endif
+
 SRC_DIRS += src/pc/mumble
 
 ULTRA_SRC_DIRS := lib/src lib/src/math lib/asm lib/data
@@ -827,6 +833,19 @@ else ifeq ($(findstring SDL,$(WINDOW_API)),SDL)
     EXTRA_CPP_FLAGS += -stdlib=libc++ -std=c++17 -mmacosx-version-min=$(MIN_MACOS_VERSION)
   else
     BACKEND_LDFLAGS += -lGL
+  endif
+endif
+
+# OpenXR support
+ifeq ($(OPENXR),1)
+  BACKEND_LDFLAGS += -lopenxr_loader -lvulkan
+  ifeq ($(EXTRA_CPP_FLAGS),)
+    EXTRA_CPP_FLAGS := -std=c++20
+  else
+    EXTRA_CPP_FLAGS := $(subst -std=c++17,-std=c++20,$(EXTRA_CPP_FLAGS))
+    ifeq ($(findstring -std=c++,-std=c++20),)
+      EXTRA_CPP_FLAGS += -std=c++20
+    endif
    endif
 endif
 
@@ -860,7 +879,10 @@ endif
 
 ifneq ($(SDL1_USED)$(SDL2_USED),00)
   ifeq ($(TARGET_ANDROID),1)
-    BACKEND_LDFLAGS += -lSDL2
+    SDL2_INC_PATH := platform/android/include/SDL2
+    SDL2_LIB_PATH := platform/android/android/lib/arm64-v8a
+    BACKEND_LDFLAGS += -L/data/data/com.termux/files/home/loader-so/arm64-v8a -L$(SDL2_LIB_PATH) -lSDL2 
+    BACKEND_CFLAGS += -I$(SDL2_INC_PATH) -I/data/data/com.termux/files/home/include -I/data/data/com.termux/files/home/include/openxr
   else ifeq ($(OSX_BUILD),1)
     # on OSX at least the homebrew version of sdl-config gives include path as `.../include/SDL2` instead of `.../include`
     OSX_PREFIX := $(shell $(SDLCONFIG) --prefix)
@@ -1146,6 +1168,12 @@ endif
 ifeq ($(COOPNET),1)
   CC_CHECK_CFLAGS += -DCOOPNET
   CFLAGS += -DCOOPNET
+endif
+
+# Check for OpenXR option
+ifeq ($(OPENXR),1)
+  CC_CHECK_CFLAGS += -DOPENXR_ENABLED
+  CFLAGS += -DOPENXR_ENABLED
 endif
 
 # Check for development option
@@ -1661,6 +1689,7 @@ $(ZIP_UNCOMPRESSED): $(EXE) $(APK_FILES)
   cp -r palettes $(BUILD_DIR)/platform/android/android/assets/ && \
   cp -r dynos $(BUILD_DIR)/platform/android/android/assets/ && \
 	cp $(PREFIX)/lib/libc++_shared.so $(BUILD_DIR)/platform/android/android/lib/$(ARCH_APK)/ && \
+  patchelf --replace-needed libvulkan.so.1 libvulkan.so  $(BUILD_DIR)/libmain.so
 	cp $(EXE) $(BUILD_DIR)/platform/android/android/lib/$(ARCH_APK)/ && \
 	cd $(BUILD_DIR)/platform/android/android && \
 	zip -0 -r ../../../../../$@ ./* && \

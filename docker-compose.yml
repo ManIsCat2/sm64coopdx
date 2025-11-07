@@ -1,0 +1,33 @@
+services:
+  termux-sm64coopdx2:
+    image: termux/termux-docker:aarch64
+    # needed for arm emulaton on x86_64 hosts
+    platform: linux/arm64
+    container_name: termux-docker2
+    # needed to fix networking issue
+    network_mode: host
+    privileged: true
+    environment:
+      ANDROID_ROOT: /system
+      ANDROID_DATA: /data
+      PREFIX: /data/data/com.termux/files/usr
+      HOME: /data/data/com.termux/files/home
+      PATH: /data/data/com.termux/files/usr/bin
+      TMPDIR: /data/data/com.termux/files/usr/tmp
+      LANG: en_US.UTF-8
+      TZ: UTC
+    volumes:
+      - /tmp/node20:/__e/node20
+    command: tail -f /dev/null
+
+
+    wget https://github.com/KhronosGroup/OpenXR-SDK/archive/refs/tags/release-1.1.53.tar.gz
+
+    tar xr release-1.1.53.tar.gz
+    mv OpenXR-SDK-release-1.1.53/include/ ${HOME}/include
+
+    vulkan-sdk
+
+    wget https://github.com/KhronosGroup/Vulkan-Headers/archive/refs/tags/v1.3.296.tar.gz
+    tar xf v1.3.296.tar.gz
+        mv Vulkan-Headers-1.3.296/include/ ${HOME}/include

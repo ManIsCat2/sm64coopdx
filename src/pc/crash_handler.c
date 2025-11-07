@@ -197,14 +197,20 @@ enum
 # define REG_RSP	REG_RSP
   REG_RIP,
 # define REG_RIP	REG_RIP
+#ifndef REG_EFL
   REG_EFL,
 # define REG_EFL	REG_EFL
+#endif
   REG_CSGSFS,		/* Actually short cs, gs, fs, __pad0.  */
 # define REG_CSGSFS	REG_CSGSFS
+#ifndef REG_ERR
   REG_ERR,
 # define REG_ERR	REG_ERR
+#endif
+#ifndef REG_TRAPNO
   REG_TRAPNO,
 # define REG_TRAPNO	REG_TRAPNO
+#endif
   REG_OLDMASK,
 # define REG_OLDMASK	REG_OLDMASK
   REG_CR2

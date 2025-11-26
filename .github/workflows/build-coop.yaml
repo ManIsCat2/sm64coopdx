@@ -277,8 +277,8 @@ jobs:
                 chmod +x ./platform/gradlew
                 ./platform/gradlew assembleRelease
                 apksigner sign \
-                  --key android/key.pk8 \
-                  --cert android/certificate.pem \
+                  --key platform/android/key.pk8 \
+                  --cert platform/android/certificate.pem \
                   platform/app/build/outputs/apk/release/app-release-unsigned.apk
                 mv platform/app/build/outputs/apk/release/app-release-unsigned.apk build/us_pc/sm64coopdx.apk
 

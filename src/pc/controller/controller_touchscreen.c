@@ -315,7 +315,6 @@ void render_touch_controls(void) {
 
     u32 windowWidth, windowHeight;
     wm_api->get_dimensions(&windowWidth, &windowHeight);
-    r_api->set_viewport(0, 0, windowWidth, windowHeight);
 
     struct Position pos;
     struct Position normalizedStick;

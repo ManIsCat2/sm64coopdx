@@ -42,6 +42,9 @@ struct DjuiInteractable {
     void (*on_text_input)(struct DjuiBase*, char* text);
     void (*on_text_editing)(struct DjuiBase*, char* text, int cursorPos);
     void (*on_scroll)(struct DjuiBase*, float x, float y);
+#ifdef TOUCH_CONTROLS
+    void (*on_swipe)(struct DjuiBase*, float x, float y);
+#endif
     void (*on_enabled_change)(struct DjuiBase*);
 };
 
@@ -102,6 +105,11 @@ void djui_interactable_hook_text_editing(struct DjuiBase* base,
 
 void djui_interactable_hook_scroll(struct DjuiBase* base,
                                    void (*on_scroll)(struct DjuiBase*, float, float));
+
+#ifdef TOUCH_CONTROLS
+void djui_interactable_hook_swipe(struct DjuiBase* base,
+                                   void (*on_swipe)(struct DjuiBase*, float, float));
+#endif
 
 void djui_interactable_hook_enabled_change(struct DjuiBase *base,
                                            void (*on_enabled_change)(struct DjuiBase*));

@@ -49,7 +49,7 @@ struct ConfigOption {
         unsigned int *uintValue;
         float* floatValue;
 #ifdef TOUCH_CONTROLS
-        ConfigControlElement *touchValues;
+        ConfigTouchControl *touchValues;
 #endif
         char* stringValue;
         u64* u64Value;
@@ -161,6 +161,7 @@ bool         configFreeCameraLCentering           = false;
 bool         configFreeCameraDPadBehavior         = false;
 bool         configFreeCameraHasCollision         = true;
 bool         configFreeCameraMouse                = false;
+bool         configFreeCameraTouch                = true;
 unsigned int configFreeCameraXSens                = 50;
 unsigned int configFreeCameraYSens                = 50;
 unsigned int configFreeCameraAggr                 = 0;
@@ -325,6 +326,9 @@ static const struct ConfigOption options[] = {
     {.name = "bettercam_dpad",                 .type = CONFIG_TYPE_BOOL, .boolValue = &configFreeCameraDPadBehavior},
     {.name = "bettercam_collision",            .type = CONFIG_TYPE_BOOL, .boolValue = &configFreeCameraHasCollision},
     {.name = "bettercam_mouse_look",           .type = CONFIG_TYPE_BOOL, .boolValue = &configFreeCameraMouse},
+#ifdef TOUCH_CONTROLS
+    {.name = "bettercam_touch_look",           .type = CONFIG_TYPE_BOOL, .boolValue = &configFreeCameraTouch},
+#endif
     {.name = "bettercam_xsens",                .type = CONFIG_TYPE_UINT, .uintValue = &configFreeCameraXSens},
     {.name = "bettercam_ysens",                .type = CONFIG_TYPE_UINT, .uintValue = &configFreeCameraYSens},
     {.name = "bettercam_aggression",           .type = CONFIG_TYPE_UINT, .uintValue = &configFreeCameraAggr},
@@ -388,27 +392,27 @@ static const struct ConfigOption options[] = {
     {.name = "language",                       .type = CONFIG_TYPE_STRING, .stringValue = (char*)&configLanguage, .maxStringLength = MAX_CONFIG_STRING},
 #ifdef TOUCH_CONTROLS
     // touch settings
-    {.name = "touch_stick",                    .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_STICK]},
-    {.name = "touch_mouse",                    .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_MOUSE]},
-    {.name = "touch_a",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_A]},
-    {.name = "touch_b",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_B]},
-    {.name = "touch_x",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_X]},
-    {.name = "touch_y",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_Y]},
-    {.name = "touch_start",                    .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_START]},
-    {.name = "touch_l",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_L]},
-    {.name = "touch_r",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_R]},
-    {.name = "touch_z",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_Z]},
-    {.name = "touch_cup",                      .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_CUP]},
-    {.name = "touch_cdown",                    .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_CDOWN]},
-    {.name = "touch_cleft",                    .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_CLEFT]},
-    {.name = "touch_cright",                   .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_CRIGHT]},
-    {.name = "touch_chat",                     .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_CHAT]},
-    {.name = "touch_playerlist",               .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_PLAYERLIST]},
-    {.name = "touch_dup",                      .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_DUP]},
-    {.name = "touch_ddown",                    .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_DDOWN]},
-    {.name = "touch_dleft",                    .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_DLEFT]},
-    {.name = "touch_dright",                   .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_DRIGHT]},
-    {.name = "touch_console",                  .type = CONFIG_TYPE_TOUCH,  .touchValues = &configControlElements[TOUCH_CONSOLE]},
+    {.name = "touch_stick",                    .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_STICK]},
+    {.name = "touch_pad",                      .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_MOUSE]},
+    {.name = "touch_a",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_A]},
+    {.name = "touch_b",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_B]},
+    {.name = "touch_x",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_X]},
+    {.name = "touch_y",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_Y]},
+    {.name = "touch_start",                    .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_START]},
+    {.name = "touch_l",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_L]},
+    {.name = "touch_r",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_R]},
+    {.name = "touch_z",                        .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_Z]},
+    {.name = "touch_cup",                      .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_CUP]},
+    {.name = "touch_cdown",                    .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_CDOWN]},
+    {.name = "touch_cleft",                    .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_CLEFT]},
+    {.name = "touch_cright",                   .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_CRIGHT]},
+    {.name = "touch_chat",                     .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_CHAT]},
+    {.name = "touch_playerlist",               .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_PLAYERLIST]},
+    {.name = "touch_dup",                      .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_DUP]},
+    {.name = "touch_ddown",                    .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_DDOWN]},
+    {.name = "touch_dleft",                    .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_DLEFT]},
+    {.name = "touch_dright",                   .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_DRIGHT]},
+    {.name = "touch_console",                  .type = CONFIG_TYPE_TOUCH,  .touchValues = &configTouchControls[TOUCH_CONSOLE]},
     {.name = "touch_autohide",                 .type = CONFIG_TYPE_BOOL,   .boolValue   = &configAutohideTouch},
     {.name = "touch_slide",                    .type = CONFIG_TYPE_BOOL,   .boolValue   = &configSlideTouch},
     {.name = "touch_phantom",                  .type = CONFIG_TYPE_BOOL,   .boolValue   = &configPhantomTouch},
@@ -802,16 +806,19 @@ static void configfile_load_internal(const char *filename, bool* error) {
                             break;
 #ifdef TOUCH_CONTROLS
                         case CONFIG_TYPE_TOUCH:
-                            sscanf(tokens[1], "%04x", &option->touchValues->x);
-                            sscanf(tokens[2], "%04x", &option->touchValues->y);
-                            sscanf(tokens[3], "%04x", &option->touchValues->size);
+                            sscanf(tokens[1], "%04x", &option->touchValues->rawX);
+                            sscanf(tokens[2], "%04x", &option->touchValues->rawY);
+                            sscanf(tokens[3], "%4f", &option->touchValues->size);
 
-                            sscanf(tokens[4], "%x",   &option->touchValues->anchor);
+                            if (strcmp(tokens[4], "true") == 0)
+                                option->touchValues->hidden = true;
+                            else
+                                option->touchValues->hidden = false;
 
-                            sscanf(tokens[5], "%02x", &option->touchValues->r);
-                            sscanf(tokens[6], "%02x", &option->touchValues->g);
-                            sscanf(tokens[7], "%02x", &option->touchValues->b);
-                            sscanf(tokens[8], "%02x", &option->touchValues->a);
+                            sscanf(tokens[5], "%2hhx", &option->touchValues->r);
+                            sscanf(tokens[6], "%2hhx", &option->touchValues->g);
+                            sscanf(tokens[7], "%2hhx", &option->touchValues->b);
+                            sscanf(tokens[8], "%2hhx", &option->touchValues->a);
                             break;
 #endif
                         case CONFIG_TYPE_FLOAT:
@@ -933,7 +940,7 @@ static void configfile_save_option(FILE *file, const struct ConfigOption *option
             break;
 #ifdef TOUCH_CONTROLS
         case CONFIG_TYPE_TOUCH:
-            fprintf(file, "%s %04x %04x %04x %x %02x %02x %02x %02x\n", option->name, option->touchValues->x, option->touchValues->y, option->touchValues->size, option->touchValues->anchor, option->touchValues->r, option->touchValues->g, option->touchValues->b, option->touchValues->a);
+            fprintf(file, "%s %04x %04x %.2f %s %02x %02x %02x %02x\n", option->name, option->touchValues->rawX, option->touchValues->rawY, option->touchValues->size, option->touchValues->hidden ? "true" : "false", (unsigned int)option->touchValues->r, (unsigned int)option->touchValues->g, (unsigned int)option->touchValues->b, (unsigned int)option->touchValues->a);
             break;
 #endif
         case CONFIG_TYPE_STRING:

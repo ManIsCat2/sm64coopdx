@@ -49,7 +49,7 @@ static void gfx_dummy_wm_set_keyboard_callbacks(UNUSED kb_callback_t on_key_down
 }
 
 #ifdef TOUCH_CONTROLS
-static void gfx_dummy_wm_set_touchscreen_callbacks(UNUSED void (*down)(void* event), UNUSED void (*motion)(void* event), UNUSED void (*up)(void* event)) {
+static void gfx_dummy_wm_set_touchscreen_callbacks(UNUSED void (*down)(float, float, int64_t), UNUSED void (*motion)(float, float, int64_t), UNUSED void (*up)(float, float, int64_t)) {
 }
 #endif
 

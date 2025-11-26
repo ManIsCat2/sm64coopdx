@@ -24,7 +24,11 @@ void djui_panel_free_camera_create(struct DjuiBase* caller) {
         djui_checkbox_create(body, DLANG(CAMERA, ROMHACK_CAMERA_L_CENTERING), &configFreeCameraLCentering, djui_panel_free_camera_value_changed);
         djui_checkbox_create(body, DLANG(CAMERA, FREE_CAMERA_USE_DPAD), &configFreeCameraDPadBehavior, djui_panel_free_camera_value_changed);
         djui_checkbox_create(body, DLANG(CAMERA, FREE_CAMERA_COLLISION), &configFreeCameraHasCollision, djui_panel_free_camera_value_changed);
+#ifdef TOUCH_CONTROLS
+        djui_checkbox_create(body, "Touch Camera" /* DLANG(CAMERA, TOUCH_CAM) */, &configFreeCameraTouch, djui_panel_free_camera_value_changed);
+#else
         djui_checkbox_create(body, DLANG(CAMERA, MOUSE_LOOK), &configFreeCameraMouse, djui_panel_free_camera_value_changed);
+#endif
         djui_slider_create(body, DLANG(CAMERA, X_SENSITIVITY), &configFreeCameraXSens, 1, 100, djui_panel_free_camera_value_changed);
         djui_slider_create(body, DLANG(CAMERA, Y_SENSITIVITY), &configFreeCameraYSens, 1, 100, djui_panel_free_camera_value_changed);
         djui_slider_create(body, DLANG(CAMERA, AGGRESSION), &configFreeCameraAggr, 0, 100, djui_panel_free_camera_value_changed);

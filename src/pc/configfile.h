@@ -103,6 +103,7 @@ extern bool         configFreeCameraLCentering;
 extern bool         configFreeCameraDPadBehavior;
 extern bool         configFreeCameraHasCollision;
 extern bool         configFreeCameraMouse;
+extern bool         configFreeCameraTouch;
 extern unsigned int configFreeCameraXSens;
 extern unsigned int configFreeCameraYSens;
 extern unsigned int configFreeCameraAggr;

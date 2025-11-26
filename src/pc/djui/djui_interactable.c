@@ -566,6 +566,14 @@ void djui_interactable_hook_scroll(struct DjuiBase* base,
     interactable->on_scroll = on_scroll;
 }
 
+#ifdef TOUCH_CONTROLS
+void djui_interactable_hook_swipe(struct DjuiBase* base,
+                                   void (*on_swipe)(struct DjuiBase*, float, float)) {
+    struct DjuiInteractable *interactable = base->interactable;
+    interactable->on_swipe = on_swipe;
+}
+#endif
+
 void djui_interactable_hook_enabled_change(struct DjuiBase *base,
                                            void (*on_enabled_change)(struct DjuiBase*)) {
     struct DjuiInteractable *interactable = base->interactable;

@@ -1,131 +1,106 @@
-//Feel free to use it in your port too, but please keep authorship!
-//Touch Controls made by: VDavid003
-/* Heavily modified by xLuigiGamerx and ManIsCat2 to add new features, like:
-
-- DJUI Based touch controls editor
-- Different texture per button and joystick (joystick base as well)
-
-*/
-
 #ifdef TOUCH_CONTROLS
+#include <stdbool.h>
 #include <ultra64.h>
-#include <PR/ultratypes.h>
 #include <PR/gbi.h>
+#include <time.h>
+#include <string.h>
+#include "pc/configfile.h"
+#include "controller_api.h"
+
+#include "controller_touchscreen.h"
 
 #include "config.h"
 #include "sm64.h"
 #include "game/game_init.h"
-#include "game/memory.h"
-#include "game/segment2.h"
-#include "game/object_helpers.h"
 #include "gfx_dimensions.h"
 #include "pc/pc_main.h"
-#include "pc/gfx/gfx_pc.h"
+#include "pc/network/network.h"
+#include "pc/djui/djui_gfx.h"
 #include "pc/djui/djui_panel.h"
 #include "pc/djui/djui_panel_pause.h"
-#include "pc/djui/djui_panel_main.h"
 #include "pc/djui/djui_panel_touch_controls_editor.h"
 #include "pc/djui/djui_console.h"
-#include "pc/network/network.h"
 
-#include "controller_api.h"
-#include "controller_touchscreen.h"
 #include "controller_touchscreen_textures.h"
 
-#include "pc/configfile.h"
+// RAPI
 
-// Mouselook
+struct GfxRenderingAPI *r_api = &RAPI;
+
+// Macros
+
+#define LEFT_EDGE ((int)floorf(GFX_DIMENSIONS_FROM_LEFT_EDGE(0)))
+#define RIGHT_EDGE ((int)ceilf(GFX_DIMENSIONS_FROM_RIGHT_EDGE(0)))
+
+#define SCALE_X(x) ((x * (RIGHT_EDGE - LEFT_EDGE)) + LEFT_EDGE)
+#define SCALE_Y(y) (y * SCREEN_HEIGHT)
+
+#define TOUCH_DETECT(x, y, tx, ty, size) ((tx < (x + size / 2)) && (tx > (x - size / 2)) && (ty < (y + size / 2)) && (ty > (y - size / 2)))
+
+// Touch Cam
+
 s16 before_x = 0;
 s16 before_y = 0;
 s16 touch_x = 0;
 s16 touch_y = 0;
-s16 touch_cam_last_x = 0;
-s16 touch_cam_last_y = 0;
 
 // Config
+
 bool gInTouchConfig = false, gGamepadActive = false;
-enum ConfigControlElementIndex gSelectedTouchElement = TOUCH_MOUSE;
+uint32_t gTouchControlSelected = TOUCH_MOUSE;
 
-ConfigControlElement configControlElementsDefault[TOUCH_COUNT] = {
+ConfigTouchControl configTouchControls[TOUCH_COUNT] = {
 #include "controller_touchscreen_layout.inc"
 };
 
-ConfigControlElement configControlElements[TOUCH_COUNT] = {
-#include "controller_touchscreen_layout.inc"
+static struct TouchControl touchControls[TOUCH_COUNT] = {
+    [TOUCH_STICK] =      { .type = TOUCH_TYPE_JOYSTICK                                                                                                             },
+    [TOUCH_MOUSE] =      { .type = TOUCH_TYPE_PAD                                                                                                                  },
+    [TOUCH_A] =          { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_A,          TEXTURE_TOUCH_A_PRESSED          }, .buttonID = A_BUTTON          },
+    [TOUCH_B] =          { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_B,          TEXTURE_TOUCH_B_PRESSED          }, .buttonID = B_BUTTON          },
+    [TOUCH_X] =          { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_X,          TEXTURE_TOUCH_X_PRESSED          }, .buttonID = X_BUTTON          },
+    [TOUCH_Y] =          { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_Y,          TEXTURE_TOUCH_Y_PRESSED          }, .buttonID = Y_BUTTON          },
+    [TOUCH_START] =      { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_START,      TEXTURE_TOUCH_START_PRESSED      }, .buttonID = START_BUTTON      },
+    [TOUCH_L] =          { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_L,          TEXTURE_TOUCH_L_PRESSED          }, .buttonID = L_TRIG            },
+    [TOUCH_R] =          { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_R,          TEXTURE_TOUCH_R_PRESSED          }, .buttonID = R_TRIG            },
+    [TOUCH_Z] =          { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_Z,          TEXTURE_TOUCH_Z_PRESSED          }, .buttonID = Z_TRIG            },
+    [TOUCH_CUP] =        { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_C_UP,       TEXTURE_TOUCH_C_UP_PRESSED       }, .buttonID = U_CBUTTONS        },
+    [TOUCH_CDOWN] =      { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_C_DOWN,     TEXTURE_TOUCH_C_DOWN_PRESSED     }, .buttonID = D_CBUTTONS        },
+    [TOUCH_CLEFT] =      { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_C_LEFT,     TEXTURE_TOUCH_C_LEFT_PRESSED     }, .buttonID = L_CBUTTONS        },
+    [TOUCH_CRIGHT] =     { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_C_RIGHT,    TEXTURE_TOUCH_C_RIGHT_PRESSED    }, .buttonID = R_CBUTTONS        },
+    [TOUCH_CHAT] =       { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_CHAT,       TEXTURE_TOUCH_CHAT_PRESSED       }, .buttonID = CHAT_BUTTON       },
+    [TOUCH_PLAYERLIST] = { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_PLAYERLIST, TEXTURE_TOUCH_PLAYERLIST_PRESSED }, .buttonID = PLAYERLIST_BUTTON },
+    [TOUCH_DUP] =        { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_DPAD_UP,    TEXTURE_TOUCH_DPAD_UP_PRESSED    }, .buttonID = U_JPAD            },
+    [TOUCH_DDOWN] =      { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_DPAD_DOWN,  TEXTURE_TOUCH_DPAD_DOWN_PRESSED  }, .buttonID = D_JPAD            },
+    [TOUCH_DLEFT] =      { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_DPAD_LEFT,  TEXTURE_TOUCH_DPAD_LEFT_PRESSED  }, .buttonID = L_JPAD            },
+    [TOUCH_DRIGHT] =     { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_DPAD_RIGHT, TEXTURE_TOUCH_DPAD_RIGHT_PRESSED }, .buttonID = R_JPAD            },
+    [TOUCH_CONSOLE] =    { .type = TOUCH_TYPE_BUTTON, .buttonState = { TEXTURE_TOUCH_CONSOLE,    TEXTURE_TOUCH_CONSOLE_PRESSED    }, .buttonID = CONSOLE_BUTTON    },
 };
 
-ConfigControlElement configControlElementsLast[TOUCH_COUNT] = {
-#include "controller_touchscreen_layout.inc"
-};
-
-// This order must match configControlElements and ConfigControlElementIndex
-static struct ControlElement controlElements[TOUCH_COUNT] = {
-    [TOUCH_STICK] =      {.type = Joystick},
-    [TOUCH_MOUSE] =      {.type = Mouse},
-    [TOUCH_A] =          {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_A,          .buttonDown = TEXTURE_TOUCH_A_PRESSED },          .buttonID = A_BUTTON},
-    [TOUCH_B] =          {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_B,          .buttonDown = TEXTURE_TOUCH_B_PRESSED },          .buttonID = B_BUTTON},
-    [TOUCH_X] =          {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_X,          .buttonDown = TEXTURE_TOUCH_X_PRESSED },          .buttonID = X_BUTTON},
-    [TOUCH_Y] =          {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_Y,          .buttonDown = TEXTURE_TOUCH_Y_PRESSED },          .buttonID = Y_BUTTON},
-    [TOUCH_START] =      {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_START,      .buttonDown = TEXTURE_TOUCH_START_PRESSED },      .buttonID = START_BUTTON},
-    [TOUCH_L] =          {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_L,          .buttonDown = TEXTURE_TOUCH_L_PRESSED },          .buttonID = L_TRIG},
-    [TOUCH_R] =          {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_R,          .buttonDown = TEXTURE_TOUCH_R_PRESSED },          .buttonID = R_TRIG},
-    [TOUCH_Z] =          {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_Z,          .buttonDown = TEXTURE_TOUCH_Z_PRESSED },          .buttonID = Z_TRIG},
-    [TOUCH_CUP] =        {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_C_UP,       .buttonDown = TEXTURE_TOUCH_C_UP_PRESSED },       .buttonID = U_CBUTTONS},
-    [TOUCH_CDOWN] =      {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_C_DOWN,     .buttonDown = TEXTURE_TOUCH_C_DOWN_PRESSED },     .buttonID = D_CBUTTONS},
-    [TOUCH_CLEFT] =      {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_C_LEFT,     .buttonDown = TEXTURE_TOUCH_C_LEFT_PRESSED },     .buttonID = L_CBUTTONS},
-    [TOUCH_CRIGHT] =     {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_C_RIGHT,    .buttonDown = TEXTURE_TOUCH_C_RIGHT_PRESSED },    .buttonID = R_CBUTTONS},
-    [TOUCH_CHAT] =       {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_CHAT,       .buttonDown = TEXTURE_TOUCH_CHAT_PRESSED },       .buttonID = CHAT_BUTTON},
-    [TOUCH_PLAYERLIST] = {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_PLAYERLIST, .buttonDown = TEXTURE_TOUCH_PLAYERLIST_PRESSED }, .buttonID = PLAYERLIST_BUTTON},
-    [TOUCH_DUP] =        {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_DPAD_UP,    .buttonDown = TEXTURE_TOUCH_DPAD_UP_PRESSED },    .buttonID = U_JPAD},
-    [TOUCH_DDOWN] =      {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_DPAD_DOWN,  .buttonDown = TEXTURE_TOUCH_DPAD_DOWN_PRESSED },  .buttonID = D_JPAD},
-    [TOUCH_DLEFT] =      {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_DPAD_LEFT,  .buttonDown = TEXTURE_TOUCH_DPAD_LEFT_PRESSED },  .buttonID = L_JPAD},
-    [TOUCH_DRIGHT] =     {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_DPAD_RIGHT, .buttonDown = TEXTURE_TOUCH_DPAD_RIGHT_PRESSED }, .buttonID = R_JPAD},
-    [TOUCH_CONSOLE] =    {.type = Button, .buttonTexture = { .buttonUp = TEXTURE_TOUCH_CONSOLE,    .buttonDown = TEXTURE_TOUCH_CONSOLE_PRESSED },    .buttonID = CONSOLE_BUTTON},
-};
-
-static u32 controlElementsLength = sizeof(controlElements)/sizeof(struct ControlElement);
-
-struct Position get_pos(ConfigControlElement *config) {
+struct Position get_pos(ConfigTouchControl *config) {
     struct Position ret;
 
-    if (config->anchor == CONTROL_ELEMENT_HIDDEN) {
-        if (gInTouchConfig) {
-            ret.x = config->x;
-            ret.y = config->y;
-        } else {
-            ret.x = HIDE_POS;
-            ret.y = HIDE_POS;
-        }
-    } else {
-        switch (config->anchor) {
-            case CONTROL_ELEMENT_LEFT:
-                ret.x = RECT_FROM_LEFT_EDGE(config->x << 2);
-                break;
-            case CONTROL_ELEMENT_RIGHT:
-                ret.x = RECT_FROM_RIGHT_EDGE(config->x << 2);
-                break;
-            case CONTROL_ELEMENT_CENTER:
-            default:
-                ret.x = config->x;
-                break;
-        }
-        ret.y = config->y;
+    config->x = config->rawX;
+    config->y = config->rawY;
+
+    if (config->rawX < SCREEN_WIDTH / 2) {
+        config->x = GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(config->rawX);
+    } else if (config->rawX > SCREEN_WIDTH / 2) {
+        config->x = GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(config->rawX);        
     }
+
+    ret.x = config->x;
+    ret.y = config->y;
 
     if (configSnapTouch) {
         ret.x = 50 * ((ret.x + 49) / 50) - 25;
         ret.y = 50 * ((ret.y + 49) / 50) - 25;
     }
 
-    if (!gInTouchConfig && (gDjuiInMainMenu && !gDjuiDisabled)) {
-        ret.x = HIDE_POS;
-        ret.y = HIDE_POS;
-    }
-
     return ret;
 }
 
-Colors get_color(ConfigControlElement *config) {
+Colors get_color(ConfigTouchControl *config) {
     Colors ret;
     
     ret.r = config->r;
@@ -136,139 +111,137 @@ Colors get_color(ConfigControlElement *config) {
     return ret;
 }
 
-void move_touch_element(struct TouchEvent *event, enum ConfigControlElementIndex i) {
-    s32 x_raw = CORRECT_TOUCH_X(event->x);
-    s32 y = CORRECT_TOUCH_Y(event->y);
-    ConfigControlElement *config = &configControlElements[i];
+void touch_control_move(f32 x, f32 y, int i) {
+    ConfigTouchControl *config = &configTouchControls[i];
 
-    config->y = y;
+    config->rawX = x;
+    config->rawY = y;
 
-    switch (config->anchor) {
-        case CONTROL_ELEMENT_LEFT:
-            config->x = (x_raw - RECT_FROM_LEFT_EDGE(0)) >> 2;
-            break;
-        case CONTROL_ELEMENT_RIGHT:
-            config->x = (RECT_FROM_RIGHT_EDGE(0) - x_raw) >> 2;
-            break;
-        case CONTROL_ELEMENT_CENTER:
-        default:
-            config->x = x_raw;
-            break;
+    config->x = config->rawX;
+    config->y = config->rawY;
+
+    if (config->rawX < SCREEN_WIDTH / 2) {
+        config->x = GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(config->rawX);
+    } else if (config->rawX > SCREEN_WIDTH / 2) {
+        config->x = GFX_DIMENSIONS_RECT_FROM_RIGHT_EDGE(config->rawX);        
     }
 }
 
-void touch_down(struct TouchEvent* event) {
+void touch_down(f32 x, f32 y, int64_t id) {
+
     gGamepadActive = false;
+
+    struct Position touchPos;
+    touchPos.x = SCALE_X(x);
+    touchPos.y = SCALE_Y(y);
+
     struct Position pos;
     s32 size;
-    for(u32 i = 0; i < controlElementsLength; i++) {
-        if (controlElements[i].touchID == 0) {
-            pos = get_pos(&configControlElements[i]);
-            if (pos.y == HIDE_POS) continue;
-            size = configControlElements[i].size * 100;
-            if (!TRIGGER_DETECT(size)) continue;
-            switch (controlElements[i].type) {
-                case Joystick:
-                    controlElements[i].touchID = event->touchID;
-                    gSelectedTouchElement = i;
+    for (uint32_t i = 0; i < TOUCH_COUNT; i++) {
+        struct TouchControl *control = &touchControls[i];
+        ConfigTouchControl config = configTouchControls[i];
+        if (config.hidden) continue;
+        if (control->touchID == 0) {
+            pos = get_pos(&config);
+            size = config.size * 100;
+            bool touched = TOUCH_DETECT(pos.x, pos.y, touchPos.x, touchPos.y, size);
+            if (!touched) continue;
+            control->touchID = id;
+            if (control->type != TOUCH_TYPE_PAD) {
+                gTouchControlSelected = i;
+                djui_panel_touch_controls_editor_update();
+            }
+            switch (control->type) {
+                case TOUCH_TYPE_JOYSTICK:
                     if (!gInTouchConfig) {
-                        controlElements[i].joyX = CORRECT_TOUCH_X(event->x) - pos.x;
-                        controlElements[i].joyY = CORRECT_TOUCH_Y(event->y) - pos.y;
+                        control->joyX = touchPos.x - pos.x;
+                        control->joyY = touchPos.y - pos.y;
                     }
                     break;
-                case Mouse:
-                    controlElements[i].touchID = event->touchID;
-                    break;
-                case Button:
-                    controlElements[i].touchID = event->touchID;
-                    gSelectedTouchElement = i;
-                    // messy
-                    if (controlElements[i].buttonID == CHAT_BUTTON && !gInTouchConfig)
+                case TOUCH_TYPE_BUTTON:
+                    if (control->buttonID == CHAT_BUTTON && !gInTouchConfig)
                         djui_interactable_on_key_down(configKeyChat[0]);
-                    if (controlElements[i].buttonID == PLAYERLIST_BUTTON && !gInTouchConfig)
+                    if (control->buttonID == PLAYERLIST_BUTTON && !gInTouchConfig)
                         djui_interactable_on_key_down(configKeyPlayerList[0]);
+                    break;
+                case TOUCH_TYPE_PAD:
                     break;
             }
         }
     }
 }
 
-void touch_motion(struct TouchEvent* event) {
+void touch_motion(f32 x, f32 y, int64_t id) {
+
+    struct Position touchPos;
+    touchPos.x = SCALE_X(x);
+    touchPos.y = SCALE_Y(y);
+
     struct Position pos;
     s32 size;
-    for(u32 i = 0; i < controlElementsLength; i++) {
-        pos = get_pos(&configControlElements[i]);
-        if (pos.y == HIDE_POS) continue;
-        size = configControlElements[i].size * 100;
+    for (uint32_t i = 0; i < TOUCH_COUNT; i++) {
+        struct TouchControl *control = &touchControls[i];
+        ConfigTouchControl config = configTouchControls[i];
+        if (config.hidden) continue;
+        pos = get_pos(&config);
+        size = config.size * 100;
         if (gInTouchConfig) {
-            if (controlElements[i].touchID == event->touchID && controlElements[i].type != Mouse && gSelectedTouchElement == i) {
-                move_touch_element(event, gSelectedTouchElement);
+            if (control->touchID == id && control->type != TOUCH_TYPE_PAD && gTouchControlSelected == i) {
+                touch_control_move(touchPos.x, touchPos.y, gTouchControlSelected);
             }
         } else {
             if (!gDjuiPanelPauseCreated) {
-                if (controlElements[i].touchID == event->touchID) {
-                    s32 x, y;
-                    switch (controlElements[i].type) {
-                        case Joystick:
-                            if (configPhantomTouch && !TRIGGER_DETECT(size * 6)) {
-                                controlElements[i].joyX = 0;
-                                controlElements[i].joyY = 0;
-                                controlElements[i].touchID = 0;
+                bool touched = TOUCH_DETECT(pos.x, pos.y, touchPos.x, touchPos.y, size);
+                if (control->touchID == id) {
+                    switch (control->type) {
+                        case TOUCH_TYPE_JOYSTICK:
+                            s32 joyX, joyY;
+                            if (configPhantomTouch && !touched) {
+                                control->joyX = 0;
+                                control->joyY = 0;
+                                control->touchID = 0;
                                 break;
                             }
-                            x = CORRECT_TOUCH_X(event->x) - pos.x;
-                            y = CORRECT_TOUCH_Y(event->y) - pos.y;
-                            if (pos.x + size / 2 < CORRECT_TOUCH_X(event->x))
-                                x = size / 2;
-                            if (pos.x - size / 2 > CORRECT_TOUCH_X(event->x))
-                                x = - size / 2;
-                            if (pos.y + size / 2 < CORRECT_TOUCH_Y(event->y))
-                                y = size / 2;
-                            if (pos.y - size / 2 > CORRECT_TOUCH_Y(event->y))
-                                y = - size / 2;
-                            controlElements[i].joyX = x;
-                            controlElements[i].joyY = y;
+                            joyX = touchPos.x - pos.x;
+                            joyY = touchPos.y - pos.y;
+                            if (pos.x + size / 2 < touchPos.x) joyX =  size / 2;
+                            if (pos.x - size / 2 > touchPos.x) joyX = -size / 2;
+                            if (pos.y + size / 2 < touchPos.y) joyY =  size / 2;
+                            if (pos.y - size / 2 > touchPos.y) joyY = -size / 2;
+                            control->joyX = joyX;
+                            control->joyY = joyY;
                             break;
-                        case Mouse:
-                            if (configPhantomTouch && !TRIGGER_DETECT(size)) {
+                        case TOUCH_TYPE_PAD:
+                            if (configPhantomTouch && !touched) {
                                 touch_x = before_x = 0;
                                 touch_y = before_y = 0;
-                                controlElements[i].touchID = 0;
+                                control->touchID = 0;
                                 break;
                             }
-                            if (before_x > 0)
-                                touch_x = CORRECT_TOUCH_X(event->x) - before_x;
-                            if (before_y > 0)
-                                touch_y = CORRECT_TOUCH_Y(event->y) - before_y;
-                            before_x = CORRECT_TOUCH_X(event->x);
-                            before_y = CORRECT_TOUCH_Y(event->y);
-                            if ((u16)abs(touch_x) < configStickDeadzone / 4)
-                                touch_x = 0;
-                            if ((u16)abs(touch_y) < configStickDeadzone / 4)
-                                touch_y = 0;
+                            if (before_x > 0) touch_x = touchPos.x - before_x;
+                            if (before_y > 0) touch_y = touchPos.y - before_y;
+                            before_x = touchPos.x;
+                            before_y = touchPos.y;
                             break;
-                        case Button:
-                            if ((controlElements[i].slideTouch && !TRIGGER_DETECT(size)) || (configPhantomTouch && !controlElements[i].slideTouch && !TRIGGER_DETECT(size * 3))) {
-                                controlElements[i].slideTouch = 0;
-                                controlElements[i].touchID = 0;
+                        case TOUCH_TYPE_BUTTON:
+                            if ((control->slideTouch && !touched) || (configPhantomTouch && !control->slideTouch && !touched)) {
+                                control->slideTouch = 0;
+                                control->touchID = 0;
                             }
                             break;
                     }
-                } else if ((TRIGGER_DETECT(size) || (configPhantomTouch && TRIGGER_DETECT(size * 6) && controlElements[i].type == Joystick)) && (controlElements[TOUCH_MOUSE].touchID != event->touchID || !configFreeCameraMouse) && configSlideTouch) {
-                    if (configPhantomTouch)
-                        controlElements[i].touchID = event->touchID;
-                    switch (controlElements[i].type) {
-                        case Joystick:
+                } else if ((touched || (configPhantomTouch && touched && control->type == TOUCH_TYPE_JOYSTICK)) && (touchControls[TOUCH_MOUSE].touchID != id || !configFreeCameraMouse) && configSlideTouch) {
+                    if (configPhantomTouch) control->touchID = id;
+                    switch (control->type) {
+                        case TOUCH_TYPE_BUTTON:
+                            control->slideTouch = 1;
+                            control->touchID = id;
+
+                            if (control->buttonID == CHAT_BUTTON) djui_interactable_on_key_down(configKeyChat[0]);
+                            if (control->buttonID == PLAYERLIST_BUTTON) djui_interactable_on_key_down(configKeyPlayerList[0]);
                             break;
-                        case Mouse:
-                            break;
-                        case Button:
-                            controlElements[i].slideTouch = 1;
-                            controlElements[i].touchID = event->touchID;
-                            if (controlElements[i].buttonID == CHAT_BUTTON)
-                                djui_interactable_on_key_down(configKeyChat[0]);
-                            if (controlElements[i].buttonID == PLAYERLIST_BUTTON)
-                                djui_interactable_on_key_down(configKeyPlayerList[0]);
+                        case TOUCH_TYPE_JOYSTICK:
+                        case TOUCH_TYPE_PAD:
                             break;
                     }
                 }
@@ -277,160 +250,173 @@ void touch_motion(struct TouchEvent* event) {
     }
 }
 
-static void handle_touch_up(u32 i) { // separated for when the layout changes
-    controlElements[i].touchID = 0;
-    struct Position pos = get_pos(&configControlElements[i]);
-    if (pos.y == HIDE_POS) { return; }
-    switch (controlElements[i].type) {
-        case Joystick:
-            controlElements[i].joyX = 0;
-            controlElements[i].joyY = 0;
-            break;
-        case Mouse:
-            touch_x = before_x = 0;
-            touch_y = before_y = 0;
-            break;
-        case Button:
-            if (controlElements[i].buttonID == CHAT_BUTTON && !gInTouchConfig)
-                djui_interactable_on_key_up(configKeyChat[0]);
-            if (controlElements[i].buttonID == PLAYERLIST_BUTTON && !gInTouchConfig)
-                djui_interactable_on_key_up(configKeyPlayerList[0]);
-            if (controlElements[i].buttonID == CONSOLE_BUTTON && !gInTouchConfig)
-                djui_console_toggle();
-            break;
-    }
-}
-
-void touch_up(struct TouchEvent* event) {
-    for(u32 i = 0; i < controlElementsLength; i++) {
-        if (controlElements[i].touchID == event->touchID) {
-            handle_touch_up(i);
+void touch_up(f32 x, f32 y, int64_t id) {
+    for (uint32_t i = 0; i < TOUCH_COUNT; i++) {
+        struct TouchControl *control = &touchControls[i];
+        if (control->touchID == id) {
+            ConfigTouchControl config = configTouchControls[i];
+            control->touchID = 0;
+            if (config.hidden) { return; }
+            switch (control->type) {
+                case TOUCH_TYPE_JOYSTICK:
+                    control->joyX = 0;
+                    control->joyY = 0;
+                    break;
+                case TOUCH_TYPE_PAD:
+                    touch_x = before_x = 0;
+                    touch_y = before_y = 0;
+                    break;
+                case TOUCH_TYPE_BUTTON:
+                    if (!gInTouchConfig) {
+                        if (control->buttonID == CONSOLE_BUTTON) djui_interactable_on_key_up(configKeyConsole[0]);
+                        if (control->buttonID == PLAYERLIST_BUTTON) djui_interactable_on_key_up(configKeyPlayerList[0]);
+                    }
+                    break;
+            }
         }
     }
 }
 
-static void render_texture(const Texture *texture, s32 x, s32 y, u32 w, u32 h, s32 scaling, u8 r, u8 g, u8 b, u8 a) {
-    gSPClearGeometryMode(gDisplayListHead++, G_LIGHTING);
-    gDPSetCombineMode(gDisplayListHead++, G_CC_FADEA, G_CC_FADEA);
-    gDPSetRenderMode(gDisplayListHead++, G_RM_XLU_SURF, G_RM_XLU_SURF2);
-    gDPSetTextureFilter(gDisplayListHead++, G_TF_POINT);
-    gSPTexture(gDisplayListHead++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_ON);
-
-    gDPSetTextureImage(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 1, texture);
-
-    gDPSetTile(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, 0, 0, G_TX_LOADTILE, 0, G_TX_WRAP | G_TX_NOMIRROR, 0, G_TX_NOLOD, G_TX_WRAP | G_TX_NOMIRROR, 0, G_TX_NOLOD);
-    gDPLoadBlock(gDisplayListHead++, G_TX_LOADTILE, 0, 0, w * h - 1, CALC_DXT(w, G_IM_SIZ_16b_BYTES));
-    gDPSetTile(gDisplayListHead++, G_IM_FMT_RGBA, G_IM_SIZ_16b, w / 4, 0, G_TX_RENDERTILE, 0, G_TX_CLAMP | G_TX_NOMIRROR, log2(w), G_TX_NOLOD, G_TX_CLAMP | G_TX_NOMIRROR, log2(h), G_TX_NOLOD);
-    gDPSetTileSize(gDisplayListHead++, 0, 0, 0, (w - 1) << G_TEXTURE_IMAGE_FRAC, (w - 1) << G_TEXTURE_IMAGE_FRAC);
+static void djui_render_texture(const Texture *texture, f32 x, f32 y, u32 width, u32 height, f32 scale, u8 r, u8 g, u8 b, u8 a) {
+    if (!texture) return;
 
     gDPSetEnvColor(gDisplayListHead++, r, g, b, a);
 
-    gSPTextureRectangle(gDisplayListHead++, x - (w << scaling), y - (h << scaling), x + (w << scaling), y + (h << scaling), G_TX_RENDERTILE, 0, 0, 4 << (9 - scaling), 1 << (11 - scaling));
+    u32 windowWidth, windowHeight;
+    wm_api->get_dimensions(&windowWidth, &windowHeight);
 
-    gSPTexture(gDisplayListHead++, 0xFFFF, 0xFFFF, 0, G_TX_RENDERTILE, G_OFF);
-    gDPSetCombineMode(gDisplayListHead++, G_CC_SHADE, G_CC_SHADE);
+    f32 widthRatio = (f32)windowWidth  / (f32)SCREEN_WIDTH;
+    f32 heightRatio = (f32)windowHeight / (f32)SCREEN_HEIGHT;
+    f32 windowScale = fminf(widthRatio, heightRatio);
+
+    f32 offsetX = (windowWidth - SCREEN_WIDTH * windowScale) * 0.5f;
+    f32 offsetY = (windowHeight - SCREEN_HEIGHT * windowScale) * 0.5f;
+
+    // translate position
+    f32 translatedX = (offsetX + x) * windowScale;
+    f32 translatedY = (offsetY + (SCREEN_HEIGHT - y)) * windowScale;
+    create_dl_translation_matrix(DJUI_MTX_PUSH, translatedX / windowScale, translatedY / windowScale, 0.0f);
+
+    f32 translatedS = scale;
+    djui_gfx_size_translate(&translatedS);
+
+    // translate scale
+    create_dl_scale_matrix(DJUI_MTX_NOPUSH, width * translatedS, height * translatedS, 1.0f);
+
+    // render
+    djui_gfx_render_texture(texture, width, height, G_IM_FMT_RGBA, G_IM_SIZ_16b, false);
+
+    // pop
+    gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
 }
 
 void render_touch_controls(void) {
-    if ((gGamepadActive && configAutohideTouch) || (!gDjuiInMainMenu && gDjuiDisabled)) { return; }
+    if ((gGamepadActive && configAutohideTouch) || (gDjuiInMainMenu && !gDjuiDisabled)) { return; }
+
+    u32 windowWidth, windowHeight;
+    wm_api->get_dimensions(&windowWidth, &windowHeight);
+    r_api->set_viewport(0, 0, windowWidth, windowHeight);
 
     struct Position pos;
+    struct Position normalizedStick;
     struct Position stick;
     Colors color;
-    s32 size;
-    f32 normalizedVectorMultiplier;
+    f32 size;
+    f32 stickMag;
     
     create_dl_ortho_matrix();
 
-    for (u32 i = 0; i < controlElementsLength; i++) {
-        pos = get_pos(&configControlElements[i]);
-        color = get_color(&configControlElements[i]);
-        size = configControlElements[i].size;
-        if (pos.y == HIDE_POS) continue;
-        switch (controlElements[i].type) {
-            case Joystick:
-                if (absi(controlElements[i].joyX) + absi(controlElements[i].joyY) != 0) {
-                    normalizedVectorMultiplier = sqrt((controlElements[i].joyX * controlElements[i].joyX) + (controlElements[i].joyY * controlElements[i].joyY))/(absi(controlElements[i].joyX) + absi(controlElements[i].joyY));
-                } else {
-                    normalizedVectorMultiplier = 0;
+    for (uint32_t i = 0; i < TOUCH_COUNT; i++) {
+        struct TouchControl control = touchControls[i];
+        ConfigTouchControl config = configTouchControls[i];
+        pos = get_pos(&config);
+        color = get_color(&config);
+        size = config.size;
+        if (config.hidden && !gInTouchConfig) continue;
+        switch (control.type) {
+            case TOUCH_TYPE_JOYSTICK:
+                normalizedStick.x = 0;
+                normalizedStick.y = 0;
+                stickMag = sqrt((control.joyX * control.joyX) + (control.joyY * control.joyY));
+                if (stickMag != 0) {
+                    normalizedStick.x = control.joyX / stickMag;
+                    normalizedStick.y = control.joyY / stickMag;
                 }
                 if (gInTouchConfig || gDjuiPanelPauseCreated) {
                     stick.x = 0;
                     stick.y = 0;
                 } else {
-                    stick.x = (controlElements[i].joyX * normalizedVectorMultiplier * 2);
-                    stick.y = (controlElements[i].joyY * normalizedVectorMultiplier * 2);
+                    stick.x = normalizedStick.x;
+                    stick.y = normalizedStick.y;
                 }
-                render_texture(touch_textures[TEXTURE_TOUCH_JOYSTICK_BASE], pos.x, pos.y, 32, 32, 1 + size, color.r, color.g, color.b, color.a);
-                render_texture(touch_textures[TEXTURE_TOUCH_JOYSTICK], pos.x + stick.x, pos.y + stick.y, 16, 16, 1 + size, color.r, color.g, color.b, color.a);
+                djui_render_texture(touch_textures[TEXTURE_TOUCH_JOYSTICK_BASE], pos.x, pos.y, 32, 32, size + 4.0f, color.r, color.g, color.b, color.a);
+                djui_render_texture(touch_textures[TEXTURE_TOUCH_JOYSTICK], pos.x + stick.x, pos.y + stick.y, 16, 16, size + 4.0f, color.r, color.g, color.b, color.a);
                 break;
-            case Mouse:
+            case TOUCH_TYPE_BUTTON:
+                bool pressed = !control.touchID || gInTouchConfig || gDjuiPanelPauseCreated;
+                djui_render_texture(touch_textures[control.buttonState[pressed]], pos.x, pos.y, 16, 16, size + 4.0f, color.r, color.g, color.b, color.a);
                 break;
-            case Button:
-                if (!controlElements[i].touchID || gInTouchConfig || gDjuiPanelPauseCreated) {
-                    render_texture(touch_textures[controlElements[i].buttonTexture.buttonUp], pos.x, pos.y, 16, 16, 1 + size, color.r, color.g, color.b, color.a);
-                } else {
-                    render_texture(touch_textures[controlElements[i].buttonTexture.buttonDown], pos.x, pos.y, 16, 16, 1 + size, color.r, color.g, color.b, color.a);
-                }
+            case TOUCH_TYPE_PAD:
                 break;
         }
     }
 }
 
 static void touchscreen_init(void) {
-    for (u32 i = 0; i < controlElementsLength; i++) {
-        controlElements[i].touchID = 0;
-        controlElements[i].joyX = 0;
-        controlElements[i].joyY = 0;
-        controlElements[i].slideTouch = 0;
+    for (uint32_t i = 0; i < TOUCH_COUNT; i++) {
+        struct TouchControl *control = &touchControls[i];
+        control->touchID = 0;
+        control->joyX = 0;
+        control->joyY = 0;
+        control->slideTouch = 0;
     }
 }
 
 static void touchscreen_read(OSContPad *pad) {
-    struct Position pos;
     s32 size;
     if (!gInTouchConfig && !gDjuiPanelPauseCreated) {
-        for(u32 i = 0; i < controlElementsLength; i++) {
-            pos = get_pos(&configControlElements[i]);
-            size = configControlElements[i].size * 100;
-            if (pos.y == HIDE_POS) continue;
-            switch (controlElements[i].type) {
-                case Joystick:
-                    if (controlElements[i].joyX || controlElements[i].joyY) {
-                        pad->stick_x = (controlElements[i].joyX + size / 2) * 255 / size - 128;
-                        pad->stick_y = (-controlElements[i].joyY + size / 2) * 255 / size - 128; //inverted for some reason
+        for (uint32_t i = 0; i < TOUCH_COUNT; i++) {
+            struct TouchControl control = touchControls[i];
+            ConfigTouchControl config = configTouchControls[i];
+            size = config.size * 100;
+            if (config.hidden) continue;
+            switch (control.type) {
+                case TOUCH_TYPE_JOYSTICK:
+                    if (control.joyX || control.joyY) {
+                        pad->stick_x = (control.joyX + size / 2) * 255 / size - 128;
+                        pad->stick_y = (-control.joyY + size / 2) * 255 / size - 128; //inverted for some reason
                     }
                     break;
-                case Mouse:
-                    break;
-                case Button:
-                    if (controlElements[i].touchID && controlElements[i].buttonID != CHAT_BUTTON && controlElements[i].buttonID != PLAYERLIST_BUTTON && controlElements[i].buttonID != CONSOLE_BUTTON) {
-                        pad->button |= controlElements[i].buttonID;
+                case TOUCH_TYPE_BUTTON:
+                    if (control.touchID && control.buttonID != CHAT_BUTTON && control.buttonID != PLAYERLIST_BUTTON && control.buttonID != CONSOLE_BUTTON) {
+                        pad->button |= control.buttonID;
                     }
+                    break;
+                case TOUCH_TYPE_PAD:
                     break;
             }
         }
     }
 }
 
-// Used by other controller types for setting keybinds
-// Doesn't make a huge amount of sense for a touchscreen,
-// So instead I allow customizing all button positions in
-// an entirely separate construction, which is fine for now
-// until someone wants multiple copies of the same button,
-// at which point I will have to decide how to do that
 static u32 touchscreen_rawkey(void) { 
     return VK_INVALID;
 }
 
+static void touchscreen_bind(void) {
+}
+
+static void touchscreen_shutdown(void) {
+}
+
 struct ControllerAPI controller_touchscreen = {
-    0,
+    VK_BASE_TOUCHSCREEN,
     touchscreen_init,
     touchscreen_read,
     touchscreen_rawkey,
     NULL,
     NULL,
-    NULL,
-    NULL
+    touchscreen_bind,
+    touchscreen_shutdown
 };
 #endif

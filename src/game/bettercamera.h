@@ -38,6 +38,7 @@ typedef struct {
     bool invertY;
     bool isMouse;
     bool isAnalogue; // Weither to accept inputs from a player 2 joystick, and then disables C button input.
+    bool isTouch;
     bool useDPad;
     bool hasCollision;
     bool LCentering;

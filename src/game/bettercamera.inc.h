@@ -72,6 +72,7 @@ NewCamera gNewCamera = {
     .invertY                = false,
     .isMouse                = false,
     .isAnalogue             = false,
+    .isTouch                = false,
     .useDPad                = false,
     .hasCollision           = true,
     .LCentering             = true,
@@ -172,6 +173,9 @@ void newcam_init_settings(void) {
     gNewCamera.invertX      = camera_config_is_x_inverted();
     gNewCamera.invertY      = camera_config_is_y_inverted();
     gNewCamera.isMouse      = camera_config_is_mouse_look_enabled();
+#ifdef TOUCH_CONTROLS
+    gNewCamera.isTouch      = configFreeCameraTouch;
+#endif
     gNewCamera.isAnalogue   = camera_config_is_analog_cam_enabled();
     gNewCamera.useDPad      = camera_config_is_dpad_enabled();
     gNewCamera.hasCollision = camera_config_is_collision_enabled();
@@ -255,17 +259,22 @@ static void newcam_rotate_button(void) {
         }
     }
 
+#ifdef TOUCH_CONTROLS
+    // Touch control
+    if (gNewCamera.isTouch && !gDjuiInMainMenu && !gDjuiChatBoxFocus && !gDjuiConsoleFocus) {
+        if (!gNewCamera.useDPad || !gNewCamera.directionLocked) {
+            gNewCamera.yaw += newcam_ivrt(0) * touch_x * 2 * (gNewCamera.sensitivityX / 250.f);
+        }
+        gNewCamera.tilt += newcam_ivrt(1) * touch_y * 2 * (gNewCamera.sensitivityY / 250.f);
+    }
+#endif
+    
     // Mouse control
     if (gNewCamera.isMouse && !gDjuiInMainMenu && !gDjuiChatBoxFocus && !gDjuiConsoleFocus) {
-#ifdef TOUCH_CONTROLS // In the future, check if touch controls exist instead of checking for the TOUCH_CONTROLS define
-        gNewCamera.yaw += newcam_ivrt(0) * touch_x * 2 * configFreeCameraXSens;
-        gNewCamera.tilt += newcam_ivrt(1) * touch_y * 2 * configFreeCameraYSens;
-#else
         if (!gNewCamera.useDPad || !gNewCamera.directionLocked) {
             gNewCamera.yaw += newcam_ivrt(0) * mouse_x * 16.f * (gNewCamera.sensitivityX / 250.f);
         }
         gNewCamera.tilt += newcam_ivrt(1) * mouse_y * 16.f * (gNewCamera.sensitivityY / 250.f);
-#endif
     }
 
     // Dpad behaviors

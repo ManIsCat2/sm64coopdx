@@ -274,14 +274,13 @@ jobs:
             - name: Build the game
               run: |
                 make -j$(nproc) TOUCH_CONTROLS=1
-                cd platform
-                chmod +x ./gradlew
-                ./gradlew assembleRelease
+                chmod +x ./platform/gradlew
+                ./platform/gradlew assembleRelease
                 apksigner sign \
                   --key android/key.pk8 \
                   --cert android/certificate.pem \
-                  app/build/outputs/apk/release/app-release-unsigned.apk
-                mv app/build/outputs/apk/release/app-release-unsigned.apk ../build/us_pc/sm64coopdx.apk
+                  platform/app/build/outputs/apk/release/app-release-unsigned.apk
+                mv platform/app/build/outputs/apk/release/app-release-unsigned.apk build/us_pc/sm64coopdx.apk
 
             - name: Generate hash
               run: |

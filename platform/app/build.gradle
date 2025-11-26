@@ -7,6 +7,8 @@ else {
     apply plugin: 'com.android.library'
 }
 
+def assetNames = ["lang", "mods", "dynos", "palettes"]
+
 android {
     compileSdkVersion 33
     defaultConfig {
@@ -43,24 +45,25 @@ android {
         tasks["merge${variant.name.capitalize()}Assets"]
             .dependsOn("externalNativeBuild${variant.name.capitalize()}")
     }
-    if (buildAsApplication) {
-        android.applicationVariants.all { variant ->
-            def variantName = variant.name.capitalize()
-            def mergeAssetsTask = tasks.named("merge${variantName}Assets")
-            def copyTask = tasks.register("copySelectedAssetsFor${variantName}", Copy) {
-                ["lang", "mods", "dynos", "palettes"].each { fname ->
-                    def f = file("../../${fname}")
-                    if (f.exists()) {
-                        from(f) { into(fname) }
+    tasks.register("copyGameAssets") {
+        doLast {
+            def dest = file("$projectDir/src/main/assets")
+            if (dest.exists()) {
+                dest.deleteDir()
+            }
+            dest.mkdirs()
+            assetNames.each { folderName ->
+                def src = new File(rootProject.projectDir, folderName)
+                if (src.exists()) {
+                    copy {
+                        from src
+                        into new File(dest, folderName)
                     }
                 }
-                into(mergeAssetsTask.get().outputDir)
-            }
-            mergeAssetsTask.configure {
-                dependsOn(copyTask)
             }
         }
     }
+    preBuild.dependsOn copyGameAssets
     namespace 'com.maniscat2.sm64coopdx'
     lint {
         abortOnError false

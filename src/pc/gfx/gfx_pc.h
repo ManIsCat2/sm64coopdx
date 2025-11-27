@@ -23,6 +23,7 @@ void gfx_start_frame(void);
 void gfx_run(Gfx *commands);
 void gfx_end_frame_render(void);
 void gfx_display_frame(void);
+void gfx_run_commands_immediate(Gfx *commands);
 void gfx_end_frame(void);
 void gfx_shutdown(void);
 void gfx_pc_precomp_shader(uint32_t rgb1, uint32_t alpha1, uint32_t rgb2, uint32_t alpha2, uint32_t flags);

@@ -11,6 +11,7 @@ static void djui_panel_sound_value_change(UNUSED struct DjuiBase* caller) {
 
 void djui_panel_sound_create(struct DjuiBase* caller) {
     struct DjuiThreePanel* panel = djui_panel_menu_create(DLANG(SOUND, SOUND), false);
+    djui_base_set_alignment(&panel->base, DJUI_HALIGN_CENTER, DJUI_VALIGN_CENTER);
     struct DjuiBase* body = djui_three_panel_get_body(panel);
     {
         djui_slider_create(body, DLANG(SOUND, MASTER_VOLUME), &configMasterVolume, 0, 127, djui_panel_sound_value_change);

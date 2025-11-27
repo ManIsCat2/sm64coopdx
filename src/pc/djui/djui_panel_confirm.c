@@ -5,6 +5,7 @@
 
 void djui_panel_confirm_create(struct DjuiBase* caller, char* title, char* message, void (*on_yes_click)(struct DjuiBase*)) {
     struct DjuiThreePanel* panel = djui_panel_menu_create(title, false);
+    djui_base_set_alignment(&panel->base, DJUI_HALIGN_CENTER, DJUI_VALIGN_CENTER);
     struct DjuiBase* body = djui_three_panel_get_body(panel);
     {
         struct DjuiText* text = djui_text_create(body, message);

@@ -2179,6 +2179,12 @@ normal_rendering:
     gfx_run_dl(commands);
 }
 
+void gfx_run_commands_immediate(Gfx *commands) {
+    gfx_sp_reset();
+    gfx_run_dl(commands);
+    gfx_flush();
+}
+
 void gfx_end_frame_render(void) {
     gfx_flush();
     gfx_rapi->end_frame();

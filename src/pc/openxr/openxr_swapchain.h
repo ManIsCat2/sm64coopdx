@@ -31,6 +31,17 @@ int createOpenXRSwapchains(
     OpenXRSwapchain** rightSwapchain
 );
 
+// Create a swapchain for a quad layer
+// Returns 1 on success, 0 on failure
+int createQuadSwapchain(
+    XrInstance instance,
+    XrSystemId systemId,
+    XrSession session,
+    uint32_t width,
+    uint32_t height,
+    OpenXRSwapchain** swapchain
+);
+
 // Destroy swapchain and free memory
 void destroyOpenXRSwapchain(OpenXRSwapchain* swapchain);
 

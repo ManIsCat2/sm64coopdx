@@ -57,6 +57,7 @@ void djui_panel_pause_create(struct DjuiBase* caller) {
 
     struct DjuiBase* defaultBase = NULL;
     struct DjuiThreePanel* panel = djui_panel_menu_create(DLANG(PAUSE, PAUSE_TITLE), false);
+    djui_base_set_alignment(&panel->base, DJUI_HALIGN_CENTER, DJUI_VALIGN_CENTER);
     struct DjuiBase* body = djui_three_panel_get_body(panel);
     {
         struct DjuiRect* rect1 = djui_rect_container_create(body, 64);

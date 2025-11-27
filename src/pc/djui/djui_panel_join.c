@@ -19,6 +19,7 @@ void djui_panel_join_create(struct DjuiBase* caller) {
     djui_panel_join_direct_create(caller);
 #else
     struct DjuiThreePanel* panel = djui_panel_menu_create(DLANG(JOIN, JOIN_TITLE), false);
+    djui_base_set_alignment(&panel->base, DJUI_HALIGN_CENTER, DJUI_VALIGN_CENTER);
     struct DjuiBase* body = djui_three_panel_get_body(panel);
     {
         djui_button_create(body, DLANG(JOIN, PUBLIC_LOBBIES), DJUI_BUTTON_STYLE_NORMAL, djui_panel_join_public_lobbies);

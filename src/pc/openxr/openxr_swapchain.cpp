@@ -179,6 +179,127 @@ int createOpenXRSwapchains(
     return 1;
 }
 
+int createQuadSwapchain(
+    XrInstance instance,
+    XrSystemId systemId,
+    XrSession session,
+    uint32_t width,
+    uint32_t height,
+    OpenXRSwapchain** swapchain
+)
+{
+    // Enumerate swapchain formats
+    uint32_t formatCount = 0;
+    XrResult result = xrEnumerateSwapchainFormats(session, 0, &formatCount, nullptr);
+    
+    if (result != XR_SUCCESS) {
+        cerr << "Failed to enumerate swapchain formats: " << result << endl;
+        return 0;
+    }
+    
+    vector<int64_t> formats(formatCount);
+    result = xrEnumerateSwapchainFormats(session, formatCount, &formatCount, formats.data());
+    
+    if (result != XR_SUCCESS) {
+        cerr << "Failed to enumerate swapchain formats: " << result << endl;
+        return 0;
+    }
+    
+    // Choose format - prefer SRGB for color accuracy
+    int64_t chosenFormat = formats[0];
+    for (int64_t format : formats) {
+        if (format == VK_FORMAT_R8G8B8A8_SRGB || format == VK_FORMAT_B8G8R8A8_SRGB) {
+            chosenFormat = format;
+            break;
+        }
+    }
+    
+    cout << "Selected quad swapchain format: " << chosenFormat << endl;
+    
+    OpenXRSwapchain* sc = (OpenXRSwapchain*)calloc(1, sizeof(OpenXRSwapchain));
+    if (!sc) {
+        cerr << "Failed to allocate swapchain structure" << endl;
+        return 0;
+    }
+    
+    sc->format = (VkFormat)chosenFormat;
+    sc->width = width;
+    sc->height = height;
+    
+    cout << "Creating quad swapchain with resolution " << sc->width << "x" << sc->height << endl;
+    
+    // Create swapchain
+    XrSwapchainCreateInfo swapchainCreateInfo{};
+    swapchainCreateInfo.type = XR_TYPE_SWAPCHAIN_CREATE_INFO;
+    swapchainCreateInfo.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | 
+                                     XR_SWAPCHAIN_USAGE_SAMPLED_BIT |
+                                     XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT;
+    swapchainCreateInfo.format = chosenFormat;
+    swapchainCreateInfo.sampleCount = 1;
+    swapchainCreateInfo.width = sc->width;
+    swapchainCreateInfo.height = sc->height;
+    swapchainCreateInfo.faceCount = 1;
+    swapchainCreateInfo.arraySize = 1;
+    swapchainCreateInfo.mipCount = 1;
+    
+    result = xrCreateSwapchain(session, &swapchainCreateInfo, &sc->swapchain);
+    
+    if (result != XR_SUCCESS) {
+        cerr << "Failed to create quad swapchain: " << result << endl;
+        free(sc);
+        return 0;
+    }
+    
+    // Get swapchain images
+    uint32_t imageCount = 0;
+    result = xrEnumerateSwapchainImages(sc->swapchain, 0, &imageCount, nullptr);
+    
+    if (result != XR_SUCCESS) {
+        cerr << "Failed to enumerate swapchain images: " << result << endl;
+        xrDestroySwapchain(sc->swapchain);
+        free(sc);
+        return 0;
+    }
+    
+    vector<XrSwapchainImageVulkanKHR> swapchainImages(imageCount);
+    for (uint32_t j = 0; j < imageCount; j++) {
+        swapchainImages[j].type = XR_TYPE_SWAPCHAIN_IMAGE_VULKAN_KHR;
+        swapchainImages[j].next = nullptr;
+    }
+    
+    result = xrEnumerateSwapchainImages(
+        sc->swapchain,
+        imageCount,
+        &imageCount,
+        (XrSwapchainImageBaseHeader*)swapchainImages.data()
+    );
+    
+    if (result != XR_SUCCESS) {
+        cerr << "Failed to get swapchain images: " << result << endl;
+        xrDestroySwapchain(sc->swapchain);
+        free(sc);
+        return 0;
+    }
+    
+    sc->imageCount = imageCount;
+    sc->images = (VkImage*)calloc(imageCount, sizeof(VkImage));
+    if (!sc->images) {
+        cerr << "Failed to allocate image array" << endl;
+        xrDestroySwapchain(sc->swapchain);
+        free(sc);
+        return 0;
+    }
+    
+    for (uint32_t j = 0; j < imageCount; j++) {
+        sc->images[j] = swapchainImages[j].image;
+    }
+    
+    cout << "Created quad swapchain with " << imageCount << " images" << endl;
+    
+    *swapchain = sc;
+    return 1;
+}
+
 void destroyOpenXRSwapchain(OpenXRSwapchain* swapchain)
 {
     if (!swapchain) return;

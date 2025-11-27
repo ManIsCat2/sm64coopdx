@@ -51,6 +51,9 @@ void vr_renderer_get_viewport(int eye, uint32_t* width, uint32_t* height);
 int vr_renderer_get_eye_pose(int eye, float* position_x, float* position_y, float* position_z,
                                float* orientation_x, float* orientation_y, float* orientation_z, float* orientation_w);
 
+// Get the quad layer dimensions
+void vr_renderer_get_quad_dimensions(uint32_t* width, uint32_t* height);
+
 #ifdef __cplusplus
 }
 
@@ -67,6 +70,10 @@ uint32_t vr_renderer_get_swapchain_format(int eye);
 
 // Get the number of swapchain images per eye
 uint32_t vr_renderer_get_swapchain_image_count(int eye);
+
+// Get the current quad layer swapchain image
+// Returns VK_NULL_HANDLE if not available
+VkImage vr_renderer_get_quad_swapchain_image(void);
 #endif
 
 #endif // VR_RENDERER_H

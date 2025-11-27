@@ -91,6 +91,7 @@ void djui_panel_host_create(struct DjuiBase* caller) {
     struct DjuiThreePanel* panel = djui_panel_menu_create(
         (gNetworkType == NT_SERVER) ? DLANG(HOST, SERVER_TITLE) : DLANG(HOST, HOST_TITLE),
         false);
+    djui_base_set_alignment(&panel->base, DJUI_HALIGN_CENTER, DJUI_VALIGN_CENTER);
     struct DjuiBase* body = djui_three_panel_get_body(panel);
     {
         #ifdef COOPNET

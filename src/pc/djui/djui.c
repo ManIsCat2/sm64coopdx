@@ -78,6 +78,15 @@ void patch_djui_before(void) {
 
 void patch_djui_interpolated(UNUSED f32 delta) {
     extern f32 gFramePercentage;
+#ifdef OPENXR_ENABLED
+    extern int vr_renderer_is_initialized(void);
+    extern void vr_opengl_render_djui_to_quad(void);
+    if (vr_renderer_is_initialized()) {
+        vr_opengl_render_djui_to_quad();
+        sDjuiRendered60fps = true;
+        return;
+    }
+#endif
     if (gDjuiInMainMenu || gDjuiPanelPauseCreated) {
         if (gFramePercentage >= 0.5f && !sDjuiRendered60fps) {
             // reset the head and re-render DJUI

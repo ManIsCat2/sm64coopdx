@@ -20,6 +20,7 @@ static struct {
     bool initialized;
     OpenXRSwapchain* leftSwapchain;
     OpenXRSwapchain* rightSwapchain;
+    OpenXRSwapchain* quadSwapchain;
     
     // OpenXR handles (from manager)
     XrInstance xrInstance;
@@ -37,8 +38,10 @@ static struct {
     
     // Swapchain image indices
     uint32_t swapchainIndices[2];
+    uint32_t quadSwapchainIndex;
 } g_vr_renderer = {
     false,
+    nullptr,
     nullptr,
     nullptr,
     XR_NULL_HANDLE,
@@ -49,7 +52,8 @@ static struct {
     false,
     {},
     false,
-    {0, 0}
+    {0, 0},
+    0
 };
 
 int vr_renderer_init(void)
@@ -90,6 +94,17 @@ int vr_renderer_init(void)
         cerr << "Failed to create OpenXR swapchains" << endl;
         return 0;
     }
+
+    // Create quad swapchain (fixed size for now, e.g., 1024x1024)
+    if (!createQuadSwapchain(
+            g_vr_renderer.xrInstance,
+            g_vr_renderer.xrSystemId,
+            g_vr_renderer.xrSession,
+            1280, 720,
+            &g_vr_renderer.quadSwapchain)) {
+        cerr << "Failed to create OpenXR quad swapchain" << endl;
+        return 0;
+    }
     
     cout << "VR renderer initialized successfully" << endl;
     cout << "Left eye: " << g_vr_renderer.leftSwapchain->width 
@@ -111,9 +126,11 @@ void vr_renderer_shutdown(void)
     
     destroyOpenXRSwapchain(g_vr_renderer.leftSwapchain);
     destroyOpenXRSwapchain(g_vr_renderer.rightSwapchain);
+    destroyOpenXRSwapchain(g_vr_renderer.quadSwapchain);
     
     g_vr_renderer.leftSwapchain = nullptr;
     g_vr_renderer.rightSwapchain = nullptr;
+    g_vr_renderer.quadSwapchain = nullptr;
     g_vr_renderer.initialized = false;
     
     cout << "VR renderer shutdown complete" << endl;
@@ -233,6 +250,30 @@ int vr_renderer_end_frame(void)
             cerr << "Failed to release swapchain image for eye " << eye << ": " << result << endl;
         }
     }
+
+    // Handle Quad Layer
+    if (g_vr_renderer.quadSwapchain) {
+        XrSwapchainImageAcquireInfo acquireInfo{};
+        acquireInfo.type = XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO;
+        uint32_t imageIndex;
+        if (xrAcquireSwapchainImage(g_vr_renderer.quadSwapchain->swapchain, &acquireInfo, &imageIndex) == XR_SUCCESS) {
+            XrSwapchainImageWaitInfo waitInfo{};
+            waitInfo.type = XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO;
+            waitInfo.timeout = XR_INFINITE_DURATION;
+            if (xrWaitSwapchainImage(g_vr_renderer.quadSwapchain->swapchain, &waitInfo) == XR_SUCCESS) {
+                
+                // Store the quad swapchain index for use by the copy system
+                g_vr_renderer.quadSwapchainIndex = imageIndex;
+                
+                // Note: The actual rendering to the quad layer will be done by vr_opengl
+                // and copied to the swapchain image by vr_copy
+
+                XrSwapchainImageReleaseInfo releaseInfo{};
+                releaseInfo.type = XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO;
+                xrReleaseSwapchainImage(g_vr_renderer.quadSwapchain->swapchain, &releaseInfo);
+            }
+        }
+    }
     
     // Submit frame to OpenXR
     XrCompositionLayerProjectionView projectionViews[2]{};
@@ -255,15 +296,59 @@ int vr_renderer_end_frame(void)
     layer.viewCount = 2;
     layer.views = projectionViews;
     
+
+
+    // Quad Layer - Head-locked (follows player rotation)
+    // Calculate center position between both eyes
+    XrPosef centerPose{};
+    centerPose.position.x = (g_vr_renderer.views[0].pose.position.x + g_vr_renderer.views[1].pose.position.x) / 2.0f;
+    centerPose.position.y = (g_vr_renderer.views[0].pose.position.y + g_vr_renderer.views[1].pose.position.y) / 2.0f;
+    centerPose.position.z = (g_vr_renderer.views[0].pose.position.z + g_vr_renderer.views[1].pose.position.z) / 2.0f;
+    
+    // Use the orientation from the left eye (both should be very similar)
+    centerPose.orientation = g_vr_renderer.views[0].pose.orientation;
+    
+    // Calculate forward vector from the head orientation
+    XrQuaternionf q = centerPose.orientation;
+    XrVector3f forward;
+    // Negate X and Y to get the -Z (Forward) direction
+    forward.x = -2.0f * (q.x * q.z + q.w * q.y);
+    forward.y = -2.0f * (q.y * q.z - q.w * q.x);
+    forward.z = -1.0f + 2.0f * (q.x * q.x + q.y * q.y);
+    
+    // Position the quad 1.5 meters in front of the head
+    float distance = 1.5f;
+    XrVector3f quadPosition;
+    quadPosition.x = centerPose.position.x + forward.x * distance;
+    quadPosition.y = centerPose.position.y + forward.y * distance;
+    quadPosition.z = centerPose.position.z + forward.z * distance;
+    
+    // Use the head orientation directly so the quad rotates with the head
+    XrQuaternionf quadOrientation = centerPose.orientation;
+    
+    XrCompositionLayerQuad quadLayer{};
+    quadLayer.type = XR_TYPE_COMPOSITION_LAYER_QUAD;
+    quadLayer.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT; // Enable alpha blending
+    quadLayer.space = g_vr_renderer.xrSpace;
+    quadLayer.subImage.swapchain = g_vr_renderer.quadSwapchain->swapchain;
+    quadLayer.subImage.imageRect.offset = {0, 0};
+    quadLayer.subImage.imageRect.extent = {(int32_t)g_vr_renderer.quadSwapchain->width, (int32_t)g_vr_renderer.quadSwapchain->height};
+    quadLayer.subImage.imageArrayIndex = 0;
+    quadLayer.pose.orientation = quadOrientation;
+    quadLayer.pose.position = quadPosition; // Position in front of head
+    quadLayer.size = {1.0f, 1.0f}; // 1x1 meter
+    quadLayer.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+
     const XrCompositionLayerBaseHeader* layers[] = {
-        (const XrCompositionLayerBaseHeader*)&layer
+        (const XrCompositionLayerBaseHeader*)&layer,
+        (const XrCompositionLayerBaseHeader*)&quadLayer
     };
     
     XrFrameEndInfo frameEndInfo{};
     frameEndInfo.type = XR_TYPE_FRAME_END_INFO;
     frameEndInfo.displayTime = g_vr_renderer.frameState.predictedDisplayTime;
     frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
-    frameEndInfo.layerCount = 1;
+    frameEndInfo.layerCount = 2;
     frameEndInfo.layers = layers;
     
     XrResult result = xrEndFrame(g_vr_renderer.xrSession, &frameEndInfo);
@@ -460,3 +545,29 @@ uint32_t vr_renderer_get_swapchain_image_count(int eye)
     return swapchain->imageCount;
 }
 
+// Get the current quad layer swapchain image
+VkImage vr_renderer_get_quad_swapchain_image(void)
+{
+    if (!g_vr_renderer.initialized || !g_vr_renderer.quadSwapchain) {
+        return VK_NULL_HANDLE;
+    }
+    
+    if (g_vr_renderer.quadSwapchainIndex >= g_vr_renderer.quadSwapchain->imageCount) {
+        return VK_NULL_HANDLE;
+    }
+    
+    return g_vr_renderer.quadSwapchain->images[g_vr_renderer.quadSwapchainIndex];
+}
+
+// Get the quad layer dimensions
+void vr_renderer_get_quad_dimensions(uint32_t* width, uint32_t* height)
+{
+    if (!g_vr_renderer.initialized || !g_vr_renderer.quadSwapchain) {
+        *width = 0;
+        *height = 0;
+        return;
+    }
+    
+    *width = g_vr_renderer.quadSwapchain->width;
+    *height = g_vr_renderer.quadSwapchain->height;
+}

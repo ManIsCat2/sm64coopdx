@@ -253,8 +253,19 @@ void end_master_display_list(void) {
         draw_profiler();
     }
 
-    extern void djui_render(void);
-    djui_render();
+#ifdef OPENXR_ENABLED
+    // Render DJUI to quad layer in VR mode
+    extern int vr_renderer_is_initialized(void);
+    extern void vr_opengl_render_djui_to_quad(void);
+    if (vr_renderer_is_initialized()) {
+        vr_opengl_render_djui_to_quad();
+    } else
+#endif
+    {
+        // Render DJUI normally (non-VR or VR initialization not complete)
+        extern void djui_render(void);
+        djui_render();
+    }
 
     gDPFullSync(gDisplayListHead++);
     gSPEndDisplayList(gDisplayListHead++);

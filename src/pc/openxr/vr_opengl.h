@@ -37,6 +37,13 @@ unsigned int vr_opengl_get_texture(int eye);
 // Get the viewport dimensions for an eye
 void vr_opengl_get_viewport(int eye, uint32_t* width, uint32_t* height);
 
+// Get the quad layer framebuffer ID
+unsigned int vr_opengl_get_quad_framebuffer(void);
+
+// Render DJUI to the quad layer
+// This binds the quad framebuffer, clears it, and copies to Vulkan swapchain
+void vr_opengl_render_djui_to_quad(void);
+
 #ifdef __cplusplus
 }
 #endif

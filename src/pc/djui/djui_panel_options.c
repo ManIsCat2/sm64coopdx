@@ -19,6 +19,7 @@ static void djui_panel_options_back(struct DjuiBase* caller) {
 
 void djui_panel_options_create(struct DjuiBase* caller) {
     struct DjuiThreePanel* panel = djui_panel_menu_create(DLANG(OPTIONS, OPTIONS), false);
+    djui_base_set_alignment(&panel->base, DJUI_HALIGN_CENTER, DJUI_VALIGN_CENTER);
     struct DjuiBase* body = djui_three_panel_get_body(panel);
     {
         if (gDjuiInMainMenu) {

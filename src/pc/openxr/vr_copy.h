@@ -21,6 +21,10 @@ int vr_copy_is_initialized(void);
 // Returns 1 on success, 0 on failure
 int vr_copy_framebuffer_to_swapchain(int eye);
 
+// Copy quad layer framebuffer to Vulkan swapchain image
+// Returns 1 on success, 0 on failure
+int vr_copy_quad_to_swapchain(void);
+
 #ifdef __cplusplus
 }
 #endif

@@ -17,6 +17,7 @@ static void djui_panel_romhack_camera_value_changed(UNUSED struct DjuiBase* call
 
 void djui_panel_free_camera_create(struct DjuiBase* caller) {
     struct DjuiThreePanel* panel = djui_panel_menu_create(DLANG(CAMERA, FREE_CAMERA_TITLE), false);
+    djui_base_set_alignment(&panel->base, DJUI_HALIGN_CENTER, DJUI_VALIGN_CENTER);
     struct DjuiBase* body = djui_three_panel_get_body(panel);
     {
         djui_checkbox_create(body, DLANG(CAMERA, FREE_CAMERA), &configEnableFreeCamera, djui_panel_free_camera_value_changed);
@@ -39,6 +40,7 @@ void djui_panel_free_camera_create(struct DjuiBase* caller) {
 
 void djui_panel_romhack_camera_create(struct DjuiBase* caller) {
     struct DjuiThreePanel* panel = djui_panel_menu_create(DLANG(CAMERA, ROMHACK_CAMERA_TITLE), false);
+    djui_base_set_alignment(&panel->base, DJUI_HALIGN_CENTER, DJUI_VALIGN_CENTER);
     struct DjuiBase* body = djui_three_panel_get_body(panel);
     {
         char* choices[3] = { DLANG(CAMERA, ROMHACK_CAMERA_AUTOMATIC), DLANG(CAMERA, ROMHACK_CAMERA_ON), DLANG(CAMERA, ROMHACK_CAMERA_OFF) };
@@ -58,6 +60,7 @@ void djui_panel_romhack_camera_create(struct DjuiBase* caller) {
 
 void djui_panel_camera_create(struct DjuiBase* caller) {
     struct DjuiThreePanel* panel = djui_panel_menu_create(DLANG(CAMERA, CAMERA), false);
+    djui_base_set_alignment(&panel->base, DJUI_HALIGN_CENTER, DJUI_VALIGN_CENTER);
     struct DjuiBase* body = djui_three_panel_get_body(panel);
     {
         djui_button_create(body, DLANG(CAMERA, FREE_CAMERA), DJUI_BUTTON_STYLE_NORMAL, djui_panel_free_camera_create);

@@ -72,6 +72,9 @@ f32 djui_gfx_get_scale(void) {
         gfx_get_dimensions(&windowWidth, &windowHeight);
         return clamp(round_to_multiple_f(((f32)windowHeight / (f32)SCREEN_HEIGHT) / 4.0f, 0.5f), 0.5f, 1.5f);
     } else {
+        #ifdef OPENXR_ENABLED
+            return 2.0f;
+        #endif
         switch (configDjuiScale) {
             case 1:  return 0.5f;
             case 2:  return 0.85f;

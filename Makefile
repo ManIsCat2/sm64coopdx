@@ -167,6 +167,10 @@ ifeq ($(TARGET_ANDROID),1)
   HANDHELD := 1
 endif
 
+ifeq ($(OPENXR),1)
+  TOUCH_CONTROLS := 0
+endif
+
 ifeq ($(WINDOWS_BUILD),1)
   ifeq ($(CROSS),i686-w64-mingw32.static-)
     TARGET_ARCH = i386pe
@@ -1687,8 +1691,6 @@ else
   # Android Files
   ifeq ($(TARGET_ANDROID),1)
     APK_FILES := $(shell find platform/android/ -type f)
-
-  $(info $(ANDROID_ARCH))
 
   # Copying Libraries and Assets
   $(ZIP_UNCOMPRESSED): $(EXE) $(APK_FILES)

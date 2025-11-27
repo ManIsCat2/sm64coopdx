@@ -7,6 +7,9 @@
 #include "controller_keyboard.h"
 #include "controller_touchscreen.h"
 #include "controller_sdl.h"
+#ifdef OPENXR_ENABLED
+#include "controller_openxr.h"
+#endif
 
 // Analog camera movement by Pathétique (github.com/vrmiguel), y0shin and Mors
 // Contribute or communicate bugs at github.com/vrmiguel/sm64-analog-camera
@@ -20,6 +23,9 @@ static struct ControllerAPI *controller_implementations[] = {
     &controller_keyboard,
 #ifdef TOUCH_CONTROLS
     &controller_touchscreen,
+#endif
+#ifdef OPENXR_ENABLED
+    &controller_openxr,
 #endif
 };
 

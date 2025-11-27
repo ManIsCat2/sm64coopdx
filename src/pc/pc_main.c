@@ -596,9 +596,6 @@ int main(int argc, char *argv[]) {
         main_game_init(NULL); // failsafe incase threading doesn't work
     }
 
-    // initialize sm64 data and controllers
-    thread5_game_loop(NULL);
-
     // initialize sound outside threads
     if (gCLIOpts.headless) audio_api = &audio_null;
 #if defined(AAPI_SDL1) || defined(AAPI_SDL2)
@@ -631,6 +628,10 @@ int main(int argc, char *argv[]) {
         LOG_INFO("OpenXR context initialization failed, continuing without VR support");
     }
 #endif
+
+    // initialize sm64 data and controllers
+    // after openxr_init so we can use the vr controllers
+    thread5_game_loop(NULL);
 
     // initialize network
     if (gCLIOpts.network == NT_CLIENT) {

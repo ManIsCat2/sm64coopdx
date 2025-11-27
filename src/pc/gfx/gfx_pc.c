@@ -39,6 +39,13 @@
 #include "pc/gfx/gfx_screen_config.h"
 #include "pc/gfx/gfx_window_manager_api.h"
 
+#ifdef OPENXR_ENABLED
+#include "pc/openxr/vr_renderer.h"
+#include "pc/openxr/vr_opengl.h"
+#include "pc/openxr/vr_copy.h"
+#endif
+
+
 // this is used for multi-textures
 // and it's quite a hack... instead of allowing 8 tiles, we basically only allow 2
 #define G_TX_LOADTILE_6_UNKNOWN 6
@@ -75,6 +82,16 @@ static struct RSP {
     Light_t current_lights[MAX_LIGHTS + 1];
 
     struct GfxVertex loaded_vertices[MAX_VERTICES + 4];
+
+        
+#ifdef OPENXR_ENABLED
+    // VR rendering state
+    int vr_rendering_active;
+    int vr_current_eye;
+    ALIGNED16 Mat4 vr_projection_override;
+    ALIGNED16 Mat4 vr_view_offset;
+    bool vr_matrices_valid;
+#endif
 } rsp;
 
 static struct RDP {
@@ -665,6 +682,12 @@ static void OPTIMIZE_O3 gfx_sp_matrix(uint8_t parameters, const int32_t *addr) {
         } else {
             mtxf_mul(rsp.P_matrix, matrix, rsp.P_matrix);
         }
+#ifdef OPENXR_ENABLED
+        // Override projection matrix with VR-specific projection when in VR mode
+        if (rsp.vr_rendering_active && rsp.vr_matrices_valid) {
+            mtxf_copy(rsp.P_matrix, rsp.vr_projection_override);
+        }
+#endif
     } else { // G_MTX_MODELVIEW
         if ((parameters & G_MTX_PUSH) && rsp.modelview_matrix_stack_size < MAX_MATRIX_STACK_SIZE) {
             ++rsp.modelview_matrix_stack_size;
@@ -676,6 +699,14 @@ static void OPTIMIZE_O3 gfx_sp_matrix(uint8_t parameters, const int32_t *addr) {
             mtxf_mul(rsp.modelview_matrix_stack[rsp.modelview_matrix_stack_size - 1], matrix, rsp.modelview_matrix_stack[rsp.modelview_matrix_stack_size - 1]);
         }
         rsp.lights_changed = 1;
+#ifdef OPENXR_ENABLED
+        // Apply VR view matrix offset (IPD) to modelview matrix when in VR mode
+        if (rsp.vr_rendering_active && rsp.vr_matrices_valid) {
+            ALIGNED16 Mat4 temp_matrix;
+            mtxf_copy(temp_matrix, rsp.modelview_matrix_stack[rsp.modelview_matrix_stack_size - 1]);
+            mtxf_mul(rsp.modelview_matrix_stack[rsp.modelview_matrix_stack_size - 1], temp_matrix, rsp.vr_view_offset);
+        }
+#endif
     }
     mtxf_mul(rsp.MP_matrix, rsp.modelview_matrix_stack[rsp.modelview_matrix_stack_size - 1], rsp.P_matrix);
 }
@@ -1268,7 +1299,7 @@ static void gfx_calc_and_set_viewport(const Vp_t *viewport) {
     float width = 2.0f * viewport->vscale[0] / 4.0f;
     float height = 2.0f * viewport->vscale[1] / 4.0f;
     float x = (viewport->vtrans[0] / 4.0f) - width / 2.0f;
-    float y = SCREEN_HEIGHT - ((viewport->vtrans[1] / 4.0f) + height / 2.0f);
+    float y = (gfx_current_dimensions.height / RATIO_Y) - ((viewport->vtrans[1] / 4.0f) + height / 2.0f);
 
     width *= RATIO_X;
     height *= RATIO_Y;
@@ -1379,7 +1410,7 @@ static void gfx_sp_texture(uint16_t sc, uint16_t tc, UNUSED uint8_t level, UNUSE
 
 static void gfx_dp_set_scissor(UNUSED uint32_t mode, uint32_t ulx, uint32_t uly, uint32_t lrx, uint32_t lry) {
     float x = ulx / 4.0f * RATIO_X;
-    float y = (SCREEN_HEIGHT - lry / 4.0f) * RATIO_Y;
+    float y = (gfx_current_dimensions.height / RATIO_Y - lry / 4.0f) * RATIO_Y;
     float width = (lrx - ulx) / 4.0f * RATIO_X;
     float height = (lry - uly) / 4.0f * RATIO_Y;
 
@@ -2013,6 +2044,21 @@ void gfx_start_frame(void) {
     gfx_current_dimensions.x_adjust_ratio = (4.0f / 3.0f) / gfx_current_dimensions.aspect_ratio;
 }
 
+#ifdef OPENXR_ENABLED
+static void gfx_setup_vr_matrices_for_eye(int eye) {
+    // Fetch VR projection matrix for this eye
+    rsp.vr_matrices_valid = false;
+    
+    if (vr_renderer_get_projection_matrix(eye, (float*)rsp.vr_projection_override)) {
+        // Fetch VR view matrix (contains IPD offset)
+        if (vr_renderer_get_view_matrix(eye, (float*)rsp.vr_view_offset)) {
+            rsp.vr_matrices_valid = true;
+            rsp.vr_current_eye = eye;
+        }
+    }
+}
+#endif
+
 void gfx_run(Gfx *commands) {
     gfx_sp_reset();
 
@@ -2025,6 +2071,108 @@ void gfx_run(Gfx *commands) {
         return;
     }
     dropped_frame = false;
+
+#ifdef OPENXR_ENABLED
+    // Check if VR rendering is active
+    if (vr_renderer_is_initialized()) {
+        // VR rendering path - render to both eyes
+        if (!vr_renderer_begin_frame()) {
+            // VR frame not ready, fall back to normal rendering
+            static int once = 0;
+            if (!once) {
+                fprintf(stderr, "DEBUG: VR frame not ready, falling back to normal rendering\n");
+                once = 1;
+            }
+            goto normal_rendering;
+        }
+        
+        static int first_vr_frame = 1;
+        if (first_vr_frame) {
+            printf("DEBUG: Entering VR rendering path for first time\n");
+            first_vr_frame = 0;
+        }
+        
+        // Initialize VR OpenGL and VR copy if needed
+        static int vr_gl_initialized = 0;
+        static int vr_copy_initialized = 0;
+        if (!vr_gl_initialized) {
+            if (vr_opengl_init()) {
+                vr_gl_initialized = 1;
+                printf("VR OpenGL initialized for rendering\n");
+                
+                // Now initialize VR copy system
+                if (vr_copy_init()) {
+                    vr_copy_initialized = 1;
+                    printf("VR copy system initialized\n");
+                } else {
+                    fprintf(stderr, "Warning: Failed to initialize VR copy system. VR display may not work.\n");
+                }
+            } else {
+                fprintf(stderr, "Failed to initialize VR OpenGL, falling back to normal rendering\n");
+                goto normal_rendering;
+            }
+        }
+        
+        // Save current dimensions to restore after VR rendering
+        struct GfxDimensions saved_dimensions = gfx_current_dimensions;
+        
+        // Render to both eyes
+        for (int eye = 0; eye < 2; eye++) {
+            // Acquire swapchain image for this eye
+            if (!vr_renderer_render_eye(eye)) {
+                fprintf(stderr, "Failed to acquire swapchain for eye %d\n", eye);
+                continue;
+            }
+            
+            // Bind VR framebuffer for this eye
+            if (!vr_opengl_begin_eye(eye)) {
+                fprintf(stderr, "Failed to bind framebuffer for eye %d\n", eye);
+                continue;
+            }
+            
+            // Update dimensions to match VR viewport
+            uint32_t vr_width, vr_height;
+            vr_opengl_get_viewport(eye, &vr_width, &vr_height);
+            
+            gfx_current_dimensions.width = vr_width;
+            gfx_current_dimensions.height = vr_height;
+            gfx_current_dimensions.aspect_ratio = (float)vr_width / (float)vr_height;
+            
+            // Set up VR matrices for this eye (enables stereo separation)
+            gfx_setup_vr_matrices_for_eye(eye);
+            rsp.vr_rendering_active = 1;
+            
+            // Clear and render to this eye
+            gfx_rapi->start_frame();  // Clear buffers
+            gfx_run_dl(commands);      // Execute display list
+            gfx_flush();               // Flush pending triangles
+            
+            // Disable VR rendering mode for next frame
+            rsp.vr_rendering_active = 0;
+            
+            // Unbind VR framebuffer (also handles Vulkan-OpenGL interop copy)
+            vr_opengl_end_eye(eye);
+        }
+        
+        // Restore original dimensions for desktop rendering
+        gfx_current_dimensions = saved_dimensions;
+        
+        // End VR frame (submits to OpenXR)
+        vr_renderer_end_frame();
+        
+        // Also render to the desktop window so we can see what's happening
+        // This is optional but useful for debugging
+        gfx_rapi->start_frame();
+        gfx_run_dl(commands);
+        gfx_flush();
+        gfx_rapi->end_frame();
+        gfx_wapi->swap_buffers_begin();
+        
+        return;
+    }
+    
+normal_rendering:
+#endif
 
     //double t0 = gfx_wapi->get_time();
     gfx_rapi->start_frame();

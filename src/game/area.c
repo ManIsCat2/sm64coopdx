@@ -21,6 +21,11 @@
 #include "engine/geo_layout.h"
 #include "save_file.h"
 #include "level_table.h"
+#include "pc/nametags.h"
+#include "engine/lighting_engine.h"
+#ifdef OPENXR_ENABLED
+#include "pc/openxr/openxr_manager.h"
+#endif
 #include "gfx_dimensions.h"
 #include "game/ingame_menu.h"
 #include "pc/network/network.h"
@@ -453,31 +458,53 @@ void render_game(void) {
         gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, BORDER_HEIGHT, SCREEN_WIDTH,
                       SCREEN_HEIGHT - BORDER_HEIGHT);
 
-        if (!gDjuiDisabled) {
-            djui_reset_hud_params();
-            create_dl_ortho_matrix();
-            djui_gfx_displaylist_begin();
-            if (gServerSettings.nametags && !gDjuiInMainMenu) {
-                nametags_render();
+#ifdef OPENXR_ENABLED
+        extern bool gRenderingVREyes;
+
+        // extern int vr_renderer_is_initialized(void);
+        // if (!vr_renderer_is_initialized()) {
+        // Skip HUD and UI rendering when rendering to VR eye buffers
+        // These will be rendered separately to the quad layer
+
+        // TODO: fix
+        // this chunk of code will stop rendering left eye in castle when it is false
+        // with gRenderingVREyes as the condition, it still shows 2d elements when paused
+        // with vr_renderer fixes that, but doesnt render left eye in headset
+
+        if (!gRenderingVREyes) {
+#endif
+            if (!gDjuiDisabled) {
+                djui_reset_hud_params();
+                create_dl_ortho_matrix();
+                djui_gfx_displaylist_begin();
+                if (gServerSettings.nametags && !gDjuiInMainMenu) {
+                    nametags_render();
+                }
+                smlua_call_event_hooks(HOOK_ON_HUD_RENDER_BEHIND, djui_reset_hud_params);
+                djui_gfx_displaylist_end();
             }
-            smlua_call_event_hooks(HOOK_ON_HUD_RENDER_BEHIND, djui_reset_hud_params);
-            djui_gfx_displaylist_end();
-        }
-        render_hud();
+            render_hud();
 
-        gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-        render_text_labels();
-        do_cutscene_handler();
-        if (!gDjuiInMainMenu) {
-            print_displaying_credits_entry();
-        }
-        gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, BORDER_HEIGHT, SCREEN_WIDTH,
-                      SCREEN_HEIGHT - BORDER_HEIGHT);
-        gPauseScreenMode = render_menus_and_dialogs();
+            gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+            render_text_labels();
+            do_cutscene_handler();
+            if (!gDjuiInMainMenu) {
+                print_displaying_credits_entry();
+            }
+            gDPSetScissor(gDisplayListHead++, G_SC_NON_INTERLACE, 0, BORDER_HEIGHT, SCREEN_WIDTH,
+                          SCREEN_HEIGHT - BORDER_HEIGHT);
+            gPauseScreenMode = render_menus_and_dialogs();
 
-        if (gPauseScreenMode != 0) {
-            gSaveOptSelectIndex = gPauseScreenMode;
+            if (gPauseScreenMode != 0) {
+                gSaveOptSelectIndex = gPauseScreenMode;
+            }
+#ifdef OPENXR_ENABLED
+        } else {
+            // Ensure projection matrix is reset to Ortho even if we don't render HUD
+            // This prevents state leakage that causes the left eye to stop rendering
+            render_text_labels();
         }
+#endif
 
         if (gViewportClip != NULL) {
             make_viewport_clip_rect(gViewportClip);
@@ -501,12 +528,22 @@ void render_game(void) {
             }
         }
     } else {
+#ifdef OPENXR_ENABLED
+        if (!openxr_is_initialized()) {
+#endif
         render_text_labels();
         if (gViewportClip != NULL) {
             clear_viewport(gViewportClip, gWarpTransFBSetColor);
         } else {
             clear_frame_buffer(gWarpTransFBSetColor);
         }
+#ifdef OPENXR_ENABLED
+        } else {
+            // Ensure projection matrix is reset to Ortho even if we don't render HUD
+            // This prevents state leakage that causes the left eye to stop rendering
+            render_text_labels();
+        }
+#endif
     }
 
     gViewportOverride = NULL;

@@ -20,7 +20,8 @@ static struct {
     bool initialized;
     OpenXRSwapchain* leftSwapchain;
     OpenXRSwapchain* rightSwapchain;
-    OpenXRSwapchain* quadSwapchain;
+    OpenXRSwapchain* quadSwapchain;  // HUD layer
+    OpenXRSwapchain* djuiSwapchain;  // DJUI layer
     
     // OpenXR handles (from manager)
     XrInstance xrInstance;
@@ -38,9 +39,11 @@ static struct {
     
     // Swapchain image indices
     uint32_t swapchainIndices[2];
-    uint32_t quadSwapchainIndex;
+    uint32_t quadSwapchainIndex;  // HUD layer
+    uint32_t djuiSwapchainIndex;  // DJUI layer
 } g_vr_renderer = {
     false,
+    nullptr,
     nullptr,
     nullptr,
     nullptr,
@@ -53,6 +56,7 @@ static struct {
     {},
     false,
     {0, 0},
+    0,
     0
 };
 
@@ -95,16 +99,28 @@ int vr_renderer_init(void)
         return 0;
     }
 
-    // Create quad swapchain (fixed size for now, e.g., 1024x1024)
+    // Create quad swapchain for HUD layer (fixed size for now, e.g., 1280x720)
     if (!createQuadSwapchain(
             g_vr_renderer.xrInstance,
             g_vr_renderer.xrSystemId,
             g_vr_renderer.xrSession,
             1280, 720,
             &g_vr_renderer.quadSwapchain)) {
-        cerr << "Failed to create OpenXR quad swapchain" << endl;
+        cerr << "Failed to create OpenXR HUD quad swapchain" << endl;
         return 0;
     }
+
+    // Create DJUI swapchain (same size as HUD layer)
+    if (!createQuadSwapchain(
+            g_vr_renderer.xrInstance,
+            g_vr_renderer.xrSystemId,
+            g_vr_renderer.xrSession,
+            1280, 720,
+            &g_vr_renderer.djuiSwapchain)) {
+        cerr << "Failed to create OpenXR DJUI quad swapchain" << endl;
+        return 0;
+    }
+
     
     cout << "VR renderer initialized successfully" << endl;
     cout << "Left eye: " << g_vr_renderer.leftSwapchain->width 
@@ -127,10 +143,12 @@ void vr_renderer_shutdown(void)
     destroyOpenXRSwapchain(g_vr_renderer.leftSwapchain);
     destroyOpenXRSwapchain(g_vr_renderer.rightSwapchain);
     destroyOpenXRSwapchain(g_vr_renderer.quadSwapchain);
+    destroyOpenXRSwapchain(g_vr_renderer.djuiSwapchain);
     
     g_vr_renderer.leftSwapchain = nullptr;
     g_vr_renderer.rightSwapchain = nullptr;
     g_vr_renderer.quadSwapchain = nullptr;
+    g_vr_renderer.djuiSwapchain = nullptr;
     g_vr_renderer.initialized = false;
     
     cout << "VR renderer shutdown complete" << endl;
@@ -251,7 +269,7 @@ int vr_renderer_end_frame(void)
         }
     }
 
-    // Handle Quad Layer
+    // Handle HUD Quad Layer
     if (g_vr_renderer.quadSwapchain) {
         XrSwapchainImageAcquireInfo acquireInfo{};
         acquireInfo.type = XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO;
@@ -262,15 +280,39 @@ int vr_renderer_end_frame(void)
             waitInfo.timeout = XR_INFINITE_DURATION;
             if (xrWaitSwapchainImage(g_vr_renderer.quadSwapchain->swapchain, &waitInfo) == XR_SUCCESS) {
                 
-                // Store the quad swapchain index for use by the copy system
+                // Store the HUD quad swapchain index for use by the copy system
                 g_vr_renderer.quadSwapchainIndex = imageIndex;
                 
-                // Note: The actual rendering to the quad layer will be done by vr_opengl
+                // Note: The actual rendering to the HUD quad layer will be done by vr_opengl
                 // and copied to the swapchain image by vr_copy
 
                 XrSwapchainImageReleaseInfo releaseInfo{};
                 releaseInfo.type = XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO;
                 xrReleaseSwapchainImage(g_vr_renderer.quadSwapchain->swapchain, &releaseInfo);
+            }
+        }
+    }
+
+    // Handle DJUI Quad Layer
+    if (g_vr_renderer.djuiSwapchain) {
+        XrSwapchainImageAcquireInfo acquireInfo{};
+        acquireInfo.type = XR_TYPE_SWAPCHAIN_IMAGE_ACQUIRE_INFO;
+        uint32_t imageIndex;
+        if (xrAcquireSwapchainImage(g_vr_renderer.djuiSwapchain->swapchain, &acquireInfo, &imageIndex) == XR_SUCCESS) {
+            XrSwapchainImageWaitInfo waitInfo{};
+            waitInfo.type = XR_TYPE_SWAPCHAIN_IMAGE_WAIT_INFO;
+            waitInfo.timeout = XR_INFINITE_DURATION;
+            if (xrWaitSwapchainImage(g_vr_renderer.djuiSwapchain->swapchain, &waitInfo) == XR_SUCCESS) {
+                
+                // Store the DJUI quad swapchain index for use by the copy system
+                g_vr_renderer.djuiSwapchainIndex = imageIndex;
+                
+                // Note: The actual rendering to the DJUI quad layer will be done by vr_opengl
+                // and copied to the swapchain image by vr_copy
+
+                XrSwapchainImageReleaseInfo releaseInfo{};
+                releaseInfo.type = XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO;
+                xrReleaseSwapchainImage(g_vr_renderer.djuiSwapchain->swapchain, &releaseInfo);
             }
         }
     }
@@ -320,35 +362,52 @@ int vr_renderer_end_frame(void)
     float distance = 1.5f;
     XrVector3f quadPosition;
     quadPosition.x = centerPose.position.x + forward.x * distance;
-    quadPosition.y = centerPose.position.y + forward.y * distance;
+    quadPosition.y = centerPose.position.y + forward.y * distance - 0.3f; 
     quadPosition.z = centerPose.position.z + forward.z * distance;
     
     // Use the head orientation directly so the quad rotates with the head
     XrQuaternionf quadOrientation = centerPose.orientation;
     
-    XrCompositionLayerQuad quadLayer{};
-    quadLayer.type = XR_TYPE_COMPOSITION_LAYER_QUAD;
-    quadLayer.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT; // Enable alpha blending
-    quadLayer.space = g_vr_renderer.xrSpace;
-    quadLayer.subImage.swapchain = g_vr_renderer.quadSwapchain->swapchain;
-    quadLayer.subImage.imageRect.offset = {0, 0};
-    quadLayer.subImage.imageRect.extent = {(int32_t)g_vr_renderer.quadSwapchain->width, (int32_t)g_vr_renderer.quadSwapchain->height};
-    quadLayer.subImage.imageArrayIndex = 0;
-    quadLayer.pose.orientation = quadOrientation;
-    quadLayer.pose.position = quadPosition; // Position in front of head
-    quadLayer.size = {1.0f, 1.0f}; // 1x1 meter
-    quadLayer.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+    // HUD Quad Layer - Head-locked
+    XrCompositionLayerQuad hudQuadLayer{};
+    hudQuadLayer.type = XR_TYPE_COMPOSITION_LAYER_QUAD;
+    hudQuadLayer.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT; // Enable alpha blending
+    hudQuadLayer.space = g_vr_renderer.xrSpace;
+    hudQuadLayer.subImage.swapchain = g_vr_renderer.quadSwapchain->swapchain;
+    hudQuadLayer.subImage.imageRect.offset = {0, 0};
+    hudQuadLayer.subImage.imageRect.extent = {(int32_t)g_vr_renderer.quadSwapchain->width, (int32_t)g_vr_renderer.quadSwapchain->height};
+    hudQuadLayer.subImage.imageArrayIndex = 0;
+    hudQuadLayer.pose.orientation = quadOrientation;
+    hudQuadLayer.pose.position = quadPosition; // Position in front of head
+    hudQuadLayer.size = {2.0f, 2.0f}; // 2x2 meter
+    hudQuadLayer.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
 
+    // DJUI Quad Layer - Head-locked (same position as HUD, but rendered on top)
+    XrCompositionLayerQuad djuiQuadLayer{};
+    djuiQuadLayer.type = XR_TYPE_COMPOSITION_LAYER_QUAD;
+    djuiQuadLayer.layerFlags = XR_COMPOSITION_LAYER_BLEND_TEXTURE_SOURCE_ALPHA_BIT; // Enable alpha blending
+    djuiQuadLayer.space = g_vr_renderer.xrSpace;
+    djuiQuadLayer.subImage.swapchain = g_vr_renderer.djuiSwapchain->swapchain;
+    djuiQuadLayer.subImage.imageRect.offset = {0, 0};
+    djuiQuadLayer.subImage.imageRect.extent = {(int32_t)g_vr_renderer.djuiSwapchain->width, (int32_t)g_vr_renderer.djuiSwapchain->height};
+    djuiQuadLayer.subImage.imageArrayIndex = 0;
+    djuiQuadLayer.pose.orientation = quadOrientation;
+    djuiQuadLayer.pose.position = quadPosition; // Same position as HUD
+    djuiQuadLayer.size = {1.0f, 1.0f}; // 1x1 meter
+    djuiQuadLayer.eyeVisibility = XR_EYE_VISIBILITY_BOTH;
+
+    // Submit layers in order: projection (3D world), HUD, DJUI
     const XrCompositionLayerBaseHeader* layers[] = {
         (const XrCompositionLayerBaseHeader*)&layer,
-        (const XrCompositionLayerBaseHeader*)&quadLayer
+        (const XrCompositionLayerBaseHeader*)&hudQuadLayer,
+        (const XrCompositionLayerBaseHeader*)&djuiQuadLayer
     };
     
     XrFrameEndInfo frameEndInfo{};
     frameEndInfo.type = XR_TYPE_FRAME_END_INFO;
     frameEndInfo.displayTime = g_vr_renderer.frameState.predictedDisplayTime;
     frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
-    frameEndInfo.layerCount = 2;
+    frameEndInfo.layerCount = 3;  // projection + HUD + DJUI
     frameEndInfo.layers = layers;
     
     XrResult result = xrEndFrame(g_vr_renderer.xrSession, &frameEndInfo);
@@ -570,4 +629,31 @@ void vr_renderer_get_quad_dimensions(uint32_t* width, uint32_t* height)
     
     *width = g_vr_renderer.quadSwapchain->width;
     *height = g_vr_renderer.quadSwapchain->height;
+}
+
+// Get the current DJUI layer swapchain image
+VkImage vr_renderer_get_djui_swapchain_image(void)
+{
+    if (!g_vr_renderer.initialized || !g_vr_renderer.djuiSwapchain) {
+        return VK_NULL_HANDLE;
+    }
+    
+    if (g_vr_renderer.djuiSwapchainIndex >= g_vr_renderer.djuiSwapchain->imageCount) {
+        return VK_NULL_HANDLE;
+    }
+    
+    return g_vr_renderer.djuiSwapchain->images[g_vr_renderer.djuiSwapchainIndex];
+}
+
+// Get the DJUI layer dimensions
+void vr_renderer_get_djui_dimensions(uint32_t* width, uint32_t* height)
+{
+    if (!g_vr_renderer.initialized || !g_vr_renderer.djuiSwapchain) {
+        *width = 0;
+        *height = 0;
+        return;
+    }
+    
+    *width = g_vr_renderer.djuiSwapchain->width;
+    *height = g_vr_renderer.djuiSwapchain->height;
 }

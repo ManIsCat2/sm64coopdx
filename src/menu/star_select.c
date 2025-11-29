@@ -422,7 +422,15 @@ Gfx *geo_act_selector_strings(s16 callContext, UNUSED struct GraphNode *node, UN
 Gfx *geo_act_selector_strings(s16 callContext, UNUSED struct GraphNode *node) {
 #endif
     if (callContext == GEO_CONTEXT_RENDER) {
-        print_act_selector_strings();
+#ifdef OPENXR_ENABLED
+        // Skip rendering during VR eye passes - will be rendered to quad layer instead
+        extern int openxr_is_initialized(void);
+        if (!openxr_is_initialized()) {
+#endif
+            print_act_selector_strings();
+#ifdef OPENXR_ENABLED
+        }
+#endif
     }
     return NULL;
 }

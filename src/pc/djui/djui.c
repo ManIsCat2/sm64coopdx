@@ -80,9 +80,9 @@ void patch_djui_interpolated(UNUSED f32 delta) {
     extern f32 gFramePercentage;
 #ifdef OPENXR_ENABLED
     extern int vr_renderer_is_initialized(void);
-    extern void vr_opengl_render_djui_to_quad(void);
+    extern void vr_opengl_render_djui_to_djui_quad(void);
     if (vr_renderer_is_initialized()) {
-        vr_opengl_render_djui_to_quad();
+        vr_opengl_render_djui_to_djui_quad();
         sDjuiRendered60fps = true;
         return;
     }

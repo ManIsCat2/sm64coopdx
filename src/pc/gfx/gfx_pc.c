@@ -55,6 +55,12 @@
 
 u8 gGfxPcResetTex1 = 0;
 
+#ifdef OPENXR_ENABLED
+// Flag to track when rendering to VR eye buffers (not quad layer or desktop)
+// When true, game HUD should skip rendering to avoid appearing in 3D stereo view
+bool gRenderingVREyes = false;
+#endif
+
 static struct TextureCache gfx_texture_cache = { 0 };
 static struct ColorCombiner color_combiner_pool[CC_MAX_SHADERS] = { 0 };
 static uint8_t color_combiner_pool_size = 0;
@@ -2116,6 +2122,9 @@ void gfx_run(Gfx *commands) {
         // Save current dimensions to restore after VR rendering
         struct GfxDimensions saved_dimensions = gfx_current_dimensions;
         
+        // Set flag to prevent game HUD from rendering to eye buffers
+        gRenderingVREyes = true;
+        
         // Render to both eyes
         for (int eye = 0; eye < 2; eye++) {
             // Acquire swapchain image for this eye
@@ -2153,6 +2162,13 @@ void gfx_run(Gfx *commands) {
             // Unbind VR framebuffer (also handles Vulkan-OpenGL interop copy)
             vr_opengl_end_eye(eye);
         }
+        
+        // Clear flag to allow game HUD rendering for quad layer
+        gRenderingVREyes = false;
+        
+        // Render game HUD to quad layer overlay
+        extern void vr_render_hud_to_quad(void);
+        vr_render_hud_to_quad();
         
         // Restore original dimensions for desktop rendering
         gfx_current_dimensions = saved_dimensions;

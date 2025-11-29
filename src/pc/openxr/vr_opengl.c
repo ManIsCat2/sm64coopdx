@@ -54,11 +54,17 @@ static struct {
     uint32_t width[2];
     uint32_t height[2];
     
-    // Quad layer (for UI overlay)
+    // HUD quad layer (for game HUD overlay)
     GLuint quadFramebuffer;
     GLuint quadColorTexture;
     uint32_t quadWidth;
     uint32_t quadHeight;
+    
+    // DJUI quad layer (for UI overlay)
+    GLuint djuiFramebuffer;
+    GLuint djuiColorTexture;
+    uint32_t djuiWidth;
+    uint32_t djuiHeight;
     
     // Currently active eye (-1 if none)
     int activeEye;
@@ -72,6 +78,10 @@ static struct {
     {0, 0},
     {0, 0},
     {0, 0},
+    0,
+    0,
+    0,
+    0,
     0,
     0,
     0,
@@ -157,16 +167,16 @@ int vr_opengl_init(void)
     glBindTexture(GL_TEXTURE_2D, 0);
     glBindRenderbuffer(GL_RENDERBUFFER, 0);
     
-    // Create quad layer framebuffer for UI
+    // Create quad layer framebuffer for HUD
     vr_renderer_get_quad_dimensions(&g_vr_opengl.quadWidth, &g_vr_opengl.quadHeight);
     
     if (g_vr_opengl.quadWidth == 0 || g_vr_opengl.quadHeight == 0) {
-        fprintf(stderr, "Invalid quad layer dimensions\n");
+        fprintf(stderr, "Invalid HUD quad layer dimensions\n");
         vr_opengl_shutdown();
         return 0;
     }
     
-    printf("Initializing quad layer framebuffer: %ux%u\n", g_vr_opengl.quadWidth, g_vr_opengl.quadHeight);
+    printf("Initializing HUD quad layer framebuffer: %ux%u\n", g_vr_opengl.quadWidth, g_vr_opengl.quadHeight);
     
     // Generate quad framebuffer and texture
     glGenFramebuffers(1, &g_vr_opengl.quadFramebuffer);
@@ -187,7 +197,7 @@ int vr_opengl_init(void)
     // Check framebuffer completeness
     GLenum quadStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
     if (quadStatus != GL_FRAMEBUFFER_COMPLETE) {
-        fprintf(stderr, "Quad framebuffer incomplete: 0x%x\n", quadStatus);
+        fprintf(stderr, "HUD quad framebuffer incomplete: 0x%x\n", quadStatus);
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
         vr_opengl_shutdown();
         return 0;
@@ -196,8 +206,50 @@ int vr_opengl_init(void)
     glBindFramebuffer(GL_FRAMEBUFFER, 0);
     glBindTexture(GL_TEXTURE_2D, 0);
     
-    printf("Created quad layer framebuffer: FBO=%u, Color=%u\n",
+    printf("Created HUD quad layer framebuffer: FBO=%u, Color=%u\n",
            g_vr_opengl.quadFramebuffer, g_vr_opengl.quadColorTexture);
+    
+    // Create DJUI layer framebuffer
+    vr_renderer_get_djui_dimensions(&g_vr_opengl.djuiWidth, &g_vr_opengl.djuiHeight);
+    
+    if (g_vr_opengl.djuiWidth == 0 || g_vr_opengl.djuiHeight == 0) {
+        fprintf(stderr, "Invalid DJUI quad layer dimensions\n");
+        vr_opengl_shutdown();
+        return 0;
+    }
+    
+    printf("Initializing DJUI quad layer framebuffer: %ux%u\n", g_vr_opengl.djuiWidth, g_vr_opengl.djuiHeight);
+    
+    // Generate DJUI framebuffer and texture
+    glGenFramebuffers(1, &g_vr_opengl.djuiFramebuffer);
+    glGenTextures(1, &g_vr_opengl.djuiColorTexture);
+    
+    // Bind and configure DJUI framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, g_vr_opengl.djuiFramebuffer);
+    
+    // Create and attach color texture
+    glBindTexture(GL_TEXTURE_2D, g_vr_opengl.djuiColorTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, g_vr_opengl.djuiWidth, g_vr_opengl.djuiHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, g_vr_opengl.djuiColorTexture, 0);
+    
+    // Check framebuffer completeness
+    GLenum djuiStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (djuiStatus != GL_FRAMEBUFFER_COMPLETE) {
+        fprintf(stderr, "DJUI quad framebuffer incomplete: 0x%x\n", djuiStatus);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        vr_opengl_shutdown();
+        return 0;
+    }
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    printf("Created DJUI quad layer framebuffer: FBO=%u, Color=%u\n",
+           g_vr_opengl.djuiFramebuffer, g_vr_opengl.djuiColorTexture);
     
     g_vr_opengl.initialized = 1;
     printf("VR OpenGL integration initialized successfully\n");
@@ -243,6 +295,17 @@ void vr_opengl_shutdown(void)
     if (g_vr_opengl.quadColorTexture != 0) {
         glDeleteTextures(1, &g_vr_opengl.quadColorTexture);
         g_vr_opengl.quadColorTexture = 0;
+    }
+    
+    // Delete DJUI layer resources
+    if (g_vr_opengl.djuiFramebuffer != 0) {
+        glDeleteFramebuffers(1, &g_vr_opengl.djuiFramebuffer);
+        g_vr_opengl.djuiFramebuffer = 0;
+    }
+    
+    if (g_vr_opengl.djuiColorTexture != 0) {
+        glDeleteTextures(1, &g_vr_opengl.djuiColorTexture);
+        g_vr_opengl.djuiColorTexture = 0;
     }
     
     g_vr_opengl.initialized = 0;
@@ -338,7 +401,15 @@ unsigned int vr_opengl_get_quad_framebuffer(void)
     return g_vr_opengl.quadFramebuffer;
 }
 
-void vr_opengl_render_djui_to_quad(void)
+unsigned int vr_opengl_get_djui_framebuffer(void)
+{
+    if (!g_vr_opengl.initialized) {
+        return 0;
+    }
+    return g_vr_opengl.djuiFramebuffer;
+}
+
+void vr_opengl_render_djui_to_djui_quad(void)
 {
     if (!g_vr_opengl.initialized) {
         return;
@@ -357,9 +428,9 @@ void vr_opengl_render_djui_to_quad(void)
     wasDepth = glIsEnabled(GL_DEPTH_TEST);
     wasCull = glIsEnabled(GL_CULL_FACE);
     
-    // Bind quad framebuffer
-    glBindFramebuffer(GL_FRAMEBUFFER, g_vr_opengl.quadFramebuffer);
-    glViewport(0, 0, g_vr_opengl.quadWidth, g_vr_opengl.quadHeight);
+    // Bind DJUI framebuffer
+    glBindFramebuffer(GL_FRAMEBUFFER, g_vr_opengl.djuiFramebuffer);
+    glViewport(0, 0, g_vr_opengl.djuiWidth, g_vr_opengl.djuiHeight);
     
     // Set 2D render state for UI
     glDisable(GL_DEPTH_TEST);
@@ -383,7 +454,7 @@ void vr_opengl_render_djui_to_quad(void)
     // Terminate the temporary display list
     gSPEndDisplayList(gDisplayListHead++);
     
-    // Execute the display list immediately to the currently bound quad framebuffer
+    // Execute the display list immediately to the currently bound DJUI framebuffer
     // This ensures it renders with the correct orthographic projection setup by djui_render
     // and without any VR perspective overrides (since we're not in the main render loop)
     // Use the immediate version to avoid triggering a full VR frame (WaitFrame/BeginFrame)
@@ -393,9 +464,9 @@ void vr_opengl_render_djui_to_quad(void)
     // This prevents them from being rendered again into the eye buffers
     gDisplayListHead = saved_head;
     
-    // Copy quad framebuffer to Vulkan swapchain
+    // Copy DJUI framebuffer to Vulkan swapchain
     if (vr_copy_is_initialized()) {
-        vr_copy_quad_to_swapchain();
+        vr_copy_djui_to_swapchain();
     }
     
     // Restore state

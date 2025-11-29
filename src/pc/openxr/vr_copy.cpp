@@ -113,7 +113,8 @@ static struct {
     bool useIntermediateImages;  // True if we need to create intermediate Vulkan images
     
     VRCopyEyeState eyes[2];
-    VRCopyEyeState quadState;  // For quad layer UI
+    VRCopyEyeState quadState;  // For HUD quad layer
+    VRCopyEyeState djuiState;  // For DJUI quad layer
     
     VkDevice vkDevice;
     VkPhysicalDevice vkPhysicalDevice;
@@ -127,6 +128,7 @@ static struct {
     false,
     false,
     false,
+    {},
     {},
     {},  // quadState
     VK_NULL_HANDLE,
@@ -567,6 +569,111 @@ int vr_copy_init(void)
     quadState->initialized = true;
     printf("Quad layer interop initialized: %ux%u\n", quadWidth, quadHeight);
     
+    // Initialize interop for DJUI layer
+    printf("Initializing DJUI layer interop...\n");
+    
+    // Get DJUI layer dimensions
+    uint32_t djuiWidth, djuiHeight;
+    vr_renderer_get_djui_dimensions(&djuiWidth, &djuiHeight);
+    
+    if (djuiWidth == 0 || djuiHeight == 0) {
+        fprintf(stderr, "Invalid DJUI layer dimensions\n");
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    // Initialize DJUI state similar to quad
+    VRCopyEyeState* djuiState = &g_vr_copy.djuiState;
+    
+    // Create OpenGL texture for blitting
+    glGenTextures(1, &djuiState->glTexture);
+    glBindTexture(GL_TEXTURE_2D, djuiState->glTexture);
+    glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, djuiWidth, djuiHeight, 0, GL_RGBA, GL_UNSIGNED_BYTE, nullptr);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    
+    // Create framebuffer for the texture
+    glGenFramebuffers(1, &djuiState->glFramebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, djuiState->glFramebuffer);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, djuiState->glTexture, 0);
+    
+    GLenum djuiStatus = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+    if (djuiStatus != GL_FRAMEBUFFER_COMPLETE) {
+        fprintf(stderr, "Framebuffer incomplete for DJUI layer: 0x%x\n", djuiStatus);
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    
+    // Store dimensions
+    djuiState->width = djuiWidth;
+    djuiState->height = djuiHeight;
+    
+    // Create Vulkan staging buffer
+    VkDeviceSize djuiBufferSize = djuiWidth * djuiHeight * 4;  // RGBA8
+    
+    VkBufferCreateInfo djuiBufferInfo{};
+    djuiBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    djuiBufferInfo.size = djuiBufferSize;
+    djuiBufferInfo.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    djuiBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    
+    VkResult djuiResult = vkCreateBuffer(g_vr_copy.vkDevice, &djuiBufferInfo, nullptr, &djuiState->stagingBuffer);
+    if (djuiResult != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create staging buffer for DJUI layer: %d\n", djuiResult);
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    VkMemoryRequirements djuiMemRequirements;
+    vkGetBufferMemoryRequirements(g_vr_copy.vkDevice, djuiState->stagingBuffer, &djuiMemRequirements);
+    
+    VkMemoryAllocateInfo djuiMemAllocInfo{};
+    djuiMemAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    djuiMemAllocInfo.allocationSize = djuiMemRequirements.size;
+    djuiMemAllocInfo.memoryTypeIndex = find_memory_type(djuiMemRequirements.memoryTypeBits, 
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    
+    djuiResult = vkAllocateMemory(g_vr_copy.vkDevice, &djuiMemAllocInfo, nullptr, &djuiState->stagingMemory);
+    if (djuiResult != VK_SUCCESS) {
+        fprintf(stderr, "Failed to allocate staging memory for DJUI layer: %d\n", djuiResult);
+        vkDestroyBuffer(g_vr_copy.vkDevice, djuiState->stagingBuffer, nullptr);
+        djuiState->stagingBuffer = VK_NULL_HANDLE;
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    djuiResult = vkBindBufferMemory(g_vr_copy.vkDevice, djuiState->stagingBuffer, djuiState->stagingMemory, 0);
+    if (djuiResult != VK_SUCCESS) {
+        fprintf(stderr, "Failed to bind staging buffer memory for DJUI layer: %d\n", djuiResult);
+        vkFreeMemory(g_vr_copy.vkDevice, djuiState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, djuiState->stagingBuffer, nullptr);
+        djuiState->stagingBuffer = VK_NULL_HANDLE;
+        djuiState->stagingMemory = VK_NULL_HANDLE;
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    // Persistently map the staging memory
+    djuiResult = vkMapMemory(g_vr_copy.vkDevice, djuiState->stagingMemory, 0, djuiBufferSize, 0, &djuiState->stagingMapped);
+    if (djuiResult != VK_SUCCESS) {
+        fprintf(stderr, "Failed to map staging memory for DJUI layer: %d\n", djuiResult);
+        vkFreeMemory(g_vr_copy.vkDevice, djuiState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, djuiState->stagingBuffer, nullptr);
+        djuiState->stagingBuffer = VK_NULL_HANDLE;
+        djuiState->stagingMemory = VK_NULL_HANDLE;
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    djuiState->initialized = true;
+    printf("DJUI layer interop initialized: %ux%u\n", djuiWidth, djuiHeight);
+    
     g_vr_copy.initialized = true;
     printf("VR copy system initialized successfully\n");
     
@@ -662,6 +769,46 @@ void vr_copy_shutdown(void)
     }
     
     quadState->initialized = false;
+    
+    // Clean up DJUI layer
+    VRCopyEyeState* djuiState = &g_vr_copy.djuiState;
+    
+    if (djuiState->stagingMapped && djuiState->stagingMemory != VK_NULL_HANDLE) {
+        vkUnmapMemory(g_vr_copy.vkDevice, djuiState->stagingMemory);
+        djuiState->stagingMapped = nullptr;
+    }
+    
+    if (djuiState->stagingBuffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(g_vr_copy.vkDevice, djuiState->stagingBuffer, nullptr);
+        djuiState->stagingBuffer = VK_NULL_HANDLE;
+    }
+    
+    if (djuiState->stagingMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(g_vr_copy.vkDevice, djuiState->stagingMemory, nullptr);
+        djuiState->stagingMemory = VK_NULL_HANDLE;
+    }
+    
+    if (djuiState->glFramebuffer != 0) {
+        glDeleteFramebuffers(1, &djuiState->glFramebuffer);
+        djuiState->glFramebuffer = 0;
+    }
+    
+    if (djuiState->glTexture != 0) {
+        glDeleteTextures(1, &djuiState->glTexture);
+        djuiState->glTexture = 0;
+    }
+    
+    if (djuiState->glMemoryObject != 0) {
+        glDeleteMemoryObjectsEXT(1, &djuiState->glMemoryObject);
+        djuiState->glMemoryObject = 0;
+    }
+    
+    if (djuiState->vkImageMemory != VK_NULL_HANDLE) {
+        vkFreeMemory(g_vr_copy.vkDevice, djuiState->vkImageMemory, nullptr);
+        djuiState->vkImageMemory = VK_NULL_HANDLE;
+    }
+    
+    djuiState->initialized = false;
     
     // Clean up command pool (this also frees command buffers)
     if (g_vr_copy.commandPool != VK_NULL_HANDLE) {
@@ -1016,6 +1163,162 @@ int vr_copy_quad_to_swapchain(void)
     VkResult result = vkQueueSubmit(g_vr_copy.vkQueue, 1, &submitInfo, VK_NULL_HANDLE);
     if (result != VK_SUCCESS) {
         fprintf(stderr, "Failed to submit Vulkan copy command for quad: %d\n", result);
+        return 0;
+    }
+    
+    // Wait for the copy to complete before returning
+    vkQueueWaitIdle(g_vr_copy.vkQueue);
+    vkResetCommandBuffer(g_vr_copy.commandBuffer, 0);
+
+    return 1;
+}
+
+// Copy DJUI quad layer framebuffer to Vulkan swapchain
+int vr_copy_djui_to_swapchain(void)
+{
+    static int logged_once = 0;
+
+    if (!g_vr_copy.initialized) {
+        if (!logged_once) {
+            fprintf(stderr, "vr_copy not initialized\n");
+            logged_once = 1;
+        }
+        return 0;
+    }
+
+    VRCopyEyeState* djuiState = &g_vr_copy.djuiState;
+    if (!djuiState->initialized || !djuiState->stagingMapped) {
+        if (!logged_once) {
+            fprintf(stderr, "DJUI state not initialized or staging not mapped\n");
+            logged_once = 1;
+        }
+        return 0;
+    }
+
+    // Get the source framebuffer (from VR OpenGL)
+    GLuint sourceFBO = vr_opengl_get_djui_framebuffer();
+    if (sourceFBO == 0) {
+        fprintf(stderr, "Failed to get DJUI framebuffer\n");
+        return 0;
+    }
+
+    const uint32_t width  = djuiState->width;
+    const uint32_t height = djuiState->height;
+
+    // Save current FBO and pixel-pack alignment
+    GLint oldFB = 0;
+    glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFB);
+
+    GLint oldPack = 0;
+    glGetIntegerv(GL_PACK_ALIGNMENT, &oldPack);
+    glPixelStorei(GL_PACK_ALIGNMENT, 4);
+
+    // Bind the source FBO and read pixels
+    glBindFramebuffer(GL_FRAMEBUFFER, sourceFBO);
+
+    // Read bottom-left-origin pixels into staging buffer
+    glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, djuiState->stagingMapped);
+
+    // Flip in CPU to convert from GL's bottom-left to Vulkan's top-left
+    flip_y_rgba8((uint8_t*)djuiState->stagingMapped, width, height);
+
+    // Restore GL state
+    glBindFramebuffer(GL_FRAMEBUFFER, oldFB);
+    glPixelStorei(GL_PACK_ALIGNMENT, oldPack);
+
+    // Ensure GL writes are visible before Vulkan reads
+    glFinish();
+
+    // Vulkan copy
+    VkImage swapchainImage = vr_renderer_get_djui_swapchain_image();
+    if (swapchainImage == VK_NULL_HANDLE) {
+        fprintf(stderr, "Failed to get DJUI swapchain image\n");
+        return 0;
+    }
+
+    VkCommandBufferBeginInfo beginInfo = {};
+    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+
+    VkResult vkResult = vkBeginCommandBuffer(g_vr_copy.commandBuffer, &beginInfo);
+    if (vkResult != VK_SUCCESS) {
+        fprintf(stderr, "Failed to begin command buffer for DJUI: %d\n", vkResult);
+        return 0;
+    }
+
+    // Transition swapchain image to TRANSFER_DST_OPTIMAL
+    VkImageMemoryBarrier barrier = {};
+    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+    barrier.image = swapchainImage;
+    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    barrier.subresourceRange.baseMipLevel = 0;
+    barrier.subresourceRange.levelCount = 1;
+    barrier.subresourceRange.baseArrayLayer = 0;
+    barrier.subresourceRange.layerCount = 1;
+    barrier.srcAccessMask = 0;
+    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+
+    vkCmdPipelineBarrier(
+        g_vr_copy.commandBuffer,
+        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
+    );
+
+    VkBufferImageCopy region = {};
+    region.bufferOffset = 0;
+    region.bufferRowLength = 0;     // tightly packed
+    region.bufferImageHeight = 0;   // tightly packed
+    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+    region.imageSubresource.mipLevel = 0;
+    region.imageSubresource.baseArrayLayer = 0;
+    region.imageSubresource.layerCount = 1;
+    region.imageOffset = (VkOffset3D){0, 0, 0};
+    region.imageExtent = (VkExtent3D){width, height, 1};
+
+    vkCmdCopyBufferToImage(
+        g_vr_copy.commandBuffer,
+        djuiState->stagingBuffer,
+        swapchainImage,
+        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+        1,
+        &region
+    );
+
+    // Transition to COLOR_ATTACHMENT_OPTIMAL for OpenXR rendering
+    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+    barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+    vkCmdPipelineBarrier(
+        g_vr_copy.commandBuffer,
+        VK_PIPELINE_STAGE_TRANSFER_BIT,
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+        0,
+        0, nullptr,
+        0, nullptr,
+        1, &barrier
+    );
+
+    vkEndCommandBuffer(g_vr_copy.commandBuffer);
+
+    // Submit with proper synchronization
+    VkSubmitInfo submitInfo = {};
+    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    submitInfo.commandBufferCount = 1;
+    submitInfo.pCommandBuffers = &g_vr_copy.commandBuffer;
+
+    VkResult result = vkQueueSubmit(g_vr_copy.vkQueue, 1, &submitInfo, VK_NULL_HANDLE);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to submit Vulkan copy command for DJUI: %d\n", result);
         return 0;
     }
     

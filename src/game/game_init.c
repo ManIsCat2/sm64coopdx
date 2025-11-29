@@ -256,9 +256,9 @@ void end_master_display_list(void) {
 #ifdef OPENXR_ENABLED
     // Render DJUI to quad layer in VR mode
     extern int vr_renderer_is_initialized(void);
-    extern void vr_opengl_render_djui_to_quad(void);
+    extern void vr_opengl_render_djui_to_djui_quad(void);
     if (vr_renderer_is_initialized()) {
-        vr_opengl_render_djui_to_quad();
+        vr_opengl_render_djui_to_djui_quad();
     } else
 #endif
     {

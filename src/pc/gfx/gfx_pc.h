@@ -13,6 +13,10 @@ extern Color gVertexColor;
 extern Color gFogColor;
 extern f32 gFogIntensity;
 
+#ifdef OPENXR_ENABLED
+extern bool gRenderingVREyes;
+#endif
+
 #ifdef __cplusplus
 extern "C" {
 #endif

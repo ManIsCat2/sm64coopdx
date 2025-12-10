@@ -470,17 +470,22 @@ static void fov_to_projection_matrix(const XrFovf& fov, float nearZ, float farZ,
     matrix[15] = 0.0f;
 }
 
-int vr_renderer_get_projection_matrix(int eye, float* matrix)
+int vr_renderer_get_projection_matrix_ext(int eye, float nearZ, float farZ, float* matrix)
 {
     if (!g_vr_renderer.initialized || !g_vr_renderer.viewsValid || eye < 0 || eye > 1) {
         return 0;
     }
     
     // Convert OpenXR FOV to projection matrix
-    // Use typical near/far plane values for SM64
-    fov_to_projection_matrix(g_vr_renderer.views[eye].fov, 100.0f, 32000.0f, matrix);
+    fov_to_projection_matrix(g_vr_renderer.views[eye].fov, nearZ, farZ, matrix);
     
     return 1;
+}
+
+int vr_renderer_get_projection_matrix(int eye, float* matrix)
+{
+    // Use typical near/far plane values for SM64
+    return vr_renderer_get_projection_matrix_ext(eye, 100.0f, 32000.0f, matrix);
 }
 
 // Helper function to convert XrPosef to view matrix

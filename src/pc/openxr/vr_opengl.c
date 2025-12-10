@@ -1,5 +1,6 @@
 #include "vr_opengl.h"
 #include "vr_renderer.h"
+#include "openxr_keyboard.h"
 #include "vr_copy.h"
 #include "pc/gfx/gfx_pc.h"
 #include "game/game_init.h"
@@ -346,6 +347,11 @@ void vr_opengl_end_eye(int eye)
 {
     if (!g_vr_opengl.initialized || g_vr_opengl.activeEye != eye) {
         return;
+    }
+
+    // Render virtual keyboard
+    if (openxr_is_keyboard_visible()) {
+        openxr_render_keyboard(eye);
     }
     
     // Copy framebuffer to Vulkan swapchain image

@@ -47,6 +47,8 @@
 #include "pc/utils/misc.h"
 #include "pc/mods/mod_import.h"
 #include "pc/rom_checker.h"
+#include "../openxr/openxr_keyboard.h"
+
 
 #ifndef GL_MAX_SAMPLES
 #define GL_MAX_SAMPLES 0x8D57
@@ -388,8 +390,14 @@ static bool gfx_sdl_has_focus(void) {
     return (SDL_GetWindowFlags(wnd) & SDL_WINDOW_INPUT_FOCUS);
 }
 
-static void gfx_sdl_start_text_input(void) { SDL_StartTextInput(); }
-static void gfx_sdl_stop_text_input(void) { SDL_StopTextInput(); }
+static void gfx_sdl_start_text_input(void) { 
+    SDL_StartTextInput(); 
+    openxr_show_keyboard();
+}
+static void gfx_sdl_stop_text_input(void) { 
+    SDL_StopTextInput(); 
+    openxr_hide_keyboard();
+}
 
 static char* gfx_sdl_get_clipboard_text(void) {
     static char clipboard_buf[WAPI_CLIPBOARD_BUFSIZ];

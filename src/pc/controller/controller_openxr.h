@@ -11,6 +11,10 @@ extern struct ControllerAPI controller_openxr;
 
 #ifdef __cplusplus
 }
+
+// C++ only functions
+#include <openxr/openxr.h>
+XrSpace controller_openxr_get_keyboard_space(void);
 #endif
 
 #endif

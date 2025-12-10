@@ -38,6 +38,10 @@ int openxr_get_head_rotation(float* yaw, float* pitch, float* roll);
 // Returns 1 if successful, 0 if not initialized
 int openxr_get_head_position(float* x, float* y, float* z);
 
+// Get predicted display time
+// Returns XrTime (int64_t)
+int64_t openxr_get_predicted_display_time(void);
+
 #ifdef __cplusplus
 }
 

@@ -41,6 +41,10 @@ int vr_renderer_get_view_matrix(int eye, float* matrix);
 // Returns 1 on success, 0 on failure
 int vr_renderer_get_projection_matrix(int eye, float* matrix);
 
+// Get projection matrices with custom near/far planes
+// Returns 1 on success, 0 on failure
+int vr_renderer_get_projection_matrix_ext(int eye, float nearZ, float farZ, float* matrix);
+
 // Get the viewport dimensions for an eye
 void vr_renderer_get_viewport(int eye, uint32_t* width, uint32_t* height);
 

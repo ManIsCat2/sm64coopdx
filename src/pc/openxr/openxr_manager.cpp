@@ -4,11 +4,16 @@
 #include "vulkan_instance.h"
 #include "vulkan_device.h"
 #include "vr_renderer.h"
+#include "openxr_keyboard.h"
+#include "pc/controller/controller_openxr.h"
 
 #include <iostream>
 #include <set>
 #include <string>
 #include <cmath>
+
+#include <SDL2/SDL.h>
+
 
 // Forward declaration from vr_renderer.cpp
 extern "C" void vr_renderer_set_frame_state(XrFrameState frameState);
@@ -174,8 +179,14 @@ int openxr_init(void)
         // Don't fail the whole init, just continue without VR rendering
     }
 
+    // Initialize Virtual Keyboard
+    if (!OpenXRKeyboard::GetInstance().Init(g_openxr_state.xrInstance, g_openxr_state.xrSession)) {
+        std::cerr << "Warning: Failed to initialize Virtual Keyboard." << std::endl;
+    }
+
     return 1;
 }
+
 
 void openxr_shutdown(void)
 {
@@ -188,6 +199,7 @@ void openxr_shutdown(void)
     std::cout << "Shutting down OpenXR context..." << std::endl;
     
     // Shutdown VR renderer first
+    OpenXRKeyboard::GetInstance().Shutdown();
     vr_renderer_shutdown();
 
     // Destroy in reverse order of creation
@@ -292,6 +304,72 @@ int openxr_update(void)
             case XR_TYPE_EVENT_DATA_INSTANCE_LOSS_PENDING:
                 std::cout << "OpenXR instance loss pending" << std::endl;
                 return 0;
+            case XR_TYPE_EVENT_DATA_VIRTUAL_KEYBOARD_COMMIT_TEXT_META: {
+                XrEventDataVirtualKeyboardCommitTextMETA* commitEvent = 
+                    reinterpret_cast<XrEventDataVirtualKeyboardCommitTextMETA*>(&eventData);
+                std::cout << "Virtual keyboard commit text: " << commitEvent->text << std::endl;
+                
+                SDL_Event event;
+                event.type = SDL_TEXTINPUT;
+                event.text.timestamp = SDL_GetTicks();
+                event.text.windowID = 0;
+                strncpy(event.text.text, commitEvent->text, SDL_TEXTINPUTEVENT_TEXT_SIZE);
+                event.text.text[SDL_TEXTINPUTEVENT_TEXT_SIZE - 1] = '\0';
+                SDL_PushEvent(&event);
+                break;
+            }
+            case XR_TYPE_EVENT_DATA_VIRTUAL_KEYBOARD_BACKSPACE_META: {
+                XrEventDataVirtualKeyboardBackspaceMETA* backspaceEvent = 
+                    reinterpret_cast<XrEventDataVirtualKeyboardBackspaceMETA*>(&eventData);
+                std::cout << "Virtual keyboard backspace" << std::endl;
+                
+                SDL_Event event;
+
+                event.type = SDL_KEYDOWN;
+                event.key.timestamp = SDL_GetTicks();
+                event.key.windowID = 0;
+                event.key.state = SDL_PRESSED;
+                event.key.repeat = 0;
+                event.key.keysym.scancode = SDL_SCANCODE_BACKSPACE;
+                event.key.keysym.sym = SDLK_BACKSPACE;
+                event.key.keysym.mod = KMOD_NONE;
+                SDL_PushEvent(&event);
+                
+                event.type = SDL_KEYUP;
+                event.key.timestamp = SDL_GetTicks();
+                event.key.windowID = 0;
+                event.key.state = SDL_RELEASED;
+                event.key.repeat = 0;
+                event.key.keysym.scancode = SDL_SCANCODE_BACKSPACE;
+                event.key.keysym.sym = SDLK_BACKSPACE;
+                event.key.keysym.mod = KMOD_NONE;
+                SDL_PushEvent(&event);
+                break;
+            }
+            case XR_TYPE_EVENT_DATA_VIRTUAL_KEYBOARD_ENTER_META: {
+                SDL_Event event;
+                
+                event.type = SDL_KEYDOWN;
+                event.key.timestamp = SDL_GetTicks();
+                event.key.windowID = 0;
+                event.key.state = SDL_PRESSED;
+                event.key.repeat = 0;
+                event.key.keysym.scancode = SDL_SCANCODE_RETURN;
+                event.key.keysym.sym = SDLK_RETURN;
+                event.key.keysym.mod = KMOD_NONE;
+                SDL_PushEvent(&event);
+                
+                event.type = SDL_KEYUP;
+                event.key.timestamp = SDL_GetTicks();
+                event.key.windowID = 0;
+                event.key.state = SDL_RELEASED;
+                event.key.repeat = 0;
+                event.key.keysym.scancode = SDL_SCANCODE_RETURN;
+                event.key.keysym.sym = SDLK_RETURN;
+                event.key.keysym.mod = KMOD_NONE;
+                SDL_PushEvent(&event);
+                break;
+            }
             default:
                 break;
         }
@@ -319,6 +397,54 @@ int openxr_update(void)
     
     // Update VR renderer with frame state
     vr_renderer_set_frame_state(frameState);
+
+    // Update Virtual Keyboard with keyboard reference space (not game's rotated space)
+    XrSpace keyboardSpace = controller_openxr_get_keyboard_space();
+    XrSpace targetSpace = (keyboardSpace != XR_NULL_HANDLE) ? keyboardSpace : g_openxr_state.xrSpace;
+    
+    XrPosef headPoseInTargetSpace = { {0,0,0,1}, {0,0,0} };
+    
+    // Get head pose in target space
+    if (frameState.shouldRender) {
+        XrViewLocateInfo viewLocateInfo{};
+        viewLocateInfo.type = XR_TYPE_VIEW_LOCATE_INFO;
+        viewLocateInfo.viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+        viewLocateInfo.displayTime = frameState.predictedDisplayTime;
+        viewLocateInfo.space = targetSpace;
+        
+        XrViewState viewState{XR_TYPE_VIEW_STATE};
+        uint32_t viewCount = 0;
+        XrView views[2] = {{XR_TYPE_VIEW}, {XR_TYPE_VIEW}};
+        
+        if (xrLocateViews(g_openxr_state.xrSession, &viewLocateInfo, &viewState, 2, &viewCount, views) == XR_SUCCESS) {
+            // Average the pose of both eyes to get head pose
+            headPoseInTargetSpace.orientation.x = (views[0].pose.orientation.x + views[1].pose.orientation.x) / 2.0f;
+            headPoseInTargetSpace.orientation.y = (views[0].pose.orientation.y + views[1].pose.orientation.y) / 2.0f;
+            headPoseInTargetSpace.orientation.z = (views[0].pose.orientation.z + views[1].pose.orientation.z) / 2.0f;
+            headPoseInTargetSpace.orientation.w = (views[0].pose.orientation.w + views[1].pose.orientation.w) / 2.0f;
+            
+            headPoseInTargetSpace.position.x = (views[0].pose.position.x + views[1].pose.position.x) / 2.0f;
+            headPoseInTargetSpace.position.y = (views[0].pose.position.y + views[1].pose.position.y) / 2.0f;
+            headPoseInTargetSpace.position.z = (views[0].pose.position.z + views[1].pose.position.z) / 2.0f;
+            
+            // Normalize quaternion
+            float length = std::sqrt(
+                headPoseInTargetSpace.orientation.x * headPoseInTargetSpace.orientation.x +
+                headPoseInTargetSpace.orientation.y * headPoseInTargetSpace.orientation.y +
+                headPoseInTargetSpace.orientation.z * headPoseInTargetSpace.orientation.z +
+                headPoseInTargetSpace.orientation.w * headPoseInTargetSpace.orientation.w
+            );
+            
+            if (length > 0.0f) {
+                headPoseInTargetSpace.orientation.x /= length;
+                headPoseInTargetSpace.orientation.y /= length;
+                headPoseInTargetSpace.orientation.z /= length;
+                headPoseInTargetSpace.orientation.w /= length;
+            }
+        }
+    }
+    
+    OpenXRKeyboard::GetInstance().Update(targetSpace, frameState.predictedDisplayTime, headPoseInTargetSpace);
 
     // Begin frame
     XrFrameBeginInfo frameBeginInfo{};
@@ -409,6 +535,11 @@ int openxr_get_head_position(float* x, float* y, float* z)
     *z = g_openxr_state.headPose.position.z;
     
     return 1;
+}
+
+int64_t openxr_get_predicted_display_time(void)
+{
+    return (int64_t)g_openxr_state.frameState.predictedDisplayTime;
 }
 
 // Expose OpenXR handles for VR renderer

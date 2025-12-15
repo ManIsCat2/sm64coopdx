@@ -29,6 +29,11 @@ int vr_copy_quad_to_swapchain(void);
 // Returns 1 on success, 0 on failure
 int vr_copy_djui_to_swapchain(void);
 
+// Execute all pending batched Vulkan copy operations
+// Should be called after all GL reads are complete
+// Returns 1 on success, 0 on failure
+int vr_copy_execute_batched(void);
+
 #ifdef __cplusplus
 }
 #endif

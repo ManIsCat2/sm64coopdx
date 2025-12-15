@@ -140,6 +140,9 @@ static struct {
     
     // Descriptor sets for each eye/layer (2 eyes + quad + djui = 4 total)
     VkDescriptorSet flipDescriptorSets[4];
+    
+    // Batched copy state tracking
+    bool pendingCopy[4];  // Track which layers have pending GL reads: [0]=eye0, [1]=eye1, [2]=quad, [3]=djui
 } g_vr_copy = {
     false,
     false,
@@ -158,7 +161,8 @@ static struct {
     VK_NULL_HANDLE,  // flipPipelineLayout
     VK_NULL_HANDLE,  // flipComputePipeline
     VK_NULL_HANDLE,  // flipDescriptorPool
-    {}  // flipDescriptorSets
+    {},  // flipDescriptorSets
+    {}   // pendingCopy
 };
 
 // Load OpenGL extensions
@@ -1282,9 +1286,9 @@ int vr_copy_is_initialized(void)
     return g_vr_copy.initialized ? 1 : 0;
 }
 
-int vr_copy_framebuffer_to_swapchain(int eye)
+// Helper function: GL read only for eye (no Vulkan operations)
+static int vr_copy_gl_read_eye(int eye)
 {
-    static int frame_count = 0;
     static int logged_once = 0;
 
     if (!g_vr_copy.initialized || eye < 0 || eye > 1) {
@@ -1304,7 +1308,7 @@ int vr_copy_framebuffer_to_swapchain(int eye)
         return 0;
     }
 
-    // 1) Get the source framebuffer (from VR OpenGL)
+    // Get the source framebuffer (from VR OpenGL)
     GLuint sourceFBO = vr_opengl_get_framebuffer(eye);
     if (sourceFBO == 0) {
         fprintf(stderr, "Failed to get source framebuffer for eye %d\n", eye);
@@ -1314,176 +1318,33 @@ int vr_copy_framebuffer_to_swapchain(int eye)
     const uint32_t width  = eyeState->width;
     const uint32_t height = eyeState->height;
 
-    if (frame_count < 5) {
-        printf("DEBUG vr_copy: Frame %d, Eye %d, FBO=%u, %ux%u\n",
-               frame_count, eye, (unsigned)sourceFBO, width, height);
-    }
-    if (eye == 1) {
-        if (frame_count < 100) frame_count++;
-    }
-
-    // 2) Save current FBO and pixel-pack alignment
+    // Save current FBO and pixel-pack alignment
     GLint oldFB = 0;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFB);
 
     GLint oldPack = 0;
     glGetIntegerv(GL_PACK_ALIGNMENT, &oldPack);
-    // glPixelStorei(GL_PACK_ALIGNMENT, 1); // tightly packed
-    // apparently faster in adreno
     glPixelStorei(GL_PACK_ALIGNMENT, 4);
 
-    // 3) Bind the source FBO and read pixels (ES2 path — no blit, no separate read/draw targets)
+    // Bind the source FBO and read pixels
     glBindFramebuffer(GL_FRAMEBUFFER, sourceFBO);
-
-    // Read bottom-left-origin pixels into staging buffer…
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, eyeState->stagingMapped);
 
-    // 4) Restore GL state
+    // Restore GL state
     glBindFramebuffer(GL_FRAMEBUFFER, oldFB);
     glPixelStorei(GL_PACK_ALIGNMENT, oldPack);
 
     // Ensure GL writes are visible before Vulkan reads
     glFinish();
     
-    // 5) Use compute shader to flip Y-axis from stagingBuffer to stagingBufferFlipped
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
+    // Mark this layer as pending Vulkan copy
+    g_vr_copy.pendingCopy[eye] = true;
 
-    VkResult vkResult = vkBeginCommandBuffer(g_vr_copy.commandBuffer, &beginInfo);
-    if (vkResult != VK_SUCCESS) {
-        fprintf(stderr, "Failed to begin command buffer for eye %d: %d\n", eye, vkResult);
-        return 0;
-    }
-    
-    // Bind compute pipeline
-    vkCmdBindPipeline(g_vr_copy.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, g_vr_copy.flipComputePipeline);
-    
-    // Bind descriptor set for this eye
-    vkCmdBindDescriptorSets(g_vr_copy.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-        g_vr_copy.flipPipelineLayout, 0, 1, &g_vr_copy.flipDescriptorSets[eye], 0, nullptr);
-    
-    // Push constants (width and height)
-    uint32_t pushConstants[2] = { width, height };
-    vkCmdPushConstants(g_vr_copy.commandBuffer, g_vr_copy.flipPipelineLayout,
-        VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), pushConstants);
-    
-    // Dispatch compute shader (16x16 workgroup size)
-    uint32_t groupCountX = (width + 15) / 16;
-    uint32_t groupCountY = (height + 15) / 16;
-    vkCmdDispatch(g_vr_copy.commandBuffer, groupCountX, groupCountY, 1);
-    
-    // Memory barrier to ensure compute shader writes are visible before copy
-    VkMemoryBarrier memBarrier = {};
-    memBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-    memBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    memBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-    
-    vkCmdPipelineBarrier(g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0, 1, &memBarrier, 0, nullptr, 0, nullptr);
-
-    // 6) Vulkan copy from flipped buffer to swapchain image
-    VkImage swapchainImage = vr_renderer_get_swapchain_image(eye);
-    if (swapchainImage == VK_NULL_HANDLE) {
-        fprintf(stderr, "Failed to get swapchain image for eye %d\n", eye);
-        return 0;
-    }
-
-    // Transition swapchain image to TRANSFER_DST_OPTIMAL
-    // Use UNDEFINED as old layout since OpenXR swapchain images come from a pool
-    // and we can't reliably know their previous layout. UNDEFINED tells Vulkan
-    // we don't care about previous contents (which is correct for a fresh frame).
-    VkImageMemoryBarrier barrier = {};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = swapchainImage;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.srcAccessMask = 0;
-    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-    vkCmdPipelineBarrier(
-        g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    VkBufferImageCopy region = {};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;     // tightly packed
-    region.bufferImageHeight = 0;   // tightly packed
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = (VkOffset3D){0, 0, 0};
-    region.imageExtent = (VkExtent3D){width, height, 1};
-
-    vkCmdCopyBufferToImage(
-        g_vr_copy.commandBuffer,
-        eyeState->stagingBufferFlipped,
-        swapchainImage,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &region
-    );
-
-    // Transition to COLOR_ATTACHMENT_OPTIMAL for OpenXR rendering
-    // Note: OpenXR expects COLOR_ATTACHMENT_OPTIMAL for presentation
-    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-
-    vkCmdPipelineBarrier(
-        g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    vkEndCommandBuffer(g_vr_copy.commandBuffer);
-
-    // Submit with proper synchronization
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &g_vr_copy.commandBuffer;
-
-    VkResult result = vkQueueSubmit(g_vr_copy.vkQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    if (result != VK_SUCCESS) {
-        fprintf(stderr, "Failed to submit Vulkan copy command for eye %d: %d\n", eye, result);
-        return 0;
-    }
-    
-    // Wait for the copy to complete before returning
-    // This ensures the image is fully written before OpenXR releases it
-    vkQueueWaitIdle(g_vr_copy.vkQueue);
-    vkResetCommandBuffer(g_vr_copy.commandBuffer, 0);
-
-    if (frame_count < 5) {
-        printf("DEBUG vr_copy: Copy completed successfully for eye %d\n", eye);
-    }
     return 1;
 }
 
-// Copy quad layer framebuffer to Vulkan swapchain
-int vr_copy_quad_to_swapchain(void)
+// Helper function: GL read only for quad (no Vulkan operations)
+static int vr_copy_gl_read_quad(void)
 {
     static int logged_once = 0;
 
@@ -1524,8 +1385,6 @@ int vr_copy_quad_to_swapchain(void)
 
     // Bind the source FBO and read pixels
     glBindFramebuffer(GL_FRAMEBUFFER, sourceFBO);
-
-    // Read bottom-left-origin pixels into staging buffer
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, quadState->stagingMapped);
 
     // Restore GL state
@@ -1535,132 +1394,14 @@ int vr_copy_quad_to_swapchain(void)
     // Ensure GL writes are visible before Vulkan reads
     glFinish();
     
-    // Use compute shader to flip Y-axis
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    VkResult vkResult = vkBeginCommandBuffer(g_vr_copy.commandBuffer, &beginInfo);
-    if (vkResult != VK_SUCCESS) {
-        fprintf(stderr, "Failed to begin command buffer for quad: %d\n", vkResult);
-        return 0;
-    }
-    
-    // Bind compute pipeline
-    vkCmdBindPipeline(g_vr_copy.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, g_vr_copy.flipComputePipeline);
-    vkCmdBindDescriptorSets(g_vr_copy.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-        g_vr_copy.flipPipelineLayout, 0, 1, &g_vr_copy.flipDescriptorSets[2], 0, nullptr);
-    
-    uint32_t pushConstants[2] = { width, height };
-    vkCmdPushConstants(g_vr_copy.commandBuffer, g_vr_copy.flipPipelineLayout,
-        VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), pushConstants);
-    
-    uint32_t groupCountX = (width + 15) / 16;
-    uint32_t groupCountY = (height + 15) / 16;
-    vkCmdDispatch(g_vr_copy.commandBuffer, groupCountX, groupCountY, 1);
-    
-    VkMemoryBarrier memBarrier = {};
-    memBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-    memBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    memBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-    
-    vkCmdPipelineBarrier(g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0, 1, &memBarrier, 0, nullptr, 0, nullptr);
-
-    // Vulkan copy from flipped buffer
-    VkImage swapchainImage = vr_renderer_get_quad_swapchain_image();
-    if (swapchainImage == VK_NULL_HANDLE) {
-        fprintf(stderr, "Failed to get quad swapchain image\n");
-        return 0;
-    }
-
-    // Transition swapchain image to TRANSFER_DST_OPTIMAL
-    VkImageMemoryBarrier barrier = {};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = swapchainImage;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.srcAccessMask = 0;
-    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-    vkCmdPipelineBarrier(
-        g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    VkBufferImageCopy region = {};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;     // tightly packed
-    region.bufferImageHeight = 0;   // tightly packed
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = (VkOffset3D){0, 0, 0};
-    region.imageExtent = (VkExtent3D){width, height, 1};
-
-    vkCmdCopyBufferToImage(
-        g_vr_copy.commandBuffer,
-        quadState->stagingBufferFlipped,  // Use flipped buffer
-        swapchainImage,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &region
-    );
-
-    // Transition to COLOR_ATTACHMENT_OPTIMAL for OpenXR rendering
-    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-
-    vkCmdPipelineBarrier(
-        g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    vkEndCommandBuffer(g_vr_copy.commandBuffer);
-
-    // Submit with proper synchronization
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &g_vr_copy.commandBuffer;
-
-    VkResult result = vkQueueSubmit(g_vr_copy.vkQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    if (result != VK_SUCCESS) {
-        fprintf(stderr, "Failed to submit Vulkan copy command for quad: %d\n", result);
-        return 0;
-    }
-    
-    // Wait for the copy to complete before returning
-    vkQueueWaitIdle(g_vr_copy.vkQueue);
-    vkResetCommandBuffer(g_vr_copy.commandBuffer, 0);
+    // Mark this layer as pending Vulkan copy
+    g_vr_copy.pendingCopy[2] = true;
 
     return 1;
 }
 
-// Copy DJUI quad layer framebuffer to Vulkan swapchain
-int vr_copy_djui_to_swapchain(void)
+// Helper function: GL read only for DJUI (no Vulkan operations)
+static int vr_copy_gl_read_djui(void)
 {
     static int logged_once = 0;
 
@@ -1701,8 +1442,6 @@ int vr_copy_djui_to_swapchain(void)
 
     // Bind the source FBO and read pixels
     glBindFramebuffer(GL_FRAMEBUFFER, sourceFBO);
-
-    // Read bottom-left-origin pixels into staging buffer
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, djuiState->stagingMapped);
 
     // Restore GL state
@@ -1712,112 +1451,200 @@ int vr_copy_djui_to_swapchain(void)
     // Ensure GL writes are visible before Vulkan reads
     glFinish();
     
-    // Use compute shader to flip Y-axis
+    // Mark this layer as pending Vulkan copy
+    g_vr_copy.pendingCopy[3] = true;
+
+    return 1;
+}
+
+
+int vr_copy_framebuffer_to_swapchain(int eye)
+{
+    // Just perform the GL read, Vulkan operations will be batched later
+    return vr_copy_gl_read_eye(eye);
+}
+
+// Copy quad layer framebuffer to Vulkan swapchain
+int vr_copy_quad_to_swapchain(void)
+{
+    // Just perform the GL read, Vulkan operations will be batched later
+    return vr_copy_gl_read_quad();
+}
+
+// Copy DJUI quad layer framebuffer to Vulkan swapchain
+int vr_copy_djui_to_swapchain(void)
+{
+    // Just perform the GL read, Vulkan operations will be batched later
+    return vr_copy_gl_read_djui();
+}
+
+// Batched Vulkan copy - processes all pending layers in a single command buffer submission
+int vr_copy_execute_batched(void)
+{
+    if (!g_vr_copy.initialized) {
+        return 0;
+    }
+    
+    // Check if there are any pending copies
+    bool hasPendingCopies = false;
+    for (int i = 0; i < 4; i++) {
+        if (g_vr_copy.pendingCopy[i]) {
+            hasPendingCopies = true;
+            break;
+        }
+    }
+    
+    if (!hasPendingCopies) {
+        // No pending copies, nothing to do
+        return 1;
+    }
+    
+    // Begin command buffer once for all layers
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
     VkResult vkResult = vkBeginCommandBuffer(g_vr_copy.commandBuffer, &beginInfo);
     if (vkResult != VK_SUCCESS) {
-        fprintf(stderr, "Failed to begin command buffer for DJUI: %d\n", vkResult);
+        fprintf(stderr, "Failed to begin command buffer for batched copy: %d\n", vkResult);
         return 0;
     }
     
-    // Bind compute pipeline
+    // Bind compute pipeline once (reused for all layers)
     vkCmdBindPipeline(g_vr_copy.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, g_vr_copy.flipComputePipeline);
-    vkCmdBindDescriptorSets(g_vr_copy.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
-        g_vr_copy.flipPipelineLayout, 0, 1, &g_vr_copy.flipDescriptorSets[3], 0, nullptr);
     
-    uint32_t pushConstants[2] = { width, height };
-    vkCmdPushConstants(g_vr_copy.commandBuffer, g_vr_copy.flipPipelineLayout,
-        VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), pushConstants);
-    
-    uint32_t groupCountX = (width + 15) / 16;
-    uint32_t groupCountY = (height + 15) / 16;
-    vkCmdDispatch(g_vr_copy.commandBuffer, groupCountX, groupCountY, 1);
-    
-    VkMemoryBarrier memBarrier = {};
-    memBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
-    memBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    memBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-    
-    vkCmdPipelineBarrier(g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0, 1, &memBarrier, 0, nullptr, 0, nullptr);
+    // Process each pending layer
+    for (int i = 0; i < 4; i++) {
+        if (!g_vr_copy.pendingCopy[i]) {
+            continue;
+        }
+        
+        VRCopyEyeState* layerState;
+        VkImage swapchainImage;
+        const char* layerName;
+        
+        // Get layer-specific state
+        if (i == 0 || i == 1) {
+            // Eye 0 or Eye 1
+            layerState = &g_vr_copy.eyes[i];
+            swapchainImage = vr_renderer_get_swapchain_image(i);
+            layerName = (i == 0) ? "eye 0" : "eye 1";
+        } else if (i == 2) {
+            // Quad layer
+            layerState = &g_vr_copy.quadState;
+            swapchainImage = vr_renderer_get_quad_swapchain_image();
+            layerName = "quad";
+        } else {
+            // DJUI layer
+            layerState = &g_vr_copy.djuiState;
+            swapchainImage = vr_renderer_get_djui_swapchain_image();
+            layerName = "djui";
+        }
+        
+        if (swapchainImage == VK_NULL_HANDLE) {
+            fprintf(stderr, "Failed to get swapchain image for %s\n", layerName);
+            continue;
+        }
+        
+        const uint32_t width = layerState->width;
+        const uint32_t height = layerState->height;
+        
+        // Bind descriptor set for this layer
+        vkCmdBindDescriptorSets(g_vr_copy.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+            g_vr_copy.flipPipelineLayout, 0, 1, &g_vr_copy.flipDescriptorSets[i], 0, nullptr);
+        
+        // Push constants (width and height)
+        uint32_t pushConstants[2] = { width, height };
+        vkCmdPushConstants(g_vr_copy.commandBuffer, g_vr_copy.flipPipelineLayout,
+            VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), pushConstants);
+        
+        // Dispatch compute shader (16x16 workgroup size)
+        uint32_t groupCountX = (width + 15) / 16;
+        uint32_t groupCountY = (height + 15) / 16;
+        vkCmdDispatch(g_vr_copy.commandBuffer, groupCountX, groupCountY, 1);
+        
+        // Memory barrier to ensure compute shader writes are visible before copy
+        VkMemoryBarrier memBarrier = {};
+        memBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+        memBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        memBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        
+        vkCmdPipelineBarrier(g_vr_copy.commandBuffer,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 1, &memBarrier, 0, nullptr, 0, nullptr);
+        
+        // Transition swapchain image to TRANSFER_DST_OPTIMAL
+        VkImageMemoryBarrier barrier = {};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = swapchainImage;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-    // Vulkan copy from flipped buffer
-    VkImage swapchainImage = vr_renderer_get_djui_swapchain_image();
-    if (swapchainImage == VK_NULL_HANDLE) {
-        fprintf(stderr, "Failed to get DJUI swapchain image\n");
-        return 0;
+        vkCmdPipelineBarrier(
+            g_vr_copy.commandBuffer,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &barrier
+        );
+
+        // Copy flipped buffer to swapchain image
+        VkBufferImageCopy region = {};
+        region.bufferOffset = 0;
+        region.bufferRowLength = 0;     // tightly packed
+        region.bufferImageHeight = 0;   // tightly packed
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageOffset = (VkOffset3D){0, 0, 0};
+        region.imageExtent = (VkExtent3D){width, height, 1};
+
+        vkCmdCopyBufferToImage(
+            g_vr_copy.commandBuffer,
+            layerState->stagingBufferFlipped,
+            swapchainImage,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &region
+        );
+
+        // Transition to COLOR_ATTACHMENT_OPTIMAL for OpenXR rendering
+        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
+
+        vkCmdPipelineBarrier(
+            g_vr_copy.commandBuffer,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &barrier
+        );
+        
+        // Clear the pending flag for this layer
+        g_vr_copy.pendingCopy[i] = false;
     }
-
-    // Transition swapchain image to TRANSFER_DST_OPTIMAL
-    VkImageMemoryBarrier barrier = {};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = swapchainImage;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.srcAccessMask = 0;
-    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-    vkCmdPipelineBarrier(
-        g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    VkBufferImageCopy region = {};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;     // tightly packed
-    region.bufferImageHeight = 0;   // tightly packed
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = (VkOffset3D){0, 0, 0};
-    region.imageExtent = (VkExtent3D){width, height, 1};
-
-    vkCmdCopyBufferToImage(
-        g_vr_copy.commandBuffer,
-        djuiState->stagingBufferFlipped,  // Use flipped buffer
-        swapchainImage,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &region
-    );
-
-    // Transition to COLOR_ATTACHMENT_OPTIMAL for OpenXR rendering
-    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-
-    vkCmdPipelineBarrier(
-        g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
+    
+    // End command buffer once for all layers
     vkEndCommandBuffer(g_vr_copy.commandBuffer);
 
-    // Submit with proper synchronization
+    // Submit once for all layers
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
@@ -1825,13 +1652,14 @@ int vr_copy_djui_to_swapchain(void)
 
     VkResult result = vkQueueSubmit(g_vr_copy.vkQueue, 1, &submitInfo, VK_NULL_HANDLE);
     if (result != VK_SUCCESS) {
-        fprintf(stderr, "Failed to submit Vulkan copy command for DJUI: %d\n", result);
+        fprintf(stderr, "Failed to submit Vulkan batched copy command: %d\n", result);
         return 0;
     }
     
-    // Wait for the copy to complete before returning
+    // Wait for the copy to complete before returning (once for all layers)
     vkQueueWaitIdle(g_vr_copy.vkQueue);
     vkResetCommandBuffer(g_vr_copy.commandBuffer, 0);
 
     return 1;
 }
+

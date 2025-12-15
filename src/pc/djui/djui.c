@@ -79,13 +79,7 @@ void patch_djui_before(void) {
 void patch_djui_interpolated(UNUSED f32 delta) {
     extern f32 gFramePercentage;
 #ifdef OPENXR_ENABLED
-    extern int vr_renderer_is_initialized(void);
-    extern void vr_opengl_render_djui_to_djui_quad(void);
-    if (vr_renderer_is_initialized()) {
-        vr_opengl_render_djui_to_djui_quad();
-        sDjuiRendered60fps = true;
-        return;
-    }
+    return;
 #endif
     if (gDjuiInMainMenu || gDjuiPanelPauseCreated) {
         if (gFramePercentage >= 0.5f && !sDjuiRendered60fps) {
@@ -244,10 +238,14 @@ void djui_render(void) {
     djui_cursor_update();
     djui_base_render(&gDjuiConsole->base);
 
+#ifdef OPENXR_ENABLED
+    djui_interactable_update();
+#else
     // Be careful! Djui interactables update at 30hz to avoid display list corruption.
     if (!sDjuiRendered60fps) {
         djui_interactable_update();
     }
+#endif
 
     djui_gfx_displaylist_end();
 }

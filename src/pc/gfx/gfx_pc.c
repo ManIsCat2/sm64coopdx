@@ -2170,6 +2170,9 @@ void gfx_run(Gfx *commands) {
         extern void vr_render_hud_to_quad(void);
         vr_render_hud_to_quad();
         
+        extern void vr_opengl_render_djui_to_djui_quad(void);
+        vr_opengl_render_djui_to_djui_quad();
+
         // Execute batched Vulkan copy operations for all layers
         // This processes all pending GL reads (eyes + quad + djui) in a single command buffer
         if (vr_copy_is_initialized()) {
@@ -2181,12 +2184,7 @@ void gfx_run(Gfx *commands) {
         
         // End VR frame (submits to OpenXR)
         vr_renderer_end_frame();
-        
-        // Also render to the desktop window so we can see what's happening
-        // This is optional but useful for debugging
-        gfx_rapi->start_frame();
-        gfx_run_dl(commands);
-        gfx_flush();
+
         gfx_rapi->end_frame();
         gfx_wapi->swap_buffers_begin();
         

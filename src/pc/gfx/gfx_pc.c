@@ -2170,6 +2170,12 @@ void gfx_run(Gfx *commands) {
         extern void vr_render_hud_to_quad(void);
         vr_render_hud_to_quad();
         
+        // Execute batched Vulkan copy operations for all layers
+        // This processes all pending GL reads (eyes + quad + djui) in a single command buffer
+        if (vr_copy_is_initialized()) {
+            vr_copy_execute_batched();
+        }
+        
         // Restore original dimensions for desktop rendering
         gfx_current_dimensions = saved_dimensions;
         

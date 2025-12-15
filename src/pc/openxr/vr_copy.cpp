@@ -2,6 +2,7 @@
 #include "vr_renderer.h"
 #include "vr_opengl.h"
 #include "openxr_manager.h"
+#include "flip_y_spv.h"  // SPIR-V bytecode for Y-flip compute shader
 
 #include <vulkan/vulkan.h>
 #include <stdio.h>
@@ -100,6 +101,12 @@ struct VRCopyEyeState {
     VkBuffer stagingBuffer;
     VkDeviceMemory stagingMemory;
     void* stagingMapped;  // Persistently mapped staging memory
+    
+    // Second staging buffer for compute shader output (flipped data)
+    VkBuffer stagingBufferFlipped;
+    VkDeviceMemory stagingMemoryFlipped;
+    void* stagingMappedFlipped;
+    
     uint32_t width;
     uint32_t height;
     
@@ -123,6 +130,19 @@ static struct {
     // Vulkan command buffer for copy operations
     VkCommandPool commandPool;
     VkCommandBuffer commandBuffer;
+    
+    // Compute pipeline for Y-flip operation
+    VkShaderModule flipShaderModule;
+    VkDescriptorSetLayout flipDescriptorSetLayout;
+    VkPipelineLayout flipPipelineLayout;
+    VkPipeline flipComputePipeline;
+    VkDescriptorPool flipDescriptorPool;
+    
+    // Descriptor sets for each eye/layer (2 eyes + quad + djui = 4 total)
+    VkDescriptorSet flipDescriptorSets[4];
+    
+    // Batched copy state tracking
+    bool pendingCopy[4];  // Track which layers have pending GL reads: [0]=eye0, [1]=eye1, [2]=quad, [3]=djui
 } g_vr_copy = {
     false,
     false,
@@ -135,7 +155,14 @@ static struct {
     VK_NULL_HANDLE,
     -1,
     VK_NULL_HANDLE,
-    VK_NULL_HANDLE
+    VK_NULL_HANDLE,
+    VK_NULL_HANDLE,  // flipShaderModule
+    VK_NULL_HANDLE,  // flipDescriptorSetLayout
+    VK_NULL_HANDLE,  // flipPipelineLayout
+    VK_NULL_HANDLE,  // flipComputePipeline
+    VK_NULL_HANDLE,  // flipDescriptorPool
+    {},  // flipDescriptorSets
+    {}   // pendingCopy
 };
 
 // Load OpenGL extensions
@@ -379,11 +406,217 @@ static bool init_eye_interop(int eye)
     
     printf("Created staging buffer for eye %d: %lu bytes\n", eye, (unsigned long)bufferSize);
     
+    // Create second staging buffer for compute shader output (flipped data)
+    VkBufferCreateInfo flippedBufferInfo{};
+    flippedBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    flippedBufferInfo.size = bufferSize;
+    flippedBufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    flippedBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    
+    result = vkCreateBuffer(g_vr_copy.vkDevice, &flippedBufferInfo, nullptr, &eyeState->stagingBufferFlipped);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create flipped staging buffer for eye %d: %d\n", eye, result);
+        vkUnmapMemory(g_vr_copy.vkDevice, eyeState->stagingMemory);
+        vkFreeMemory(g_vr_copy.vkDevice, eyeState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, eyeState->stagingBuffer, nullptr);
+        return false;
+    }
+    
+    VkMemoryRequirements flippedMemRequirements;
+    vkGetBufferMemoryRequirements(g_vr_copy.vkDevice, eyeState->stagingBufferFlipped, &flippedMemRequirements);
+    
+    VkMemoryAllocateInfo flippedMemAllocInfo{};
+    flippedMemAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    flippedMemAllocInfo.allocationSize = flippedMemRequirements.size;
+    flippedMemAllocInfo.memoryTypeIndex = find_memory_type(flippedMemRequirements.memoryTypeBits, 
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    
+    result = vkAllocateMemory(g_vr_copy.vkDevice, &flippedMemAllocInfo, nullptr, &eyeState->stagingMemoryFlipped);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to allocate flipped staging memory for eye %d: %d\n", eye, result);
+        vkDestroyBuffer(g_vr_copy.vkDevice, eyeState->stagingBufferFlipped, nullptr);
+        vkUnmapMemory(g_vr_copy.vkDevice, eyeState->stagingMemory);
+        vkFreeMemory(g_vr_copy.vkDevice, eyeState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, eyeState->stagingBuffer, nullptr);
+        return false;
+    }
+    
+    result = vkBindBufferMemory(g_vr_copy.vkDevice, eyeState->stagingBufferFlipped, eyeState->stagingMemoryFlipped, 0);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to bind flipped staging buffer memory for eye %d: %d\n", eye, result);
+        vkFreeMemory(g_vr_copy.vkDevice, eyeState->stagingMemoryFlipped, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, eyeState->stagingBufferFlipped, nullptr);
+        vkUnmapMemory(g_vr_copy.vkDevice, eyeState->stagingMemory);
+        vkFreeMemory(g_vr_copy.vkDevice, eyeState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, eyeState->stagingBuffer, nullptr);
+        return false;
+    }
+    
+    // Map the flipped staging buffer
+    result = vkMapMemory(g_vr_copy.vkDevice, eyeState->stagingMemoryFlipped, 0, bufferSize, 0, &eyeState->stagingMappedFlipped);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to map flipped staging memory for eye %d: %d\n", eye, result);
+        vkFreeMemory(g_vr_copy.vkDevice, eyeState->stagingMemoryFlipped, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, eyeState->stagingBufferFlipped, nullptr);
+        vkUnmapMemory(g_vr_copy.vkDevice, eyeState->stagingMemory);
+        vkFreeMemory(g_vr_copy.vkDevice, eyeState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, eyeState->stagingBuffer, nullptr);
+        return false;
+    }
+    
     eyeState->initialized = true;
     printf("VR copy interop initialized for eye %d\n", eye);
     
     return true;
 }
+
+// Initialize compute pipeline for Y-flip operation
+static bool init_flip_compute_pipeline(void)
+{
+    printf("Initializing Y-flip compute pipeline...\n");
+    
+    // Create shader module
+    VkShaderModuleCreateInfo shaderInfo{};
+    shaderInfo.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
+    shaderInfo.codeSize = flip_y_spv_len;
+    shaderInfo.pCode = reinterpret_cast<const uint32_t*>(flip_y_spv);
+    
+    VkResult result = vkCreateShaderModule(g_vr_copy.vkDevice, &shaderInfo, nullptr, &g_vr_copy.flipShaderModule);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create flip shader module: %d\n", result);
+        return false;
+    }
+    
+    // Create descriptor set layout
+    VkDescriptorSetLayoutBinding bindings[2] = {};
+    // Binding 0: source buffer (readonly)
+    bindings[0].binding = 0;
+    bindings[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    bindings[0].descriptorCount = 1;
+    bindings[0].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    
+    // Binding 1: destination buffer (writeonly)
+    bindings[1].binding = 1;
+    bindings[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    bindings[1].descriptorCount = 1;
+    bindings[1].stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    
+    VkDescriptorSetLayoutCreateInfo layoutInfo{};
+    layoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    layoutInfo.bindingCount = 2;
+    layoutInfo.pBindings = bindings;
+    
+    result = vkCreateDescriptorSetLayout(g_vr_copy.vkDevice, &layoutInfo, nullptr, &g_vr_copy.flipDescriptorSetLayout);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create descriptor set layout: %d\n", result);
+        return false;
+    }
+    
+    // Create pipeline layout with push constants
+    VkPushConstantRange pushConstantRange{};
+    pushConstantRange.stageFlags = VK_SHADER_STAGE_COMPUTE_BIT;
+    pushConstantRange.offset = 0;
+    pushConstantRange.size = sizeof(uint32_t) * 2;  // width and height
+    
+    VkPipelineLayoutCreateInfo pipelineLayoutInfo{};
+    pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutInfo.setLayoutCount = 1;
+    pipelineLayoutInfo.pSetLayouts = &g_vr_copy.flipDescriptorSetLayout;
+    pipelineLayoutInfo.pushConstantRangeCount = 1;
+    pipelineLayoutInfo.pPushConstantRanges = &pushConstantRange;
+    
+    result = vkCreatePipelineLayout(g_vr_copy.vkDevice, &pipelineLayoutInfo, nullptr, &g_vr_copy.flipPipelineLayout);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create pipeline layout: %d\n", result);
+        return false;
+    }
+    
+    // Create compute pipeline
+    VkComputePipelineCreateInfo pipelineInfo{};
+    pipelineInfo.sType = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    pipelineInfo.stage.sType = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    pipelineInfo.stage.stage = VK_SHADER_STAGE_COMPUTE_BIT;
+    pipelineInfo.stage.module = g_vr_copy.flipShaderModule;
+    pipelineInfo.stage.pName = "main";
+    pipelineInfo.layout = g_vr_copy.flipPipelineLayout;
+    
+    result = vkCreateComputePipelines(g_vr_copy.vkDevice, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &g_vr_copy.flipComputePipeline);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create compute pipeline: %d\n", result);
+        return false;
+    }
+    
+    // Create descriptor pool (for 4 descriptor sets: 2 eyes + quad + djui)
+    VkDescriptorPoolSize poolSize{};
+    poolSize.type = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    poolSize.descriptorCount = 8;  // 2 buffers per set * 4 sets
+    
+    VkDescriptorPoolCreateInfo poolInfo{};
+    poolInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.poolSizeCount = 1;
+    poolInfo.pPoolSizes = &poolSize;
+    poolInfo.maxSets = 4;
+    
+    result = vkCreateDescriptorPool(g_vr_copy.vkDevice, &poolInfo, nullptr, &g_vr_copy.flipDescriptorPool);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create descriptor pool: %d\n", result);
+        return false;
+    }
+    
+    printf("Y-flip compute pipeline initialized successfully\n");
+    return true;
+}
+
+// Create descriptor set for a specific eye/layer
+static bool create_flip_descriptor_set(int index, VRCopyEyeState* state)
+{
+    VkDescriptorSetLayout layouts[] = { g_vr_copy.flipDescriptorSetLayout };
+    VkDescriptorSetAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
+    allocInfo.descriptorPool = g_vr_copy.flipDescriptorPool;
+    allocInfo.descriptorSetCount = 1;
+    allocInfo.pSetLayouts = layouts;
+    
+    VkResult result = vkAllocateDescriptorSets(g_vr_copy.vkDevice, &allocInfo, &g_vr_copy.flipDescriptorSets[index]);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to allocate descriptor set for index %d: %d\n", index, result);
+        return false;
+    }
+    
+    // Update descriptor set with buffers
+    VkDescriptorBufferInfo bufferInfos[2] = {};
+    // Source buffer (normal staging buffer - input from glReadPixels)
+    bufferInfos[0].buffer = state->stagingBuffer;
+    bufferInfos[0].offset = 0;
+    bufferInfos[0].range = VK_WHOLE_SIZE;
+    
+    // Destination buffer (flipped staging buffer - output)
+    bufferInfos[1].buffer = state->stagingBufferFlipped;
+    bufferInfos[1].offset = 0;
+    bufferInfos[1].range = VK_WHOLE_SIZE;
+    
+    VkWriteDescriptorSet descriptorWrites[2] = {};
+    descriptorWrites[0].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[0].dstSet = g_vr_copy.flipDescriptorSets[index];
+    descriptorWrites[0].dstBinding = 0;
+    descriptorWrites[0].dstArrayElement = 0;
+    descriptorWrites[0].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrites[0].descriptorCount = 1;
+    descriptorWrites[0].pBufferInfo = &bufferInfos[0];
+    
+    descriptorWrites[1].sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+    descriptorWrites[1].dstSet = g_vr_copy.flipDescriptorSets[index];
+    descriptorWrites[1].dstBinding = 1;
+    descriptorWrites[1].dstArrayElement = 0;
+    descriptorWrites[1].descriptorType = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    descriptorWrites[1].descriptorCount = 1;
+    descriptorWrites[1].pBufferInfo = &bufferInfos[1];
+    
+    vkUpdateDescriptorSets(g_vr_copy.vkDevice, 2, descriptorWrites, 0, nullptr);
+    
+    return true;
+}
+
 
 int vr_copy_init(void)
 {
@@ -565,6 +798,67 @@ int vr_copy_init(void)
         return 0;
     }
     
+    // Create flipped staging buffer for compute shader (same as eyes)
+    VkBufferCreateInfo quadFlippedBufferInfo{};
+    quadFlippedBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    quadFlippedBufferInfo.size = bufferSize;
+    quadFlippedBufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    quadFlippedBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    
+    quadResult = vkCreateBuffer(g_vr_copy.vkDevice, &quadFlippedBufferInfo, nullptr, &quadState->stagingBufferFlipped);
+    if (quadResult != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create flipped staging buffer for quad layer: %d\n", quadResult);
+        vkUnmapMemory(g_vr_copy.vkDevice, quadState->stagingMemory);
+        vkFreeMemory(g_vr_copy.vkDevice, quadState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, quadState->stagingBuffer, nullptr);
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    VkMemoryRequirements quadFlippedMemRequirements;
+    vkGetBufferMemoryRequirements(g_vr_copy.vkDevice, quadState->stagingBufferFlipped, &quadFlippedMemRequirements);
+    
+    VkMemoryAllocateInfo quadFlippedMemAllocInfo{};
+    quadFlippedMemAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    quadFlippedMemAllocInfo.allocationSize = quadFlippedMemRequirements.size;
+    quadFlippedMemAllocInfo.memoryTypeIndex = find_memory_type(quadFlippedMemRequirements.memoryTypeBits, 
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    
+    quadResult = vkAllocateMemory(g_vr_copy.vkDevice, &quadFlippedMemAllocInfo, nullptr, &quadState->stagingMemoryFlipped);
+    if (quadResult != VK_SUCCESS) {
+        fprintf(stderr, "Failed to allocate flipped staging memory for quad layer: %d\n", quadResult);
+        vkDestroyBuffer(g_vr_copy.vkDevice, quadState->stagingBufferFlipped, nullptr);
+        vkUnmapMemory(g_vr_copy.vkDevice, quadState->stagingMemory);
+        vkFreeMemory(g_vr_copy.vkDevice, quadState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, quadState->stagingBuffer, nullptr);
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    quadResult = vkBindBufferMemory(g_vr_copy.vkDevice, quadState->stagingBufferFlipped, quadState->stagingMemoryFlipped, 0);
+    if (quadResult != VK_SUCCESS) {
+        fprintf(stderr, "Failed to bind flipped staging buffer memory for quad layer: %d\n", quadResult);
+        vkFreeMemory(g_vr_copy.vkDevice, quadState->stagingMemoryFlipped, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, quadState->stagingBufferFlipped, nullptr);
+        vkUnmapMemory(g_vr_copy.vkDevice, quadState->stagingMemory);
+        vkFreeMemory(g_vr_copy.vkDevice, quadState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, quadState->stagingBuffer, nullptr);
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    quadResult = vkMapMemory(g_vr_copy.vkDevice, quadState->stagingMemoryFlipped, 0, bufferSize, 0, &quadState->stagingMappedFlipped);
+    if (quadResult != VK_SUCCESS) {
+        fprintf(stderr, "Failed to map flipped staging memory for quad layer: %d\n", quadResult);
+        vkFreeMemory(g_vr_copy.vkDevice, quadState->stagingMemoryFlipped, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, quadState->stagingBufferFlipped, nullptr);
+        vkUnmapMemory(g_vr_copy.vkDevice, quadState->stagingMemory);
+        vkFreeMemory(g_vr_copy.vkDevice, quadState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, quadState->stagingBuffer, nullptr);
+        vr_copy_shutdown();
+        return 0;
+    }
+    
     quadState->initialized = true;
     printf("Quad layer interop initialized: %ux%u\n", quadWidth, quadHeight);
     
@@ -670,8 +964,101 @@ int vr_copy_init(void)
         return 0;
     }
     
+    // Create flipped staging buffer for compute shader (same as eyes and quad)
+    VkBufferCreateInfo djuiFlippedBufferInfo{};
+    djuiFlippedBufferInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    djuiFlippedBufferInfo.size = djuiBufferSize;
+    djuiFlippedBufferInfo.usage = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    djuiFlippedBufferInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    
+    djuiResult = vkCreateBuffer(g_vr_copy.vkDevice, &djuiFlippedBufferInfo, nullptr, &djuiState->stagingBufferFlipped);
+    if (djuiResult != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create flipped staging buffer for DJUI layer: %d\n", djuiResult);
+        vkUnmapMemory(g_vr_copy.vkDevice, djuiState->stagingMemory);
+        vkFreeMemory(g_vr_copy.vkDevice, djuiState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, djuiState->stagingBuffer, nullptr);
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    VkMemoryRequirements djuiFlippedMemRequirements;
+    vkGetBufferMemoryRequirements(g_vr_copy.vkDevice, djuiState->stagingBufferFlipped, &djuiFlippedMemRequirements);
+    
+    VkMemoryAllocateInfo djuiFlippedMemAllocInfo{};
+    djuiFlippedMemAllocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    djuiFlippedMemAllocInfo.allocationSize = djuiFlippedMemRequirements.size;
+    djuiFlippedMemAllocInfo.memoryTypeIndex = find_memory_type(djuiFlippedMemRequirements.memoryTypeBits, 
+        VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    
+    djuiResult = vkAllocateMemory(g_vr_copy.vkDevice, &djuiFlippedMemAllocInfo, nullptr, &djuiState->stagingMemoryFlipped);
+    if (djuiResult != VK_SUCCESS) {
+        fprintf(stderr, "Failed to allocate flipped staging memory for DJUI layer: %d\n", djuiResult);
+        vkDestroyBuffer(g_vr_copy.vkDevice, djuiState->stagingBufferFlipped, nullptr);
+        vkUnmapMemory(g_vr_copy.vkDevice, djuiState->stagingMemory);
+        vkFreeMemory(g_vr_copy.vkDevice, djuiState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, djuiState->stagingBuffer, nullptr);
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    djuiResult = vkBindBufferMemory(g_vr_copy.vkDevice, djuiState->stagingBufferFlipped, djuiState->stagingMemoryFlipped, 0);
+    if (djuiResult != VK_SUCCESS) {
+        fprintf(stderr, "Failed to bind flipped staging buffer memory for DJUI layer: %d\n", djuiResult);
+        vkFreeMemory(g_vr_copy.vkDevice, djuiState->stagingMemoryFlipped, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, djuiState->stagingBufferFlipped, nullptr);
+        vkUnmapMemory(g_vr_copy.vkDevice, djuiState->stagingMemory);
+        vkFreeMemory(g_vr_copy.vkDevice, djuiState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, djuiState->stagingBuffer, nullptr);
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    djuiResult = vkMapMemory(g_vr_copy.vkDevice, djuiState->stagingMemoryFlipped, 0, djuiBufferSize, 0, &djuiState->stagingMappedFlipped);
+    if (djuiResult != VK_SUCCESS) {
+        fprintf(stderr, "Failed to map flipped staging memory for DJUI layer: %d\n", djuiResult);
+        vkFreeMemory(g_vr_copy.vkDevice, djuiState->stagingMemoryFlipped, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, djuiState->stagingBufferFlipped, nullptr);
+        vkUnmapMemory(g_vr_copy.vkDevice, djuiState->stagingMemory);
+        vkFreeMemory(g_vr_copy.vkDevice, djuiState->stagingMemory, nullptr);
+        vkDestroyBuffer(g_vr_copy.vkDevice, djuiState->stagingBuffer, nullptr);
+        vr_copy_shutdown();
+        return 0;
+    }
+    
     djuiState->initialized = true;
     printf("DJUI layer interop initialized: %ux%u\n", djuiWidth, djuiHeight);
+    
+    // Initialize compute pipeline for Y-flip operation
+    if (!init_flip_compute_pipeline()) {
+        fprintf(stderr, "Failed to initialize Y-flip compute pipeline\n");
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    // Create descriptor sets for each eye  and layer
+    if (!create_flip_descriptor_set(0, &g_vr_copy.eyes[0])) {
+        fprintf(stderr, "Failed to create descriptor set for eye 0\n");
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    if (!create_flip_descriptor_set(1, &g_vr_copy.eyes[1])) {
+        fprintf(stderr, "Failed to create descriptor set for eye 1\n");
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    if (!create_flip_descriptor_set(2, &g_vr_copy.quadState)) {
+        fprintf(stderr, "Failed to create descriptor set for quad layer\n");
+        vr_copy_shutdown();
+        return 0;
+    }
+    
+    if (!create_flip_descriptor_set(3, &g_vr_copy.djuiState)) {
+        fprintf(stderr, "Failed to create descriptor set for DJUI layer\n");
+        vr_copy_shutdown();
+        return 0;
+    }
     
     g_vr_copy.initialized = true;
     printf("VR copy system initialized successfully\n");
@@ -704,6 +1091,22 @@ void vr_copy_shutdown(void)
         if (eyeState->stagingMemory != VK_NULL_HANDLE) {
             vkFreeMemory(g_vr_copy.vkDevice, eyeState->stagingMemory, nullptr);
             eyeState->stagingMemory = VK_NULL_HANDLE;
+        }
+        
+        // Clean up flipped staging buffers
+        if (eyeState->stagingMappedFlipped && eyeState->stagingMemoryFlipped != VK_NULL_HANDLE) {
+            vkUnmapMemory(g_vr_copy.vkDevice, eyeState->stagingMemoryFlipped);
+            eyeState->stagingMappedFlipped = nullptr;
+        }
+        
+        if (eyeState->stagingBufferFlipped != VK_NULL_HANDLE) {
+            vkDestroyBuffer(g_vr_copy.vkDevice, eyeState->stagingBufferFlipped, nullptr);
+            eyeState->stagingBufferFlipped = VK_NULL_HANDLE;
+        }
+        
+        if (eyeState->stagingMemoryFlipped != VK_NULL_HANDLE) {
+            vkFreeMemory(g_vr_copy.vkDevice, eyeState->stagingMemoryFlipped, nullptr);
+            eyeState->stagingMemoryFlipped = VK_NULL_HANDLE;
         }
         
         if (eyeState->glFramebuffer != 0) {
@@ -747,6 +1150,22 @@ void vr_copy_shutdown(void)
         quadState->stagingMemory = VK_NULL_HANDLE;
     }
     
+    // Clean up flipped staging buffers
+    if (quadState->stagingMappedFlipped && quadState->stagingMemoryFlipped != VK_NULL_HANDLE) {
+        vkUnmapMemory(g_vr_copy.vkDevice, quadState->stagingMemoryFlipped);
+        quadState->stagingMappedFlipped = nullptr;
+    }
+    
+    if (quadState->stagingBufferFlipped != VK_NULL_HANDLE) {
+        vkDestroyBuffer(g_vr_copy.vkDevice, quadState->stagingBufferFlipped, nullptr);
+        quadState->stagingBufferFlipped = VK_NULL_HANDLE;
+    }
+    
+    if (quadState->stagingMemoryFlipped != VK_NULL_HANDLE) {
+        vkFreeMemory(g_vr_copy.vkDevice, quadState->stagingMemoryFlipped, nullptr);
+        quadState->stagingMemoryFlipped = VK_NULL_HANDLE;
+    }
+    
     if (quadState->glFramebuffer != 0) {
         glDeleteFramebuffers(1, &quadState->glFramebuffer);
         quadState->glFramebuffer = 0;
@@ -787,6 +1206,22 @@ void vr_copy_shutdown(void)
         djuiState->stagingMemory = VK_NULL_HANDLE;
     }
     
+    // Clean up flipped staging buffers
+    if (djuiState->stagingMappedFlipped && djuiState->stagingMemoryFlipped != VK_NULL_HANDLE) {
+        vkUnmapMemory(g_vr_copy.vkDevice, djuiState->stagingMemoryFlipped);
+        djuiState->stagingMappedFlipped = nullptr;
+    }
+    
+    if (djuiState->stagingBufferFlipped != VK_NULL_HANDLE) {
+        vkDestroyBuffer(g_vr_copy.vkDevice, djuiState->stagingBufferFlipped, nullptr);
+        djuiState->stagingBufferFlipped = VK_NULL_HANDLE;
+    }
+    
+    if (djuiState->stagingMemoryFlipped != VK_NULL_HANDLE) {
+        vkFreeMemory(g_vr_copy.vkDevice, djuiState->stagingMemoryFlipped, nullptr);
+        djuiState->stagingMemoryFlipped = VK_NULL_HANDLE;
+    }
+    
     if (djuiState->glFramebuffer != 0) {
         glDeleteFramebuffers(1, &djuiState->glFramebuffer);
         djuiState->glFramebuffer = 0;
@@ -809,6 +1244,32 @@ void vr_copy_shutdown(void)
     
     djuiState->initialized = false;
     
+    // Clean up compute pipeline resources
+    if (g_vr_copy.flipDescriptorPool != VK_NULL_HANDLE) {
+        vkDestroyDescriptorPool(g_vr_copy.vkDevice, g_vr_copy.flipDescriptorPool, nullptr);
+        g_vr_copy.flipDescriptorPool = VK_NULL_HANDLE;
+    }
+    
+    if (g_vr_copy.flipComputePipeline != VK_NULL_HANDLE) {
+        vkDestroyPipeline(g_vr_copy.vkDevice, g_vr_copy.flipComputePipeline, nullptr);
+        g_vr_copy.flipComputePipeline = VK_NULL_HANDLE;
+    }
+    
+    if (g_vr_copy.flipPipelineLayout != VK_NULL_HANDLE) {
+        vkDestroyPipelineLayout(g_vr_copy.vkDevice, g_vr_copy.flipPipelineLayout, nullptr);
+        g_vr_copy.flipPipelineLayout = VK_NULL_HANDLE;
+    }
+    
+    if (g_vr_copy.flipDescriptorSetLayout != VK_NULL_HANDLE) {
+        vkDestroyDescriptorSetLayout(g_vr_copy.vkDevice, g_vr_copy.flipDescriptorSetLayout, nullptr);
+        g_vr_copy.flipDescriptorSetLayout = VK_NULL_HANDLE;
+    }
+    
+    if (g_vr_copy.flipShaderModule != VK_NULL_HANDLE) {
+        vkDestroyShaderModule(g_vr_copy.vkDevice, g_vr_copy.flipShaderModule, nullptr);
+        g_vr_copy.flipShaderModule = VK_NULL_HANDLE;
+    }
+    
     // Clean up command pool (this also frees command buffers)
     if (g_vr_copy.commandPool != VK_NULL_HANDLE) {
         vkDestroyCommandPool(g_vr_copy.vkDevice, g_vr_copy.commandPool, nullptr);
@@ -825,26 +1286,9 @@ int vr_copy_is_initialized(void)
     return g_vr_copy.initialized ? 1 : 0;
 }
 
-// Helper: flip an RGBA8 image in-place (height rows, width pixels per row)
-static void flip_y_rgba8(uint8_t* data, uint32_t width, uint32_t height) {
-    if (!data || width == 0 || height == 0) return;
-    const uint32_t row_bytes = width * 4; // RGBA8
-    uint8_t* tmp = (uint8_t*)malloc(row_bytes);
-    if (!tmp) return;
-
-    for (uint32_t y = 0; y < height / 2; ++y) {
-        uint8_t* row_top = data + y * row_bytes;
-        uint8_t* row_bot = data + (height - 1 - y) * row_bytes;
-        memcpy(tmp, row_top, row_bytes);
-        memcpy(row_top, row_bot, row_bytes);
-        memcpy(row_bot, tmp, row_bytes);
-    }
-    free(tmp);
-}
-
-int vr_copy_framebuffer_to_swapchain(int eye)
+// Helper function: GL read only for eye (no Vulkan operations)
+static int vr_copy_gl_read_eye(int eye)
 {
-    static int frame_count = 0;
     static int logged_once = 0;
 
     if (!g_vr_copy.initialized || eye < 0 || eye > 1) {
@@ -864,7 +1308,7 @@ int vr_copy_framebuffer_to_swapchain(int eye)
         return 0;
     }
 
-    // 1) Get the source framebuffer (from VR OpenGL)
+    // Get the source framebuffer (from VR OpenGL)
     GLuint sourceFBO = vr_opengl_get_framebuffer(eye);
     if (sourceFBO == 0) {
         fprintf(stderr, "Failed to get source framebuffer for eye %d\n", eye);
@@ -874,150 +1318,33 @@ int vr_copy_framebuffer_to_swapchain(int eye)
     const uint32_t width  = eyeState->width;
     const uint32_t height = eyeState->height;
 
-    if (frame_count < 5) {
-        printf("DEBUG vr_copy: Frame %d, Eye %d, FBO=%u, %ux%u\n",
-               frame_count, eye, (unsigned)sourceFBO, width, height);
-    }
-    if (eye == 1) {
-        if (frame_count < 100) frame_count++;
-    }
-
-    // 2) Save current FBO and pixel-pack alignment
+    // Save current FBO and pixel-pack alignment
     GLint oldFB = 0;
     glGetIntegerv(GL_FRAMEBUFFER_BINDING, &oldFB);
 
     GLint oldPack = 0;
     glGetIntegerv(GL_PACK_ALIGNMENT, &oldPack);
-    // glPixelStorei(GL_PACK_ALIGNMENT, 1); // tightly packed
-    // apparently faster in adreno
     glPixelStorei(GL_PACK_ALIGNMENT, 4);
 
-    // 3) Bind the source FBO and read pixels (ES2 path — no blit, no separate read/draw targets)
+    // Bind the source FBO and read pixels
     glBindFramebuffer(GL_FRAMEBUFFER, sourceFBO);
-
-    // Read bottom-left-origin pixels into staging buffer…
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, eyeState->stagingMapped);
 
-    // 4) Flip in CPU to convert from GL's bottom-left to Vulkan's top-left
-    flip_y_rgba8((uint8_t*)eyeState->stagingMapped, width, height);
-
-    // 5) Restore GL state
+    // Restore GL state
     glBindFramebuffer(GL_FRAMEBUFFER, oldFB);
     glPixelStorei(GL_PACK_ALIGNMENT, oldPack);
 
     // Ensure GL writes are visible before Vulkan reads
     glFinish();
-
-    // 6) Vulkan copy
-    VkImage swapchainImage = vr_renderer_get_swapchain_image(eye);
-    if (swapchainImage == VK_NULL_HANDLE) {
-        fprintf(stderr, "Failed to get swapchain image for eye %d\n", eye);
-        return 0;
-    }
-
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    VkResult vkResult = vkBeginCommandBuffer(g_vr_copy.commandBuffer, &beginInfo);
-    if (vkResult != VK_SUCCESS) {
-        fprintf(stderr, "Failed to begin command buffer for eye %d: %d\n", eye, vkResult);
-        return 0;
-    }
-
-    // Transition swapchain image to TRANSFER_DST_OPTIMAL
-    // Use UNDEFINED as old layout since OpenXR swapchain images come from a pool
-    // and we can't reliably know their previous layout. UNDEFINED tells Vulkan
-    // we don't care about previous contents (which is correct for a fresh frame).
-    VkImageMemoryBarrier barrier = {};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = swapchainImage;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.srcAccessMask = 0;
-    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-    vkCmdPipelineBarrier(
-        g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    VkBufferImageCopy region = {};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;     // tightly packed
-    region.bufferImageHeight = 0;   // tightly packed
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = (VkOffset3D){0, 0, 0};
-    region.imageExtent = (VkExtent3D){width, height, 1};
-
-    vkCmdCopyBufferToImage(
-        g_vr_copy.commandBuffer,
-        eyeState->stagingBuffer,
-        swapchainImage,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &region
-    );
-
-    // Transition to COLOR_ATTACHMENT_OPTIMAL for OpenXR rendering
-    // Note: OpenXR expects COLOR_ATTACHMENT_OPTIMAL for presentation
-    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-
-    vkCmdPipelineBarrier(
-        g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    vkEndCommandBuffer(g_vr_copy.commandBuffer);
-
-    // Submit with proper synchronization
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &g_vr_copy.commandBuffer;
-
-    VkResult result = vkQueueSubmit(g_vr_copy.vkQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    if (result != VK_SUCCESS) {
-        fprintf(stderr, "Failed to submit Vulkan copy command for eye %d: %d\n", eye, result);
-        return 0;
-    }
     
-    // Wait for the copy to complete before returning
-    // This ensures the image is fully written before OpenXR releases it
-    vkQueueWaitIdle(g_vr_copy.vkQueue);
-    vkResetCommandBuffer(g_vr_copy.commandBuffer, 0);
+    // Mark this layer as pending Vulkan copy
+    g_vr_copy.pendingCopy[eye] = true;
 
-    if (frame_count < 5) {
-        printf("DEBUG vr_copy: Copy completed successfully for eye %d\n", eye);
-    }
     return 1;
 }
 
-// Copy quad layer framebuffer to Vulkan swapchain
-int vr_copy_quad_to_swapchain(void)
+// Helper function: GL read only for quad (no Vulkan operations)
+static int vr_copy_gl_read_quad(void)
 {
     static int logged_once = 0;
 
@@ -1058,12 +1385,7 @@ int vr_copy_quad_to_swapchain(void)
 
     // Bind the source FBO and read pixels
     glBindFramebuffer(GL_FRAMEBUFFER, sourceFBO);
-
-    // Read bottom-left-origin pixels into staging buffer
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, quadState->stagingMapped);
-
-    // Flip in CPU to convert from GL's bottom-left to Vulkan's top-left
-    flip_y_rgba8((uint8_t*)quadState->stagingMapped, width, height);
 
     // Restore GL state
     glBindFramebuffer(GL_FRAMEBUFFER, oldFB);
@@ -1071,109 +1393,15 @@ int vr_copy_quad_to_swapchain(void)
 
     // Ensure GL writes are visible before Vulkan reads
     glFinish();
-
-    // Vulkan copy
-    VkImage swapchainImage = vr_renderer_get_quad_swapchain_image();
-    if (swapchainImage == VK_NULL_HANDLE) {
-        fprintf(stderr, "Failed to get quad swapchain image\n");
-        return 0;
-    }
-
-    VkCommandBufferBeginInfo beginInfo = {};
-    beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-
-    VkResult vkResult = vkBeginCommandBuffer(g_vr_copy.commandBuffer, &beginInfo);
-    if (vkResult != VK_SUCCESS) {
-        fprintf(stderr, "Failed to begin command buffer for quad: %d\n", vkResult);
-        return 0;
-    }
-
-    // Transition swapchain image to TRANSFER_DST_OPTIMAL
-    VkImageMemoryBarrier barrier = {};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = swapchainImage;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.srcAccessMask = 0;
-    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-
-    vkCmdPipelineBarrier(
-        g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    VkBufferImageCopy region = {};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;     // tightly packed
-    region.bufferImageHeight = 0;   // tightly packed
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = (VkOffset3D){0, 0, 0};
-    region.imageExtent = (VkExtent3D){width, height, 1};
-
-    vkCmdCopyBufferToImage(
-        g_vr_copy.commandBuffer,
-        quadState->stagingBuffer,
-        swapchainImage,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &region
-    );
-
-    // Transition to COLOR_ATTACHMENT_OPTIMAL for OpenXR rendering
-    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-
-    vkCmdPipelineBarrier(
-        g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
-    vkEndCommandBuffer(g_vr_copy.commandBuffer);
-
-    // Submit with proper synchronization
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    submitInfo.pCommandBuffers = &g_vr_copy.commandBuffer;
-
-    VkResult result = vkQueueSubmit(g_vr_copy.vkQueue, 1, &submitInfo, VK_NULL_HANDLE);
-    if (result != VK_SUCCESS) {
-        fprintf(stderr, "Failed to submit Vulkan copy command for quad: %d\n", result);
-        return 0;
-    }
     
-    // Wait for the copy to complete before returning
-    vkQueueWaitIdle(g_vr_copy.vkQueue);
-    vkResetCommandBuffer(g_vr_copy.commandBuffer, 0);
+    // Mark this layer as pending Vulkan copy
+    g_vr_copy.pendingCopy[2] = true;
 
     return 1;
 }
 
-// Copy DJUI quad layer framebuffer to Vulkan swapchain
-int vr_copy_djui_to_swapchain(void)
+// Helper function: GL read only for DJUI (no Vulkan operations)
+static int vr_copy_gl_read_djui(void)
 {
     static int logged_once = 0;
 
@@ -1214,12 +1442,7 @@ int vr_copy_djui_to_swapchain(void)
 
     // Bind the source FBO and read pixels
     glBindFramebuffer(GL_FRAMEBUFFER, sourceFBO);
-
-    // Read bottom-left-origin pixels into staging buffer
     glReadPixels(0, 0, width, height, GL_RGBA, GL_UNSIGNED_BYTE, djuiState->stagingMapped);
-
-    // Flip in CPU to convert from GL's bottom-left to Vulkan's top-left
-    flip_y_rgba8((uint8_t*)djuiState->stagingMapped, width, height);
 
     // Restore GL state
     glBindFramebuffer(GL_FRAMEBUFFER, oldFB);
@@ -1227,89 +1450,201 @@ int vr_copy_djui_to_swapchain(void)
 
     // Ensure GL writes are visible before Vulkan reads
     glFinish();
+    
+    // Mark this layer as pending Vulkan copy
+    g_vr_copy.pendingCopy[3] = true;
 
-    // Vulkan copy
-    VkImage swapchainImage = vr_renderer_get_djui_swapchain_image();
-    if (swapchainImage == VK_NULL_HANDLE) {
-        fprintf(stderr, "Failed to get DJUI swapchain image\n");
+    return 1;
+}
+
+
+int vr_copy_framebuffer_to_swapchain(int eye)
+{
+    // Just perform the GL read, Vulkan operations will be batched later
+    return vr_copy_gl_read_eye(eye);
+}
+
+// Copy quad layer framebuffer to Vulkan swapchain
+int vr_copy_quad_to_swapchain(void)
+{
+    // Just perform the GL read, Vulkan operations will be batched later
+    return vr_copy_gl_read_quad();
+}
+
+// Copy DJUI quad layer framebuffer to Vulkan swapchain
+int vr_copy_djui_to_swapchain(void)
+{
+    // Just perform the GL read, Vulkan operations will be batched later
+    return vr_copy_gl_read_djui();
+}
+
+// Batched Vulkan copy - processes all pending layers in a single command buffer submission
+int vr_copy_execute_batched(void)
+{
+    if (!g_vr_copy.initialized) {
         return 0;
     }
-
+    
+    // Check if there are any pending copies
+    bool hasPendingCopies = false;
+    for (int i = 0; i < 4; i++) {
+        if (g_vr_copy.pendingCopy[i]) {
+            hasPendingCopies = true;
+            break;
+        }
+    }
+    
+    if (!hasPendingCopies) {
+        // No pending copies, nothing to do
+        return 1;
+    }
+    
+    // Begin command buffer once for all layers
     VkCommandBufferBeginInfo beginInfo = {};
     beginInfo.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
 
     VkResult vkResult = vkBeginCommandBuffer(g_vr_copy.commandBuffer, &beginInfo);
     if (vkResult != VK_SUCCESS) {
-        fprintf(stderr, "Failed to begin command buffer for DJUI: %d\n", vkResult);
+        fprintf(stderr, "Failed to begin command buffer for batched copy: %d\n", vkResult);
         return 0;
     }
+    
+    // Bind compute pipeline once (reused for all layers)
+    vkCmdBindPipeline(g_vr_copy.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE, g_vr_copy.flipComputePipeline);
+    
+    // Process each pending layer
+    for (int i = 0; i < 4; i++) {
+        if (!g_vr_copy.pendingCopy[i]) {
+            continue;
+        }
+        
+        VRCopyEyeState* layerState;
+        VkImage swapchainImage;
+        const char* layerName;
+        
+        // Get layer-specific state
+        if (i == 0 || i == 1) {
+            // Eye 0 or Eye 1
+            layerState = &g_vr_copy.eyes[i];
+            swapchainImage = vr_renderer_get_swapchain_image(i);
+            layerName = (i == 0) ? "eye 0" : "eye 1";
+        } else if (i == 2) {
+            // Quad layer
+            layerState = &g_vr_copy.quadState;
+            swapchainImage = vr_renderer_get_quad_swapchain_image();
+            layerName = "quad";
+        } else {
+            // DJUI layer
+            layerState = &g_vr_copy.djuiState;
+            swapchainImage = vr_renderer_get_djui_swapchain_image();
+            layerName = "djui";
+        }
+        
+        if (swapchainImage == VK_NULL_HANDLE) {
+            fprintf(stderr, "Failed to get swapchain image for %s\n", layerName);
+            continue;
+        }
+        
+        const uint32_t width = layerState->width;
+        const uint32_t height = layerState->height;
+        
+        // Bind descriptor set for this layer
+        vkCmdBindDescriptorSets(g_vr_copy.commandBuffer, VK_PIPELINE_BIND_POINT_COMPUTE,
+            g_vr_copy.flipPipelineLayout, 0, 1, &g_vr_copy.flipDescriptorSets[i], 0, nullptr);
+        
+        // Push constants (width and height)
+        uint32_t pushConstants[2] = { width, height };
+        vkCmdPushConstants(g_vr_copy.commandBuffer, g_vr_copy.flipPipelineLayout,
+            VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof(pushConstants), pushConstants);
+        
+        // Dispatch compute shader (16x16 workgroup size)
+        uint32_t groupCountX = (width + 15) / 16;
+        uint32_t groupCountY = (height + 15) / 16;
+        vkCmdDispatch(g_vr_copy.commandBuffer, groupCountX, groupCountY, 1);
+        
+        // Memory barrier to ensure compute shader writes are visible before copy
+        VkMemoryBarrier memBarrier = {};
+        memBarrier.sType = VK_STRUCTURE_TYPE_MEMORY_BARRIER;
+        memBarrier.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
+        memBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        
+        vkCmdPipelineBarrier(g_vr_copy.commandBuffer,
+            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0, 1, &memBarrier, 0, nullptr, 0, nullptr);
+        
+        // Transition swapchain image to TRANSFER_DST_OPTIMAL
+        VkImageMemoryBarrier barrier = {};
+        barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+        barrier.image = swapchainImage;
+        barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        barrier.subresourceRange.baseMipLevel = 0;
+        barrier.subresourceRange.levelCount = 1;
+        barrier.subresourceRange.baseArrayLayer = 0;
+        barrier.subresourceRange.layerCount = 1;
+        barrier.srcAccessMask = 0;
+        barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 
-    // Transition swapchain image to TRANSFER_DST_OPTIMAL
-    VkImageMemoryBarrier barrier = {};
-    barrier.sType = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    barrier.oldLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-    barrier.newLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-    barrier.image = swapchainImage;
-    barrier.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    barrier.subresourceRange.baseMipLevel = 0;
-    barrier.subresourceRange.levelCount = 1;
-    barrier.subresourceRange.baseArrayLayer = 0;
-    barrier.subresourceRange.layerCount = 1;
-    barrier.srcAccessMask = 0;
-    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        vkCmdPipelineBarrier(
+            g_vr_copy.commandBuffer,
+            VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &barrier
+        );
 
-    vkCmdPipelineBarrier(
-        g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
+        // Copy flipped buffer to swapchain image
+        VkBufferImageCopy region = {};
+        region.bufferOffset = 0;
+        region.bufferRowLength = 0;     // tightly packed
+        region.bufferImageHeight = 0;   // tightly packed
+        region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        region.imageSubresource.mipLevel = 0;
+        region.imageSubresource.baseArrayLayer = 0;
+        region.imageSubresource.layerCount = 1;
+        region.imageOffset = (VkOffset3D){0, 0, 0};
+        region.imageExtent = (VkExtent3D){width, height, 1};
 
-    VkBufferImageCopy region = {};
-    region.bufferOffset = 0;
-    region.bufferRowLength = 0;     // tightly packed
-    region.bufferImageHeight = 0;   // tightly packed
-    region.imageSubresource.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-    region.imageSubresource.mipLevel = 0;
-    region.imageSubresource.baseArrayLayer = 0;
-    region.imageSubresource.layerCount = 1;
-    region.imageOffset = (VkOffset3D){0, 0, 0};
-    region.imageExtent = (VkExtent3D){width, height, 1};
+        vkCmdCopyBufferToImage(
+            g_vr_copy.commandBuffer,
+            layerState->stagingBufferFlipped,
+            swapchainImage,
+            VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+            1,
+            &region
+        );
 
-    vkCmdCopyBufferToImage(
-        g_vr_copy.commandBuffer,
-        djuiState->stagingBuffer,
-        swapchainImage,
-        VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        1,
-        &region
-    );
+        // Transition to COLOR_ATTACHMENT_OPTIMAL for OpenXR rendering
+        barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+        barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
 
-    // Transition to COLOR_ATTACHMENT_OPTIMAL for OpenXR rendering
-    barrier.oldLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-    barrier.newLayout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    barrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_COLOR_ATTACHMENT_READ_BIT;
-
-    vkCmdPipelineBarrier(
-        g_vr_copy.commandBuffer,
-        VK_PIPELINE_STAGE_TRANSFER_BIT,
-        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
-        0,
-        0, nullptr,
-        0, nullptr,
-        1, &barrier
-    );
-
+        vkCmdPipelineBarrier(
+            g_vr_copy.commandBuffer,
+            VK_PIPELINE_STAGE_TRANSFER_BIT,
+            VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT,
+            0,
+            0, nullptr,
+            0, nullptr,
+            1, &barrier
+        );
+        
+        // Clear the pending flag for this layer
+        g_vr_copy.pendingCopy[i] = false;
+    }
+    
+    // End command buffer once for all layers
     vkEndCommandBuffer(g_vr_copy.commandBuffer);
 
-    // Submit with proper synchronization
+    // Submit once for all layers
     VkSubmitInfo submitInfo = {};
     submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submitInfo.commandBufferCount = 1;
@@ -1317,13 +1652,14 @@ int vr_copy_djui_to_swapchain(void)
 
     VkResult result = vkQueueSubmit(g_vr_copy.vkQueue, 1, &submitInfo, VK_NULL_HANDLE);
     if (result != VK_SUCCESS) {
-        fprintf(stderr, "Failed to submit Vulkan copy command for DJUI: %d\n", result);
+        fprintf(stderr, "Failed to submit Vulkan batched copy command: %d\n", result);
         return 0;
     }
     
-    // Wait for the copy to complete before returning
+    // Wait for the copy to complete before returning (once for all layers)
     vkQueueWaitIdle(g_vr_copy.vkQueue);
     vkResetCommandBuffer(g_vr_copy.commandBuffer, 0);
 
     return 1;
 }
+

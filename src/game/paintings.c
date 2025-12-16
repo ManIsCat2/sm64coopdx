@@ -1399,7 +1399,13 @@ Gfx *painting_model_view_transform(struct Painting *painting) {
     Mtx *rotY = alloc_display_list(sizeof(Mtx));
     Mtx *translate = alloc_display_list(sizeof(Mtx));
     Mtx *scale = alloc_display_list(sizeof(Mtx));
+    
+#ifdef OPENXR_ENABLED
+    // Allocate extra space for VR view offset control commands
+    Gfx *dlist = alloc_display_list(7 * sizeof(Gfx));
+#else
     Gfx *dlist = alloc_display_list(5 * sizeof(Gfx));
+#endif
     Gfx *gfx = dlist;
 
     if (rotX == NULL || rotY == NULL || translate == NULL || scale == NULL || dlist == NULL) {
@@ -1410,6 +1416,11 @@ Gfx *painting_model_view_transform(struct Painting *painting) {
     guRotate(rotX, painting->pitch, 1.0f, 0.0f, 0.0f);
     guRotate(rotY, painting->yaw, 0.0f, 1.0f, 0.0f);
     guScale(scale, sizeRatio, sizeRatio, sizeRatio);
+
+#ifdef OPENXR_ENABLED
+    // Disable VR view offset so paintings stay fixed in world space
+    *gfx++ = gSPVRViewOffset(0, 0);
+#endif
 
     gSPMatrix(gfx++, translate, G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_PUSH);
     gSPMatrix(gfx++, rotX,      G_MTX_MODELVIEW | G_MTX_MUL | G_MTX_NOPUSH);
@@ -1433,7 +1444,12 @@ Gfx *painting_ripple_image(struct Painting *painting) {
     s16 tHeight = painting->textureHeight;
     s16 **textureMaps = segmented_to_virtual(painting->textureMaps);
     u8 **textures = segmented_to_virtual(painting->textureArray);
+#ifdef OPENXR_ENABLED
+    // Allocate extra space for VR view offset re-enable command
+    Gfx *dlist = alloc_display_list((imageCount + 7) * sizeof(Gfx));
+#else
     Gfx *dlist = alloc_display_list((imageCount + 6) * sizeof(Gfx));
+#endif
     Gfx *gfx = dlist;
 
     if (dlist == NULL) {
@@ -1456,6 +1472,11 @@ Gfx *painting_ripple_image(struct Painting *painting) {
     // Update the ripple, may automatically reset the painting's state.
     painting_update_ripple_state(painting);
 
+#ifdef OPENXR_ENABLED
+    // Re-enable VR view offset for subsequent objects
+    *gfx++ = gSPVRViewOffset(0, 1);
+#endif
+
     gSPPopMatrix(gfx++, G_MTX_MODELVIEW);
     gSPDisplayList(gfx++, dl_paintings_rippling_end);
     gSPEndDisplayList(gfx);
@@ -1473,7 +1494,12 @@ Gfx *painting_ripple_env_mapped(struct Painting *painting) {
     s16 tHeight = painting->textureHeight;
     s16 **textureMaps = segmented_to_virtual(painting->textureMaps);
     u8 **tArray = segmented_to_virtual(painting->textureArray);
+#ifdef OPENXR_ENABLED
+    // Allocate extra space for VR view offset re-enable command
+    Gfx *dlist = alloc_display_list(8 * sizeof(Gfx));
+#else
     Gfx *dlist = alloc_display_list(7 * sizeof(Gfx));
+#endif
     Gfx *gfx = dlist;
 
     if (dlist == NULL) {
@@ -1493,6 +1519,11 @@ Gfx *painting_ripple_env_mapped(struct Painting *painting) {
 
     // Update the ripple, may automatically reset the painting's state.
     painting_update_ripple_state(painting);
+
+#ifdef OPENXR_ENABLED
+    // Re-enable VR view offset for subsequent objects
+    *gfx++ = gSPVRViewOffset(0, 1);
+#endif
 
     gSPPopMatrix(gfx++, G_MTX_MODELVIEW);
     gSPDisplayList(gfx++, dl_paintings_env_mapped_end);
@@ -1567,7 +1598,12 @@ static Gfx *get_painting_normal_display_list(struct Painting *painting) {
  * Render a normal painting.
  */
 Gfx *display_painting_not_rippling(struct Painting *painting) {
+#ifdef OPENXR_ENABLED
+    // Allocate extra space for VR view offset re-enable command
+    Gfx *dlist = alloc_display_list(5 * sizeof(Gfx));
+#else
     Gfx *dlist = alloc_display_list(4 * sizeof(Gfx));
+#endif
     Gfx *gfx = dlist;
 
     if (dlist == NULL) {
@@ -1581,6 +1617,12 @@ Gfx *display_painting_not_rippling(struct Painting *painting) {
 
     gSPDisplayList(gfx++, painting_model_view_transform(painting));
     gSPDisplayList(gfx++, normalDisplayList);
+
+#ifdef OPENXR_ENABLED
+    // Re-enable VR view offset for subsequent objects
+    *gfx++ = gSPVRViewOffset(0, 1);
+#endif
+
     gSPPopMatrix(gfx++, G_MTX_MODELVIEW);
     gSPEndDisplayList(gfx);
     return dlist;

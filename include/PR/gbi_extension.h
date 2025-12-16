@@ -64,8 +64,12 @@
 #define G_TRI2_EXT         0x12
 #define G_TEXADDR_DJUI     0x13
 #define G_EXECUTE_DJUI     0xdd
+#define G_VR_VIEWOFFSET    0x14  // Control VR view offset application
 
 #define G_MTX_INVERSE_CAMERA_EXT   0x08
+
+#define gSPVRViewOffset(pkt, enable) \
+    (Gfx){ { (_SHIFTL(G_VR_VIEWOFFSET, 24, 8) | _SHIFTL((enable), 0, 1)), (u32)(0) } }
 
 #define	gsSPTextureAddrDjui(c) \
 {{ \

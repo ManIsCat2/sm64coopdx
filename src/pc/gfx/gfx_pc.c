@@ -97,6 +97,7 @@ static struct RSP {
     ALIGNED16 Mat4 vr_projection_override;
     ALIGNED16 Mat4 vr_view_offset;
     bool vr_matrices_valid;
+    bool vr_apply_view_offset; // Whether to apply VR view offset to current matrix
 #endif
 } rsp;
 
@@ -707,7 +708,8 @@ static void OPTIMIZE_O3 gfx_sp_matrix(uint8_t parameters, const int32_t *addr) {
         rsp.lights_changed = 1;
 #ifdef OPENXR_ENABLED
         // Apply VR view matrix offset (IPD) to modelview matrix when in VR mode
-        if (rsp.vr_rendering_active && rsp.vr_matrices_valid) {
+        // Only apply if vr_apply_view_offset is true (can be disabled for paintings/static world objects)
+        if (rsp.vr_rendering_active && rsp.vr_matrices_valid && rsp.vr_apply_view_offset) {
             ALIGNED16 Mat4 temp_matrix;
             mtxf_copy(temp_matrix, rsp.modelview_matrix_stack[rsp.modelview_matrix_stack_size - 1]);
             mtxf_mul(rsp.modelview_matrix_stack[rsp.modelview_matrix_stack_size - 1], temp_matrix, rsp.vr_view_offset);
@@ -2014,6 +2016,12 @@ void gfx_get_dimensions(uint32_t *width, uint32_t *height) {
     }
 }
 
+#ifdef OPENXR_ENABLED
+void gfx_set_vr_apply_view_offset(bool apply) {
+    rsp.vr_apply_view_offset = apply;
+}
+#endif
+
 void gfx_init(struct GfxWindowManagerAPI *wapi, struct GfxRenderingAPI *rapi, const char *window_title) {
     gfx_wapi = wapi;
     gfx_rapi = rapi;
@@ -2150,6 +2158,7 @@ void gfx_run(Gfx *commands) {
             // Set up VR matrices for this eye (enables stereo separation)
             gfx_setup_vr_matrices_for_eye(eye);
             rsp.vr_rendering_active = 1;
+            rsp.vr_apply_view_offset = true; // Apply VR view offset by default
             
             // Clear and render to this eye
             gfx_rapi->start_frame();  // Clear buffers
@@ -2427,6 +2436,12 @@ void OPTIMIZE_O3 ext_gfx_run_dl(Gfx* cmd) {
         case G_EXECUTE_DJUI:
             djui_gfx_dp_execute_djui(cmd->words.w1);
             break;
+#ifdef OPENXR_ENABLED
+        case G_VR_VIEWOFFSET:
+            // Control whether VR view offset is applied to subsequent matrices
+            rsp.vr_apply_view_offset = (C0(0, 1) != 0);
+            break;
+#endif
         case G_PPARTTOCOLOR:
             gfx_sp_copy_playerpart_to_color(C0(16, 8), cmd->words.w1);
             break;

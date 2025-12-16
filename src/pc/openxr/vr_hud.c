@@ -43,13 +43,13 @@
 #endif
 
 // External functions from game
-extern void render_hud(void);
+extern void render_hud(bool skipHUD);
 extern s16 render_menus_and_dialogs(void);
 extern void render_text_labels(void);
 extern void do_cutscene_handler(void);
 extern void print_displaying_credits_entry(void);
 extern void gfx_run_commands_immediate(Gfx *commands);
-extern void print_act_selector_strings(void);
+extern void print_act_selector_strings(bool showHud);
 
 // External variables
 extern Gfx *gDisplayListHead;
@@ -120,7 +120,7 @@ void vr_render_hud_to_quad(void) {
         djui_gfx_displaylist_end();
     }
     
-    render_hud();
+    render_hud(true);
     render_text_labels();
     do_cutscene_handler();
     if (!gDjuiInMainMenu) {
@@ -131,10 +131,10 @@ void vr_render_hud_to_quad(void) {
     // gCurrCourseNum > 0 means we've selected a course, gCurrActNum == 0 means we haven't loaded into it yet
     // needs fix for bowser levels and other levels without a select screen
     if (gCurrCourseNum > 0 && gCurrActNum == 0) {
-        print_act_selector_strings();
+        print_act_selector_strings(true);
     }
     
-    render_menus_and_dialogs();
+    gPauseScreenMode = render_menus_and_dialogs();
     if (gPauseScreenMode != 0) {
         gSaveOptSelectIndex = gPauseScreenMode;
     }

@@ -275,7 +275,13 @@ void print_course_number(void) {
 /**
  * Print act selector strings, some with special checks.
  */
-void print_act_selector_strings(void) {
+void print_act_selector_strings(bool showHud) {
+    // Don't render anything if there are no stars to select (e.g. Bowser in the Sky, Peach's Slide)
+    // this shouldn't be needed, but it is in vr
+    if (sVisibleStars == 0) {
+        return;
+    }
+    
 #ifdef VERSION_EU
     unsigned char myScore[][10] = { {TEXT_MYSCORE}, {TEXT_MY_SCORE_FR}, {TEXT_MY_SCORE_DE} };
 #else
@@ -299,48 +305,68 @@ void print_act_selector_strings(void) {
         // Print the coin highscore.
         gSPDisplayList(gDisplayListHead++, dl_rgba16_text_begin);
         gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, 255);
-        print_hud_my_score_coins(1, gCurrSaveFileNum - 1, gCurrCourseNum - 1, 155, 106);
+        if (showHud) {
+            print_hud_my_score_coins(1, gCurrSaveFileNum - 1, gCurrCourseNum - 1, 155, 106);
+        }else{
+            print_hud_my_score_coins(1, gCurrSaveFileNum - 1, gCurrCourseNum - 1, 9999, 9999);
+        }
         gSPDisplayList(gDisplayListHead++, dl_rgba16_text_end);
     }
     gSPDisplayList(gDisplayListHead++, dl_ia_text_begin);
     gDPSetEnvColor(gDisplayListHead++, 0, 0, 0, 255);
     // Print the "MY SCORE" text if the coin score is more than 0
     if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_SCORE) == 0 && save_file_get_course_coin_score(gCurrSaveFileNum - 1, gCurrCourseNum - 1) != 0) {
-#ifdef VERSION_EU
-        print_generic_string(95, 118, myScore[language]);
-#else
-        print_generic_string(102, 118, myScore);
-#endif
+        if (showHud) {
+            #ifdef VERSION_EU
+            print_generic_string(95, 118, myScore[language]);
+            #else
+            print_generic_string(102, 118, myScore);
+            #endif
+        }else{
+            print_generic_string(9999, 9999, myScore);
+        }
     }
 
     if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_LEVEL_NAME) == 0 && currLevelName != NULL) {
-#ifdef VERSION_EU
-        print_generic_string(get_str_x_pos_from_center(160, (u8*) currLevelName + 3, 10.0f), 33, currLevelName + 3);
-#else
-        lvlNameX = get_str_x_pos_from_center(160, (u8*) currLevelName + 3, 10.0f);
-        print_generic_string(lvlNameX, 33, currLevelName + 3);
-#endif
+        if (showHud) {
+            #ifdef VERSION_EU
+            print_generic_string(get_str_x_pos_from_center(160, (u8*) currLevelName + 3, 10.0f), 33, currLevelName + 3);
+            #else
+            lvlNameX = get_str_x_pos_from_center(160, (u8*) currLevelName + 3, 10.0f);
+            print_generic_string(lvlNameX, 33, currLevelName + 3);
+            #endif
+        }else{
+            print_generic_string(9999, 9999, currLevelName + 3);
+        }
     }
 
     gSPDisplayList(gDisplayListHead++, dl_ia_text_end);
     if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_COURSE_NUM) == 0) {
+        if (showHud) {
 #ifdef VERSION_EU
-        print_course_number(language);
+            print_course_number(language);
 #else
-        print_course_number();
+            print_course_number();
 #endif
+        }else{
+           // print_course_number(9999);
+        }
     }
 
     gSPDisplayList(gDisplayListHead++, dl_menu_ia8_text_begin);
     gDPSetEnvColor(gDisplayListHead++, 0, 0, 0, 255);
     // Print the name of the selected act.
     if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_ACT_NAME) == 0 && sVisibleStars != 0) {
-#ifdef VERSION_EU
-        print_menu_generic_string(get_str_x_pos_from_center(ACT_NAME_X, (u8*) selectedActName, 8.0f), 81, selectedActName);
-#else
-        actNameX = get_str_x_pos_from_center(ACT_NAME_X, (u8*) selectedActName, 8.0f);
-        print_menu_generic_string(actNameX, 81, selectedActName);
-#endif
+        if (showHud) {
+            #ifdef VERSION_EU
+            print_menu_generic_string(get_str_x_pos_from_center(ACT_NAME_X, (u8*) selectedActName, 8.0f), 81, selectedActName);
+            #else
+            actNameX = get_str_x_pos_from_center(ACT_NAME_X, (u8*) selectedActName, 8.0f);
+            print_menu_generic_string(actNameX, 81, selectedActName);
+            #endif
+        }else{
+            print_menu_generic_string(9999, 9999, selectedActName);
+        }
     }
 
     // Print the numbers above each star.
@@ -350,12 +376,20 @@ void print_act_selector_strings(void) {
 #ifdef VERSION_EU
         x = 143 - sVisibleStars * 15 + i * 30;
         if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_STAR_NUM) == 0) {
-            print_menu_generic_string(x, 38, starNumbers);
+            if (showHud) {
+                print_menu_generic_string(x, 38, starNumbers);
+            }else{
+                print_menu_generic_string(9999, 9999, starNumbers);
+            }
         }
 #else
         x = 139 - sVisibleStars * 17 + i * 34;
         if ((gOverrideHideActSelectHud & ACT_SELECT_HUD_STAR_NUM) == 0) {
-            print_menu_generic_string(x, 38, starNumbers);
+            if (showHud) {
+                print_menu_generic_string(x, 38, starNumbers);
+            }else{
+                print_menu_generic_string(9999, 9999, starNumbers);
+            }
         }
 #endif
         // display player HUD head if they're in that act
@@ -367,7 +401,11 @@ void print_act_selector_strings(void) {
                 if (np->currActNum != i) { continue; }
 
                 gDPSetEnvColor(gDisplayListHead++, 255, 255, 255, 255);
-                render_hud_icon(NULL, gMarioStates[j].character->hudHeadTexture.texture, G_IM_FMT_RGBA, G_IM_SIZ_16b, 16, 16, x - 4, 223, 16, 16, 0, 0, 16, 16);
+                if (showHud) {
+                    render_hud_icon(NULL, gMarioStates[j].character->hudHeadTexture.texture, G_IM_FMT_RGBA, G_IM_SIZ_16b, 16, 16, x - 4, 223, 16, 16, 0, 0, 16, 16);
+                }else{
+                    render_hud_icon(NULL, gMarioStates[j].character->hudHeadTexture.texture, G_IM_FMT_RGBA, G_IM_SIZ_16b, 16, 16, 9999, 9999, 16, 16, 0, 0, 16, 16);
+                }
                 break;
             }
         }
@@ -403,7 +441,11 @@ void print_act_selector_strings(void) {
             f32 yPos = 224;
 
             gDPSetEnvColor(gDisplayListHead++, 100, 100, 100, 255);
-            print_generic_ascii_string(xPos, yPos, message);
+            if (showHud) {
+                print_generic_ascii_string(xPos, yPos, message);
+            }else{
+                print_generic_ascii_string(9999, 9999, message);
+            }
 
             gSPDisplayList(gDisplayListHead++, dl_ia_text_end);
         }
@@ -422,15 +464,9 @@ Gfx *geo_act_selector_strings(s16 callContext, UNUSED struct GraphNode *node, UN
 Gfx *geo_act_selector_strings(s16 callContext, UNUSED struct GraphNode *node) {
 #endif
     if (callContext == GEO_CONTEXT_RENDER) {
-#ifdef OPENXR_ENABLED
-        // Skip rendering during VR eye passes - will be rendered to quad layer instead
-        extern int openxr_is_initialized(void);
-        if (!openxr_is_initialized()) {
-#endif
-            print_act_selector_strings();
-#ifdef OPENXR_ENABLED
-        }
-#endif
+        // TODO: fix left eye rendering on course star select
+        // need to call this function, but then it renders the text in the eyes too
+        print_act_selector_strings(false);
     }
     return NULL;
 }

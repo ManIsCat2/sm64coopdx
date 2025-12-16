@@ -550,7 +550,7 @@ void set_hud_camera_status(s16 status) {
  * Renders camera HUD glyphs using a table list, depending of
  * the camera status called, a defined glyph is rendered.
  */
-void render_hud_camera_status(void) {
+void render_hud_camera_status(bool showHud) {
     u8 *(*cameraLUT)[6];
     s32 x;
     s32 y;
@@ -564,6 +564,15 @@ void render_hud_camera_status(void) {
     }
 
     gSPDisplayList(gDisplayListHead++, dl_hud_img_begin);
+
+    if (!showHud) {
+        // TODO: work around to render it off screen instead of in the eyes
+        // you can't just skip rendering it, or else left eye will be black in castle
+        render_hud_tex_lut(9999, 9999, (*cameraLUT)[GLYPH_CAM_CAMERA]);
+        gSPDisplayList(gDisplayListHead++, dl_hud_img_end);
+        return;
+    }
+
     render_hud_tex_lut(x, y, (*cameraLUT)[GLYPH_CAM_CAMERA]);
 
     switch (sCameraHUD.status & CAM_STATUS_MODE_GROUP) {
@@ -594,7 +603,7 @@ void render_hud_camera_status(void) {
  * Render HUD strings using hudDisplayFlags with it's render functions,
  * excluding the cannon reticle which detects a camera preset for it.
  */
-void render_hud(void) {
+void render_hud(bool skipHUD) {
     s16 hudDisplayFlags;
 #ifdef VERSION_EU
     Mtx *mtx;
@@ -623,7 +632,7 @@ void render_hud(void) {
         create_dl_ortho_matrix();
 #endif
 
-        bool showHud = (!gDjuiInMainMenu && !gOverrideHideHud);
+        bool showHud = (!gDjuiInMainMenu && !gOverrideHideHud && skipHUD);
 
         if (gCurrentArea != NULL && gCurrentArea->camera != NULL && gCurrentArea->camera->mode == CAMERA_MODE_INSIDE_CANNON) {
             render_hud_cannon_reticle();
@@ -654,12 +663,12 @@ void render_hud(void) {
             render_hud_keys();
         }
 
-        if (hudDisplayFlags & HUD_DISPLAY_FLAG_CAMERA_AND_POWER && showHud) {
-            if (hudDisplayFlags & HUD_DISPLAY_FLAG_CAMERA && showHud) {
-                render_hud_camera_status();
+        if (hudDisplayFlags & HUD_DISPLAY_FLAG_CAMERA_AND_POWER) {
+            if (hudDisplayFlags & HUD_DISPLAY_FLAG_CAMERA) {
+                render_hud_camera_status(showHud);
             }
 
-            if (hudDisplayFlags & HUD_DISPLAY_FLAG_POWER && showHud) {
+            if (hudDisplayFlags & HUD_DISPLAY_FLAG_POWER) {
                 render_hud_power_meter();
             }
         }

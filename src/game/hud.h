@@ -31,6 +31,6 @@ void render_hud_icon(Vtx *vtx, const Texture *texture, u32 fmt, u32 siz, s32 tex
 
 s16 get_hud_camera_status(void);
 void set_hud_camera_status(s16 status);
-void render_hud(void);
+void render_hud(bool skipHUD);
 
 #endif // HUD_H

@@ -6,6 +6,7 @@
 #include "game/area.h"
 #include "game/ingame_menu.h"
 #include "pc/gfx/gfx_pc.h"
+#include "pc/gfx/gfx.h"
 #include "pc/network/network.h"
 #include "pc/djui/djui.h"
 #include "pc/nametags.h"
@@ -95,6 +96,15 @@ void vr_render_hud_to_quad(void) {
     vr_renderer_get_quad_dimensions(&quadWidth, &quadHeight);
     glViewport(0, 0, quadWidth, quadHeight);
     
+    // Save and set gfx_current_dimensions to match quad size
+    // This ensures rendering pipeline uses correct dimensions for HUD
+    struct GfxDimensions savedDimensions = gfx_current_dimensions;
+    gfx_current_dimensions.width = quadWidth;
+    gfx_current_dimensions.height = quadHeight;
+    gfx_current_dimensions.aspect_ratio = (float)quadWidth / (float)quadHeight;
+    gfx_current_dimensions.x_adjust_ratio = 1 / gfx_current_dimensions.aspect_ratio;
+    gfx_current_dimensions.x_adjust_4by3 = 0;
+    
     // Set 2D render state for HUD
     glDisable(GL_DEPTH_TEST);
     glDisable(GL_CULL_FACE);
@@ -152,6 +162,9 @@ void vr_render_hud_to_quad(void) {
     if (vr_copy_is_initialized()) {
         vr_copy_quad_to_swapchain();
     }
+    
+    // Restore gfx dimensions
+    gfx_current_dimensions = savedDimensions;
     
     // Restore OpenGL state
     if (!wasBlend) glDisable(GL_BLEND);

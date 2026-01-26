@@ -668,7 +668,7 @@ void render_hud(bool skipHUD) {
                 render_hud_camera_status(showHud);
             }
 
-            if (hudDisplayFlags & HUD_DISPLAY_FLAG_POWER) {
+            if (hudDisplayFlags & HUD_DISPLAY_FLAG_POWER && showHud) {
                 render_hud_power_meter();
             }
         }

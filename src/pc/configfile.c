@@ -98,8 +98,13 @@ ConfigStick configStick = { 0 };
 unsigned int configFiltering                      = 2; // 0 = Nearest, 1 = Bilinear, 2 = Trilinear
 bool         configShowFPS                        = false;
 bool         configShowPing                       = false;
+#ifdef OPENXR_ENABLED
+enum RefreshRateMode configFramerateMode          = RRM_MANUAL;
+unsigned int configFrameLimit                     = 30;
+#else
 enum RefreshRateMode configFramerateMode          = RRM_AUTO;
 unsigned int configFrameLimit                     = 60;
+#endif
 unsigned int configInterpolationMode              = 1;
 unsigned int configDrawDistance                   = 4;
 // sound settings

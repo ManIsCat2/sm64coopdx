@@ -42,7 +42,6 @@
 #ifdef OPENXR_ENABLED
 #include "pc/openxr/vr_renderer.h"
 #include "pc/openxr/vr_opengl.h"
-#include "pc/openxr/vr_copy.h"
 #endif
 
 
@@ -2088,15 +2087,20 @@ void gfx_run(Gfx *commands) {
 
 #ifdef OPENXR_ENABLED
     // Check if VR rendering is active
-    if (vr_renderer_is_initialized()) {
+    int vr_initialized = vr_renderer_is_initialized();
+    
+    if (vr_initialized) {
         // VR rendering path - render to both eyes
         if (!vr_renderer_begin_frame()) {
             // VR frame not ready, fall back to normal rendering
+            // But we still need to call xrEndFrame to match xrBeginFrame
             static int once = 0;
             if (!once) {
-                fprintf(stderr, "DEBUG: VR frame not ready, falling back to normal rendering\n");
+                fprintf(stderr, "DEBUG: VR frame not ready, calling empty xrEndFrame\n");
                 once = 1;
             }
+            extern int openxr_end_frame_empty(void);
+            openxr_end_frame_empty();
             goto normal_rendering;
         }
         
@@ -2106,21 +2110,12 @@ void gfx_run(Gfx *commands) {
             first_vr_frame = 0;
         }
         
-        // Initialize VR OpenGL and VR copy if needed
+        // Initialize VR OpenGL if needed
         static int vr_gl_initialized = 0;
-        static int vr_copy_initialized = 0;
         if (!vr_gl_initialized) {
             if (vr_opengl_init()) {
                 vr_gl_initialized = 1;
                 printf("VR OpenGL initialized for rendering\n");
-                
-                // Now initialize VR copy system
-                if (vr_copy_init()) {
-                    vr_copy_initialized = 1;
-                    printf("VR copy system initialized\n");
-                } else {
-                    fprintf(stderr, "Warning: Failed to initialize VR copy system. VR display may not work.\n");
-                }
             } else {
                 fprintf(stderr, "Failed to initialize VR OpenGL, falling back to normal rendering\n");
                 goto normal_rendering;
@@ -2175,19 +2170,23 @@ void gfx_run(Gfx *commands) {
         // Clear flag to allow game HUD rendering for quad layer
         gRenderingVREyes = false;
         
-        // Render game HUD to quad layer overlay
-        extern void vr_render_hud_to_quad(void);
-        vr_render_hud_to_quad();
-        
-        extern void vr_opengl_render_djui_to_djui_quad(void);
-        vr_opengl_render_djui_to_djui_quad();
-
-        // Execute batched Vulkan copy operations for all layers
-        // This processes all pending GL reads (eyes + quad + djui) in a single command buffer
-        if (vr_copy_is_initialized()) {
-            vr_copy_execute_batched();
+        // Acquire quad swapchain images before rendering
+        if (!vr_renderer_acquire_quad_images()) {
+            fprintf(stderr, "Failed to acquire quad swapchain images\\n");
+        } else {
+            // Render game HUD to quad layer overlay
+            extern void vr_render_hud_to_quad(void);
+            
+            // Prepare quad layer (attach swapchain texture) before rendering
+            vr_opengl_prepare_quad_layer();
+            
+            vr_render_hud_to_quad();
+            
+            extern void vr_opengl_render_djui_to_djui_quad(void);
+            // Note: vr_opengl_render_djui_to_djui_quad calls vr_opengl_prepare_djui_layer internally
+            vr_opengl_render_djui_to_djui_quad();
         }
-        
+
         // Restore original dimensions for desktop rendering
         gfx_current_dimensions = saved_dimensions;
         

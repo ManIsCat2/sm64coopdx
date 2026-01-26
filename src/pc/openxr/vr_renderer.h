@@ -61,33 +61,50 @@ void vr_renderer_get_quad_dimensions(uint32_t* width, uint32_t* height);
 // Get the DJUI layer dimensions
 void vr_renderer_get_djui_dimensions(uint32_t* width, uint32_t* height);
 
+// Get the current swapchain GL texture for an eye (OpenGL interop)
+// Returns 0 if not available
+// Note: Returns GLuint but declared as unsigned int for C compatibility
+unsigned int vr_renderer_get_swapchain_texture(int eye);
+
+// Get the current HUD quad swapchain GL texture (OpenGL interop)
+// Returns 0 if not available
+unsigned int vr_renderer_get_quad_swapchain_texture(void);
+
+// Get the current DJUI quad swapchain GL texture (OpenGL interop)
+// Returns 0 if not available
+unsigned int vr_renderer_get_djui_swapchain_texture(void);
+
+// Acquire and wait for quad swapchain images (call before rendering quads)
+// Returns 1 on success, 0 on failure
+int vr_renderer_acquire_quad_images(void);
+
+// Release quad swapchain images (call after rendering quads)
+void vr_renderer_release_quad_images(void);
+
 #ifdef __cplusplus
 }
 
-// C++ only - Get Vulkan handles for interop
-#include <vulkan/vulkan.h>
+// C++ only - Get OpenGL handles for interop
+#include <GLES3/gl3.h>
 
-// Get the current swapchain image for an eye
-// Returns VK_NULL_HANDLE if not available
-VkImage vr_renderer_get_swapchain_image(int eye);
+// Get the current swapchain GL texture for an eye
+// Returns 0 if not available
+GLuint vr_renderer_get_swapchain_texture(int eye);
 
-// Get the swapchain image format
-// Returns 0 if not initialized
-uint32_t vr_renderer_get_swapchain_format(int eye);
+// Get the swapchain texture format
+// Returns 0 if not initialized  
+GLenum vr_renderer_get_swapchain_format(int eye);
 
 // Get the number of swapchain images per eye
 uint32_t vr_renderer_get_swapchain_image_count(int eye);
 
-// Get the current quad layer swapchain image (HUD)
-// Returns VK_NULL_HANDLE if not available
-VkImage vr_renderer_get_quad_swapchain_image(void);
+// Get the current quad layer swapchain GL texture (HUD)
+// Returns 0 if not available
+GLuint vr_renderer_get_quad_swapchain_texture(void);
 
-// Get the current DJUI layer swapchain image
-// Returns VK_NULL_HANDLE if not available
-VkImage vr_renderer_get_djui_swapchain_image(void);
-
-// Get the DJUI layer dimensions
-void vr_renderer_get_djui_dimensions(uint32_t* width, uint32_t* height);
+// Get the current DJUI layer swapchain GL texture
+// Returns 0 if not available
+GLuint vr_renderer_get_djui_swapchain_texture(void);
 #endif
 
 #endif // VR_RENDERER_H

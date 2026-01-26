@@ -827,7 +827,7 @@ else ifeq ($(findstring SDL,$(WINDOW_API)),SDL)
   ifeq ($(WINDOWS_BUILD),1)
     BACKEND_LDFLAGS += -lglew32 -lglu32 -lopengl32
   else ifeq ($(TARGET_ANDROID),1)
-    BACKEND_LDFLAGS += -lGLESv2 -llog
+    BACKEND_LDFLAGS += -lGLESv2 -lEGL -llog
   else ifeq ($(TARGET_RPI),1)
     BACKEND_LDFLAGS += -lGLESv2
   else ifeq ($(TARGET_RK3588),1)
@@ -842,7 +842,7 @@ endif
 
 # OpenXR support
 ifeq ($(OPENXR),1)
-  BACKEND_LDFLAGS += -L/data/data/com.termux/files/home/loader-so -lopenxr_loader -lvulkan
+  BACKEND_LDFLAGS += -L/data/data/com.termux/files/home/loader-so -l:libopenxr_loader.so
   BACKEND_CFLAGS += -I/data/data/com.termux/files/home/include
   ifeq ($(EXTRA_CPP_FLAGS),)
     EXTRA_CPP_FLAGS := -std=c++20
@@ -1698,8 +1698,9 @@ else
 	mkdir -p $(BUILD_DIR)/platform/android/app/assets/ >/dev/null 2>&1 && \
 	cp -r mods lang palettes dynos $(BUILD_DIR)/platform/android/app/assets/ >/dev/null 2>&1 && \
   mkdir -p $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH) >/dev/null 2>&1 && \
-	cp $(PREFIX)/lib/libc++_shared.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
-  patchelf --replace-needed libvulkan.so.1 libvulkan.so  $(BUILD_DIR)/libmain.so && \
+  cp $(PREFIX)/lib/libc++_shared.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
+  patchelf --replace-needed libopenxr_loader.so.1 libopenxr_loader.so $(BUILD_DIR)/libmain.so && \
+  patchelf --replace-needed libEGL.so.1 libEGL.so $(BUILD_DIR)/libmain.so && \
   cp lib/openxr/android/$(ANDROID_ARCH)/libopenxr_loader.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
   cp lib/sdl2/android/$(ANDROID_ARCH)/libSDL2.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
   cp lib/curl/android/$(ANDROID_ARCH)/libcurl.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \

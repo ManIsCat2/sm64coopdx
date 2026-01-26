@@ -43,6 +43,12 @@ unsigned int vr_opengl_get_quad_framebuffer(void);
 // Get the DJUI framebuffer
 unsigned int vr_opengl_get_djui_framebuffer(void);
 
+// Prepare the quad layer framebuffer by attaching the current swapchain texture
+void vr_opengl_prepare_quad_layer(void);
+
+// Prepare the DJUI layer framebuffer by attaching the current swapchain texture
+void vr_opengl_prepare_djui_layer(void);
+
 // This binds the DJUI framebuffer, clears it, and copies to Vulkan swapchain
 void vr_opengl_render_djui_to_djui_quad(void);
 

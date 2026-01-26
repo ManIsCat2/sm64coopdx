@@ -1,8 +1,11 @@
 #ifndef OPENXR_INSTANCE_H
 #define OPENXR_INSTANCE_H
 
-#include <vulkan/vulkan.h>
-#define XR_USE_GRAPHICS_API_VULKAN
+#include <jni.h>
+#include <EGL/egl.h>
+
+#define XR_USE_PLATFORM_ANDROID
+#define XR_USE_GRAPHICS_API_OPENGL_ES
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 

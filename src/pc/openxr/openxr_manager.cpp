@@ -1,8 +1,6 @@
 #include "openxr_manager.h"
 #include "openxr_instance.h"
 #include "openxr_session.h"
-#include "vulkan_instance.h"
-#include "vulkan_device.h"
 #include "vr_renderer.h"
 #include "openxr_keyboard.h"
 #include "pc/controller/controller_openxr.h"
@@ -13,24 +11,21 @@
 #include <cmath>
 
 #include <SDL2/SDL.h>
+#include <EGL/egl.h>
 
 
 // Forward declaration from vr_renderer.cpp
 extern "C" void vr_renderer_set_frame_state(XrFrameState frameState);
 
-// Global OpenXR/Vulkan state
+// Global OpenXR/EGL state
 static struct {
     bool initialized;
     bool sessionRunning;
     XrInstance xrInstance;
     XrDebugUtilsMessengerEXT xrDebugMessenger;
     XrSystemId xrSystemId;
-    VkInstance vkInstance;
-    VkDebugUtilsMessengerEXT vkDebugMessenger;
-    VkPhysicalDevice vkPhysicalDevice;
-    VkDevice vkDevice;
-    VkQueue vkQueue;
-    int32_t queueFamilyIndex;
+    EGLDisplay eglDisplay;
+    EGLContext eglContext;
     XrSession xrSession;
     XrSpace xrSpace;
     XrSessionState sessionState;
@@ -45,12 +40,8 @@ static struct {
     XR_NULL_HANDLE,
     XR_NULL_HANDLE,
     XR_NULL_SYSTEM_ID,
-    VK_NULL_HANDLE,
-    VK_NULL_HANDLE,
-    VK_NULL_HANDLE,
-    VK_NULL_HANDLE,
-    VK_NULL_HANDLE,
-    -1,
+    EGL_NO_DISPLAY,
+    EGL_NO_CONTEXT,
     XR_NULL_HANDLE,
     XR_NULL_HANDLE,
     XR_SESSION_STATE_UNKNOWN,
@@ -86,78 +77,33 @@ int openxr_init(void)
         return 0;
     }
 
-    // Get Vulkan requirements
-    XrGraphicsRequirementsVulkanKHR graphicsRequirements;
-    std::set<std::string> instanceExtensions;
-    std::tie(graphicsRequirements, instanceExtensions) = getVulkanInstanceRequirements(
-        g_openxr_state.xrInstance,
-        g_openxr_state.xrSystemId
-    );
-
-    if (instanceExtensions.empty()) {
-        std::cerr << "Failed to get Vulkan instance requirements. VR will not be available." << std::endl;
+    // Get current EGL display and context from SDL
+    g_openxr_state.eglDisplay = eglGetCurrentDisplay();
+    if (g_openxr_state.eglDisplay == EGL_NO_DISPLAY) {
+        std::cerr << "Failed to get current EGL display. VR will not be available.";
         openxr_shutdown();
         return 0;
     }
 
-    // Create Vulkan instance
-    g_openxr_state.vkInstance = createVulkanInstance(graphicsRequirements, instanceExtensions);
-    if (g_openxr_state.vkInstance == VK_NULL_HANDLE) {
-        std::cerr << "Failed to create Vulkan instance. VR will not be available." << std::endl;
+    g_openxr_state.eglContext = eglGetCurrentContext();
+    if (g_openxr_state.eglContext == EGL_NO_CONTEXT) {
+        std::cerr << "Failed to get current EGL context. VR will not be available.";
         openxr_shutdown();
         return 0;
     }
 
-    // Create Vulkan debug messenger
-    g_openxr_state.vkDebugMessenger = createVulkanDebugMessenger(g_openxr_state.vkInstance);
+    std::cout << "Got EGL display and context";
 
-    // Get Vulkan device requirements
-    std::set<std::string> deviceExtensions;
-    std::tie(g_openxr_state.vkPhysicalDevice, deviceExtensions) = getVulkanDeviceRequirements(
-        g_openxr_state.xrInstance,
-        g_openxr_state.xrSystemId,
-        g_openxr_state.vkInstance
-    );
-
-    if (g_openxr_state.vkPhysicalDevice == VK_NULL_HANDLE) {
-        std::cerr << "Failed to get Vulkan physical device. VR will not be available." << std::endl;
-        openxr_shutdown();
-        return 0;
-    }
-
-    // Get queue family
-    g_openxr_state.queueFamilyIndex = getDeviceQueueFamily(g_openxr_state.vkPhysicalDevice);
-    if (g_openxr_state.queueFamilyIndex < 0) {
-        std::cerr << "Failed to get Vulkan queue family. VR will not be available." << std::endl;
-        openxr_shutdown();
-        return 0;
-    }
-
-    // Create Vulkan device
-    std::tie(g_openxr_state.vkDevice, g_openxr_state.vkQueue) = createVulkanDevice(
-        g_openxr_state.vkPhysicalDevice,
-        g_openxr_state.queueFamilyIndex,
-        deviceExtensions
-    );
-
-    if (g_openxr_state.vkDevice == VK_NULL_HANDLE) {
-        std::cerr << "Failed to create Vulkan device. VR will not be available." << std::endl;
-        openxr_shutdown();
-        return 0;
-    }
-
-    // Create OpenXR session
+    // Create OpenXR session with OpenGL ES binding
     g_openxr_state.xrSession = createXRSession(
         g_openxr_state.xrInstance,
         g_openxr_state.xrSystemId,
-        g_openxr_state.vkInstance,
-        g_openxr_state.vkPhysicalDevice,
-        g_openxr_state.vkDevice,
-        g_openxr_state.queueFamilyIndex
+        g_openxr_state.eglDisplay,
+        g_openxr_state.eglContext
     );
 
     if (g_openxr_state.xrSession == XR_NULL_HANDLE) {
-        std::cerr << "Failed to create OpenXR session. VR will not be available." << std::endl;
+        std::cerr << "Failed to create OpenXR session. VR will not be available.";
         openxr_shutdown();
         return 0;
     }
@@ -165,23 +111,23 @@ int openxr_init(void)
     // Create reference space
     g_openxr_state.xrSpace = createXRSpace(g_openxr_state.xrSession);
     if (g_openxr_state.xrSpace == XR_NULL_HANDLE) {
-        std::cerr << "Failed to create OpenXR reference space. VR will not be available." << std::endl;
+        std::cerr << "Failed to create OpenXR reference space. VR will not be available.";
         openxr_shutdown();
         return 0;
     }
 
     g_openxr_state.initialized = true;
-    std::cout << "OpenXR context initialized successfully!" << std::endl;
+    std::cout << "OpenXR context initialized successfully with OpenGL ES!";
     
     // Initialize VR renderer
     if (!vr_renderer_init()) {
-        std::cerr << "Warning: Failed to initialize VR renderer. VR rendering will not be available." << std::endl;
+        std::cerr << "Warning: Failed to initialize VR renderer. VR rendering will not be available.";
         // Don't fail the whole init, just continue without VR rendering
     }
 
     // Initialize Virtual Keyboard
     if (!OpenXRKeyboard::GetInstance().Init(g_openxr_state.xrInstance, g_openxr_state.xrSession)) {
-        std::cerr << "Warning: Failed to initialize Virtual Keyboard." << std::endl;
+        std::cerr << "Warning: Failed to initialize Virtual Keyboard.";
     }
 
     return 1;
@@ -191,8 +137,7 @@ int openxr_init(void)
 void openxr_shutdown(void)
 {
     if (!g_openxr_state.initialized && 
-        g_openxr_state.xrInstance == XR_NULL_HANDLE &&
-        g_openxr_state.vkInstance == VK_NULL_HANDLE) {
+        g_openxr_state.xrInstance == XR_NULL_HANDLE) {
         return;
     }
 
@@ -205,9 +150,6 @@ void openxr_shutdown(void)
     // Destroy in reverse order of creation
     destroyXRSpace(g_openxr_state.xrSpace);
     destroyXRSession(g_openxr_state.xrSession);
-    destroyVulkanDevice(g_openxr_state.vkDevice);
-    destroyVulkanDebugMessenger(g_openxr_state.vkInstance, g_openxr_state.vkDebugMessenger);
-    destroyVulkanInstance(g_openxr_state.vkInstance);
     destroyXRDebugMessenger(g_openxr_state.xrInstance, g_openxr_state.xrDebugMessenger);
     destroyXRInstance(g_openxr_state.xrInstance);
 
@@ -216,12 +158,8 @@ void openxr_shutdown(void)
     g_openxr_state.xrInstance = XR_NULL_HANDLE;
     g_openxr_state.xrDebugMessenger = XR_NULL_HANDLE;
     g_openxr_state.xrSystemId = XR_NULL_SYSTEM_ID;
-    g_openxr_state.vkInstance = VK_NULL_HANDLE;
-    g_openxr_state.vkDebugMessenger = VK_NULL_HANDLE;
-    g_openxr_state.vkPhysicalDevice = VK_NULL_HANDLE;
-    g_openxr_state.vkDevice = VK_NULL_HANDLE;
-    g_openxr_state.vkQueue = VK_NULL_HANDLE;
-    g_openxr_state.queueFamilyIndex = -1;
+    g_openxr_state.eglDisplay = EGL_NO_DISPLAY;
+    g_openxr_state.eglContext = EGL_NO_CONTEXT;
     g_openxr_state.xrSession = XR_NULL_HANDLE;
     g_openxr_state.xrSpace = XR_NULL_HANDLE;
 
@@ -452,7 +390,14 @@ int openxr_update(void)
     
     result = xrBeginFrame(g_openxr_state.xrSession, &frameBeginInfo);
     if (result != XR_SUCCESS) {
+        std::cerr << "xrBeginFrame failed: " << result;
         return 0;
+    }
+    
+    static int first_begin = 1;
+    if (first_begin) {
+        std::cout << "xrBeginFrame succeeded, shouldRender = " << frameState.shouldRender << std::endl;
+        first_begin = 0;
     }
 
     // Locate views (get head pose)
@@ -563,27 +508,36 @@ XrSystemId openxr_get_system_id(void)
     return g_openxr_state.xrSystemId;
 }
 
-VkInstance openxr_get_vulkan_instance(void)
+EGLDisplay openxr_get_egl_display(void)
 {
-    return g_openxr_state.vkInstance;
+    return g_openxr_state.eglDisplay;
 }
 
-VkPhysicalDevice openxr_get_vulkan_physical_device(void)
+EGLContext openxr_get_egl_context(void)
 {
-    return g_openxr_state.vkPhysicalDevice;
+    return g_openxr_state.eglContext;
 }
 
-VkDevice openxr_get_vulkan_device(void)
+int openxr_end_frame_empty(void)
 {
-    return g_openxr_state.vkDevice;
-}
+    if (!g_openxr_state.initialized || !g_openxr_state.sessionRunning) {
+        return 0;
+    }
 
-VkQueue openxr_get_vulkan_queue(void)
-{
-    return g_openxr_state.vkQueue;
-}
-
-int32_t openxr_get_vulkan_queue_family_index(void)
-{
-    return g_openxr_state.queueFamilyIndex;
+    // Submit frame with no layers (required to match xrBeginFrame)
+    XrFrameEndInfo frameEndInfo{};
+    frameEndInfo.type = XR_TYPE_FRAME_END_INFO;
+    frameEndInfo.displayTime = g_openxr_state.frameState.predictedDisplayTime;
+    frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
+    frameEndInfo.layerCount = 0;  // No layers
+    frameEndInfo.layers = nullptr;
+    
+    XrResult result = xrEndFrame(g_openxr_state.xrSession, &frameEndInfo);
+    
+    if (result != XR_SUCCESS) {
+        std::cerr << "Failed to end OpenXR frame (empty): " << result;
+        return 0;
+    }
+    
+    return 1;
 }

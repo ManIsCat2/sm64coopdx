@@ -1,8 +1,12 @@
 #ifndef OPENXR_SWAPCHAIN_H
 #define OPENXR_SWAPCHAIN_H
 
-#include <vulkan/vulkan.h>
-#define XR_USE_GRAPHICS_API_VULKAN
+#include <jni.h>
+#include <EGL/egl.h>
+#include <GLES3/gl3.h>
+
+#define XR_USE_PLATFORM_ANDROID
+#define XR_USE_GRAPHICS_API_OPENGL_ES
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
@@ -13,11 +17,11 @@ extern "C" {
 // Swapchain wrapper for a single eye
 typedef struct {
     XrSwapchain swapchain;
-    VkFormat format;
+    GLenum format;
     uint32_t width;
     uint32_t height;
     uint32_t imageCount;
-    VkImage* images;
+    GLuint* images;  // OpenGL texture IDs
 } OpenXRSwapchain;
 
 // Create swapchains for both eyes

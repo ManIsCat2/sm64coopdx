@@ -24,8 +24,7 @@ static jobject gAndroidActivityGlobalRef = nullptr;
 
 // Extension names
 static const char* const extensionNames[] = {
-    "XR_KHR_vulkan_enable",
-    "XR_KHR_vulkan_enable2",
+    "XR_KHR_opengl_es_enable",
     "XR_EXT_debug_utils",
     "XR_META_virtual_keyboard",
     "XR_FB_render_model",

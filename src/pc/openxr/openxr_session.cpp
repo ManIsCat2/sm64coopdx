@@ -1,25 +1,51 @@
 #include "openxr_session.h"
+#include "openxr_instance.h"
 #include <iostream>
 #include <cmath>
+#include <EGL/egl.h>
 
 XrSession createXRSession(
     XrInstance instance,
     XrSystemId systemID,
-    VkInstance vulkanInstance,
-    VkPhysicalDevice physDevice,
-    VkDevice device,
-    uint32_t queueFamilyIndex
+    EGLDisplay display,
+    EGLContext context
 )
 {
     XrSession session;
 
-    XrGraphicsBindingVulkanKHR graphicsBinding{};
-    graphicsBinding.type = XR_TYPE_GRAPHICS_BINDING_VULKAN_KHR;
-    graphicsBinding.instance = vulkanInstance;
-    graphicsBinding.physicalDevice = physDevice;
-    graphicsBinding.device = device;
-    graphicsBinding.queueFamilyIndex = queueFamilyIndex;
-    graphicsBinding.queueIndex = 0;
+    // IMPORTANT: Query graphics requirements before creating session
+    // This is mandatory per OpenXR spec
+    PFN_xrGetOpenGLESGraphicsRequirementsKHR xrGetOpenGLESGraphicsRequirementsKHR = nullptr;
+    XrResult result = xrGetInstanceProcAddr(
+        instance,
+        "xrGetOpenGLESGraphicsRequirementsKHR",
+        (PFN_xrVoidFunction*)&xrGetOpenGLESGraphicsRequirementsKHR
+    );
+    
+    if (result != XR_SUCCESS || !xrGetOpenGLESGraphicsRequirementsKHR) {
+        std::cerr << "Failed to get xrGetOpenGLESGraphicsRequirementsKHR function: " << result << std::endl;
+        return XR_NULL_HANDLE;
+    }
+
+    XrGraphicsRequirementsOpenGLESKHR graphicsRequirements{};
+    graphicsRequirements.type = XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_ES_KHR;
+    
+    result = xrGetOpenGLESGraphicsRequirementsKHR(instance, systemID, &graphicsRequirements);
+    if (result != XR_SUCCESS) {
+        std::cerr << "Failed to get OpenGL ES graphics requirements: " << result << std::endl;
+        return XR_NULL_HANDLE;
+    }
+
+    std::cout << "OpenGL ES graphics requirements:";
+    std::cout << "  Min API version: " << XR_VERSION_MAJOR(graphicsRequirements.minApiVersionSupported) << "." << XR_VERSION_MINOR(graphicsRequirements.minApiVersionSupported);
+    std::cout << "  Max API version: " << XR_VERSION_MAJOR(graphicsRequirements.maxApiVersionSupported) << "." << XR_VERSION_MINOR(graphicsRequirements.maxApiVersionSupported);
+    std::cout << std::endl;
+    
+    XrGraphicsBindingOpenGLESAndroidKHR graphicsBinding{};
+    graphicsBinding.type = XR_TYPE_GRAPHICS_BINDING_OPENGL_ES_ANDROID_KHR;
+    graphicsBinding.display = display;
+    graphicsBinding.config = (EGLConfig)0;  // Not required for OpenXR
+    graphicsBinding.context = context;
 
     XrSessionCreateInfo sessionCreateInfo{};
     sessionCreateInfo.type = XR_TYPE_SESSION_CREATE_INFO;
@@ -27,7 +53,7 @@ XrSession createXRSession(
     sessionCreateInfo.createFlags = 0;
     sessionCreateInfo.systemId = systemID;
 
-    XrResult result = xrCreateSession(instance, &sessionCreateInfo, &session);
+    result = xrCreateSession(instance, &sessionCreateInfo, &session);
 
     if (result != XR_SUCCESS)
     {
@@ -35,7 +61,7 @@ XrSession createXRSession(
         return XR_NULL_HANDLE;
     }
 
-    std::cout << "OpenXR session created successfully" << std::endl;
+    std::cout << "OpenXR session created successfully with OpenGL ES binding" << std::endl;
 
     return session;
 }

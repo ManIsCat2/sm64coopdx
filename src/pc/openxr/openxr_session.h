@@ -1,8 +1,11 @@
 #ifndef OPENXR_SESSION_H
 #define OPENXR_SESSION_H
 
-#include <vulkan/vulkan.h>
-#define XR_USE_GRAPHICS_API_VULKAN
+#include <jni.h>
+#include <EGL/egl.h>
+
+#define XR_USE_PLATFORM_ANDROID
+#define XR_USE_GRAPHICS_API_OPENGL_ES
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>
 
@@ -14,10 +17,8 @@ extern "C" {
 XrSession createXRSession(
     XrInstance instance,
     XrSystemId systemID,
-    VkInstance vulkanInstance,
-    VkPhysicalDevice physDevice,
-    VkDevice device,
-    uint32_t queueFamilyIndex
+    EGLDisplay display,
+    EGLContext context
 );
 void destroyXRSession(XrSession session);
 

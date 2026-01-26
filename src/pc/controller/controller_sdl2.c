@@ -200,6 +200,10 @@ static void controller_sdl_read(OSContPad *pad) {
         SDL_SetHint(SDL_HINT_JOYSTICK_ALLOW_BACKGROUND_EVENTS, sBackgroundGamepad ? "1" : "0");
     }
 
+#ifdef __ANDROID__
+    SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
+#endif
+
     if (configDisableGamepads) { return; }
 
     SDL_GameControllerUpdate();

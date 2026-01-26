@@ -94,11 +94,16 @@ tools/ido5.3_compiler/usr/lib/libc.so.1
 /.vs
 tools/audiofile/libaudiofile.a
 
-# Android files
-platform/.gradle
+# gradle
+gradle/
+gradlew
+gradlew.bat
+.gradle/
+.idea/
+*.iml
+local.properties
 platform/app/.externalNativeBuild
 platform/app/.cxx
 platform/app/src/main/assets
 platform/app/build/
 platform/app/debug/
-platform/local.properties

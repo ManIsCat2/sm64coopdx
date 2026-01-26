@@ -4,7 +4,7 @@
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     android:versionCode="41"
-    android:versionName="1.4"
+    android:versionName="1.4.1"
     android:installLocation="auto">
 
     <!-- OpenGL ES 3.0 -->

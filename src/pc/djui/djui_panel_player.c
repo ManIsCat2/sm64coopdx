@@ -210,6 +210,7 @@ static void djui_panel_player_edit_palette_destroy(struct DjuiBase* caller) {
     }
 
     sColorRect = NULL;
+    gDjuiPaletteToggle = NULL;
 
     if (sPalettePresetSelection) {
         sPalettePresetIndex = djui_panel_player_edit_palette_get_palette_index(configPlayerPalette);
@@ -393,7 +394,7 @@ static void djui_panel_player_name_active_palette(struct DjuiBase* caller) {
             struct DjuiButton* button2 = djui_button_right_create(&rect3->base, DLANG(PLAYER, SAVE_PRESET), DJUI_BUTTON_STYLE_NORMAL, djui_panel_player_active_palette_export);
             djui_base_set_size(&button2->base, 0.485f, 32);
         }
-        
+
         {
 #ifdef TOUCH_CONTROLS
             struct DjuiButton *text = djui_button_create(body, DLANG(PLAYER, CAP_TOGGLE_TOUCH), DJUI_BUTTON_STYLE_NORMAL, djui_panel_player_on_toggle_wear_cap);

@@ -183,13 +183,14 @@ void djui_reset_hud_params(void) {
 
 void djui_render(void) {
     if (!sDjuiInited || gDjuiDisabled) { return; }
-#ifdef TOUCH_CONTROLS
-    render_touch_controls();
-#endif
 
     sSavedDisplayListHead = gDisplayListHead;
     gDjuiHudUtilsZ = 0;
     djui_reset_hud_params();
+#ifdef TOUCH_CONTROLS
+    extern bool is_game_paused(void);
+    if (gInTouchConfig || is_game_paused()) render_touch_controls();
+#endif
 
     create_dl_ortho_matrix();
     djui_gfx_displaylist_begin();
@@ -236,6 +237,9 @@ void djui_render(void) {
     }
 
     djui_cursor_update();
+#ifdef TOUCH_CONTROLS
+    if (!gInTouchConfig && !is_game_paused()) render_touch_controls();
+#endif
     djui_base_render(&gDjuiConsole->base);
 
 #ifdef OPENXR_ENABLED

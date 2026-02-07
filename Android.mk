@@ -43,6 +43,12 @@ LOCAL_MODULE := curl
 LOCAL_SRC_FILES := $(LOCAL_PATH)/lib/curl/android/$(TARGET_ARCH_ABI)/libcurl.so
 include $(PREBUILT_SHARED_LIBRARY)
 
+# OpenXR
+include $(CLEAR_VARS)
+LOCAL_MODULE := openxr_loader
+LOCAL_SRC_FILES := $(LOCAL_PATH)/lib/openxr/android/$(TARGET_ARCH_ABI)/libopenxr_loader.so
+include $(PREBUILT_SHARED_LIBRARY)
+
 include $(CLEAR_VARS)
 LOCAL_MODULE := main
 ### Build Options ###
@@ -53,7 +59,7 @@ LOCAL_MODULE := main
 # Version of the game to build
 VERSION ?= us
 
-TOUCH_CONTROLS ?= 1
+TOUCH_CONTROLS ?= 0
 
 ifeq ($(VERSION),jp)
   VERSION_DEF := VERSION_JP
@@ -70,7 +76,7 @@ endif
 
 PC_BUILD_DIR := $(LOCAL_PATH)/build/$(VERSION)_pc
 
-SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin bin/$(VERSION) data assets sound src/pc src/pc/gfx src/pc/audio src/pc/controller src/pc/fs src/pc/mods src/pc/dev src/pc/network src/pc/network/packets src/pc/network/socket src/pc/network/coopnet src/pc/utils src/pc/utils/miniz src/pc/djui src/pc/lua src/pc/lua/utils src/pc/mumble include/android_execinfo
+SRC_DIRS := src src/engine src/game src/audio src/menu src/buffers actors levels bin bin/$(VERSION) data assets sound src/pc src/pc/gfx src/pc/audio src/pc/controller src/pc/fs src/pc/mods src/pc/dev src/pc/network src/pc/network/packets src/pc/network/socket src/pc/network/coopnet src/pc/utils src/pc/utils/miniz src/pc/djui src/pc/lua src/pc/lua/utils src/pc/mumble src/pc/openxr include/android_execinfo
 SRC_DIRS := $(addprefix $(LOCAL_PATH)/,$(SRC_DIRS))
 
 GODDARD_SRC_DIRS := src/goddard src/goddard/dynlists
@@ -101,11 +107,12 @@ GENERATED_C_FILES := $(PC_BUILD_DIR)/assets/mario_anim_data.c $(PC_BUILD_DIR)/as
   $(addprefix $(LOCAL_PATH)/bin/,$(addsuffix _skybox.c,$(notdir $(basename $(wildcard $(LOCAL_PATH)/textures/skyboxes/*.png)))))
 
 LOCAL_SHORT_COMMANDS := true
-LOCAL_SHARED_LIBRARIES := sdl2 curl
+LOCAL_SHARED_LIBRARIES := sdl2 curl openxr_loader
 LOCAL_STATIC_LIBRARIES := lua5.3.5 coopnet libjuice
 LOCAL_LDLIBS := -lEGL -lGLESv3 -llog -lz -pthread -rdynamic -ldl -landroid
-LOCAL_C_INCLUDES := $(LOCAL_PATH)/include $(LOCAL_PATH)/include/android_execinfo $(LOCAL_PATH)/src $(LOCAL_PATH)/sound $(LOCAL_PATH)/lib/lua/include $(LOCAL_PATH)/lib/coopnet/include $(LOCAL_PATH)/lib/sdl2/include $(LOCAL_PATH)/lib/curl/include $(PC_BUILD_DIR) $(PC_BUILD_DIR)/include
+LOCAL_C_INCLUDES := $(LOCAL_PATH)/include $(LOCAL_PATH)/include/android_execinfo $(LOCAL_PATH)/src $(LOCAL_PATH)/sound $(LOCAL_PATH)/lib/lua/include $(LOCAL_PATH)/lib/coopnet/include $(LOCAL_PATH)/lib/sdl2/include $(LOCAL_PATH)/lib/curl/include $(LOCAL_PATH)/lib/openxr/include $(PC_BUILD_DIR) $(PC_BUILD_DIR)/include
 LOCAL_CFLAGS := -DNON_MATCHING -DAVOID_UB -DTARGET_LINUX -DTARGET_ANDROID -DENABLE_OPENGL -DWIDESCREEN -DF3DEX_GBI_2E -D_LANGUAGE_C -DNO_SEGMENTED_MEMORY -D$(VERSION_DEF) -DSTDC_HEADERS -DDYNOS -DCOOP -DCOOPNET -DUSE_GLES -DTEXTURE_FIX -DBETTERCAMERA -DEXT_OPTIONS_MENU -DIMMEDIATELOAD -DRAPI_GL=1 -DWAPI_SDL2=1 -DAAPI_SDL2=1 -DCAPI_SDL2 -DHAVE_SDL2=1 -O3 -w
+LOCAL_CFLAGS += -DOPENXR_ENABLED
 ifeq ($(TOUCH_CONTROLS),1)
   LOCAL_CFLAGS += -DTOUCH_CONTROLS
 endif

@@ -842,8 +842,15 @@ endif
 
 # OpenXR support
 ifeq ($(OPENXR),1)
-  BACKEND_LDFLAGS += -L/data/data/com.termux/files/home/loader-so -l:libopenxr_loader.so
-  BACKEND_CFLAGS += -I/data/data/com.termux/files/home/include
+  ifeq ($(TARGET_ANDROID),1)
+    BACKEND_LDFLAGS += -Llib/openxr/android/$(ANDROID_ARCH) -l:libopenxr_loader.so
+  else
+    # For Linux/desktop builds, link EGL and OpenXR
+    BACKEND_LDFLAGS += -lEGL -lopenxr_loader
+  endif
+  BACKEND_CFLAGS += -Ilib/openxr/include
+  # Ensure C++ files use local OpenXR headers (with META extensions) instead of system headers
+  EXTRA_CPP_INCLUDES += -Ilib/openxr/include
   ifeq ($(EXTRA_CPP_FLAGS),)
     EXTRA_CPP_FLAGS := -std=c++20
   else

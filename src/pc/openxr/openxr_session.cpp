@@ -4,6 +4,11 @@
 #include <cmath>
 #include <EGL/egl.h>
 
+// Define platform for EGL binding on non-Android platforms
+#ifndef __ANDROID__
+#define XR_USE_PLATFORM_EGL
+#endif
+
 XrSession createXRSession(
     XrInstance instance,
     XrSystemId systemID,
@@ -15,6 +20,7 @@ XrSession createXRSession(
 
     // IMPORTANT: Query graphics requirements before creating session
     // This is mandatory per OpenXR spec
+#ifdef __ANDROID__
     PFN_xrGetOpenGLESGraphicsRequirementsKHR xrGetOpenGLESGraphicsRequirementsKHR = nullptr;
     XrResult result = xrGetInstanceProcAddr(
         instance,
@@ -35,17 +41,50 @@ XrSession createXRSession(
         std::cerr << "Failed to get OpenGL ES graphics requirements: " << result << std::endl;
         return XR_NULL_HANDLE;
     }
+#else
+    // For Linux desktop builds using EGL extension
+    PFN_xrGetOpenGLESGraphicsRequirementsKHR xrGetOpenGLESGraphicsRequirementsKHR = nullptr;
+    XrResult result = xrGetInstanceProcAddr(
+        instance,
+        "xrGetOpenGLESGraphicsRequirementsKHR",
+        (PFN_xrVoidFunction*)&xrGetOpenGLESGraphicsRequirementsKHR
+    );
+    
+    if (result != XR_SUCCESS || !xrGetOpenGLESGraphicsRequirementsKHR) {
+        std::cerr << "Failed to get xrGetOpenGLESGraphicsRequirementsKHR function: " << result << std::endl;
+        return XR_NULL_HANDLE;
+    }
+
+    XrGraphicsRequirementsOpenGLESKHR graphicsRequirements{};
+    graphicsRequirements.type = XR_TYPE_GRAPHICS_REQUIREMENTS_OPENGL_ES_KHR;
+    
+    result = xrGetOpenGLESGraphicsRequirementsKHR(instance, systemID, &graphicsRequirements);
+    if (result != XR_SUCCESS) {
+        std::cerr << "Failed to get OpenGL ES graphics requirements: " << result << std::endl;
+        return XR_NULL_HANDLE;
+    }
+#endif
 
     std::cout << "OpenGL ES graphics requirements:";
     std::cout << "  Min API version: " << XR_VERSION_MAJOR(graphicsRequirements.minApiVersionSupported) << "." << XR_VERSION_MINOR(graphicsRequirements.minApiVersionSupported);
     std::cout << "  Max API version: " << XR_VERSION_MAJOR(graphicsRequirements.maxApiVersionSupported) << "." << XR_VERSION_MINOR(graphicsRequirements.maxApiVersionSupported);
     std::cout << std::endl;
     
+#ifdef __ANDROID__
     XrGraphicsBindingOpenGLESAndroidKHR graphicsBinding{};
     graphicsBinding.type = XR_TYPE_GRAPHICS_BINDING_OPENGL_ES_ANDROID_KHR;
     graphicsBinding.display = display;
     graphicsBinding.config = (EGLConfig)0;  // Not required for OpenXR
     graphicsBinding.context = context;
+#else
+    // For Linux desktop builds
+    XrGraphicsBindingEGLMNDX graphicsBinding{};
+    graphicsBinding.type = XR_TYPE_GRAPHICS_BINDING_EGL_MNDX;
+    graphicsBinding.getProcAddress = eglGetProcAddress;
+    graphicsBinding.display = display;
+    graphicsBinding.config = (EGLConfig)0;
+    graphicsBinding.context = context;
+#endif
 
     XrSessionCreateInfo sessionCreateInfo{};
     sessionCreateInfo.type = XR_TYPE_SESSION_CREATE_INFO;

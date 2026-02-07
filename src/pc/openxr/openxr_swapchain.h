@@ -1,11 +1,13 @@
 #ifndef OPENXR_SWAPCHAIN_H
 #define OPENXR_SWAPCHAIN_H
 
-#include <jni.h>
 #include <EGL/egl.h>
 #include <GLES3/gl3.h>
 
+#ifdef __ANDROID__
+#include <jni.h>
 #define XR_USE_PLATFORM_ANDROID
+#endif
 #define XR_USE_GRAPHICS_API_OPENGL_ES
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>

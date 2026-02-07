@@ -54,6 +54,15 @@
     <!-- Allow access to internet -->
     <uses-permission android:name="android.permission.INTERNET" />
 
+    <uses-feature android:name="oculus.software.handtracking" android:required="false"/>
+    <uses-permission android:name="com.oculus.permission.HAND_TRACKING"/>
+    <uses-feature android:name="com.oculus.feature.VIRTUAL_KEYBOARD" android:required="true" />
+    <uses-permission android:name="horizonos.permission.USE_SCENE"/>
+
+    <!-- Render model (required for the keyboard model) -->
+    <uses-feature android:name="com.oculus.feature.RENDER_MODEL" android:required="true" />
+    <uses-permission android:name="com.oculus.permission.RENDER_MODEL" />
+
     <!-- if you want to capture audio, uncomment this. -->
     <!-- <uses-permission android:name="android.permission.RECORD_AUDIO" /> -->
 
@@ -70,6 +79,7 @@
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
+        android:banner="@drawable/ic_banner"
         android:requestLegacyExternalStorage="true">
 
         <!-- Example of setting SDL hints from AndroidManifest.xml:
@@ -85,9 +95,22 @@
             android:fitsSystemWindows="true"
             android:exported="true"
             >
+
+            <meta-data android:name="xr_runtime" android:value="oculus"/>
+            <meta-data android:name="com.oculus.openxr.runtime_built_for" android:value="oculus_mobile"/>
+            <meta-data android:name="com.oculus.supportedDevices" android:value="quest|quest2|questpro|quest3"/>
+            <meta-data android:name="com.oculus.vr.focusaware" android:value="true"/>
+            <meta-data android:name="com.oculus.vr.vr_mode" android:value="true"/>
+            <meta-data android:name="com.oculus.vr.autoshow" android:value="true"/>
+            <meta-data android:name="com.oculus.supportsHandTrackingLaunch" android:value="true"/>
+            <meta-data android:name="com.oculus.handtracking.version" android:value="V2.0"/>
+            <meta-data android:name="com.oculus.handtracking.frequency" android:value="LOW"/>
+            <meta-data android:name="com.oculus.handtracking.mode" android:value="hands_optional"/>
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="com.oculus.intent.category.VR"/>
+
             </intent-filter>
             <!-- Let Android know that we can handle some USB devices and should receive this event -->
             <intent-filter>

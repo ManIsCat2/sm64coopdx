@@ -1,10 +1,14 @@
 #ifndef OPENXR_SESSION_H
 #define OPENXR_SESSION_H
 
-#include <jni.h>
 #include <EGL/egl.h>
 
+#ifdef __ANDROID__
+#include <jni.h>
 #define XR_USE_PLATFORM_ANDROID
+#else
+#define XR_USE_PLATFORM_EGL
+#endif
 #define XR_USE_GRAPHICS_API_OPENGL_ES
 #include <openxr/openxr.h>
 #include <openxr/openxr_platform.h>

@@ -139,7 +139,11 @@ int vr_opengl_init(void)
         
         // Create and attach depth renderbuffer
         glBindRenderbuffer(GL_RENDERBUFFER, g_vr_opengl.depthRenderbuffers[eye]);
+#ifdef USE_GLES
         glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24_OES, width, height);
+#else
+        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT24, width, height);
+#endif
         glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, g_vr_opengl.depthRenderbuffers[eye]);
 
         // Check framebuffer completeness

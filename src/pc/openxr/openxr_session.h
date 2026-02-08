@@ -28,6 +28,7 @@ void destroyXRSession(XrSession session);
 
 // Space management
 XrSpace createXRSpace(XrSession session);
+XrSpace createXRSpaceWithRotation(XrSession session, XrQuaternionf rotation, XrVector3f position);
 void destroyXRSpace(XrSpace space);
 
 #ifdef __cplusplus

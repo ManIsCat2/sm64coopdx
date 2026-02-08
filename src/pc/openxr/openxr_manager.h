@@ -30,6 +30,9 @@ int openxr_is_initialized(void);
 // Returns 1 if VR rendering should happen, 0 otherwise
 int openxr_update(void);
 
+// Recenter the VR view
+void openxr_recenter_view(void);
+
 // Get head rotation (in degrees)
 // Returns 1 on success, 0 if not available
 int openxr_get_head_rotation(float* yaw, float* pitch, float* roll);
@@ -37,6 +40,10 @@ int openxr_get_head_rotation(float* yaw, float* pitch, float* roll);
 // Get head position (in meters)
 // Returns 1 on success, 0 if not available
 int openxr_get_head_position(float* x, float* y, float* z);
+
+// Get head orientation as quaternion
+// Returns 1 on success, 0 if not available
+int openxr_get_head_quaternion(float* x, float* y, float* z, float* w);
 
 // Get predicted display time for current frame
 int64_t openxr_get_predicted_display_time(void);

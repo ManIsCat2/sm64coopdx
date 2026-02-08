@@ -81,6 +81,9 @@ int vr_renderer_acquire_quad_images(void);
 // Release quad swapchain images (call after rendering quads)
 void vr_renderer_release_quad_images(void);
 
+// Update the cached XrSpace handle (call after recreating reference space)
+void vr_renderer_update_space(void);
+
 #ifdef __cplusplus
 }
 

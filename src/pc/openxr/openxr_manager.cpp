@@ -28,6 +28,7 @@ static struct {
     EGLContext eglContext;
     XrSession xrSession;
     XrSpace xrSpace;
+    XrSpace xrStageSpace;
     XrSessionState sessionState;
     XrFrameState frameState;
     
@@ -44,11 +45,129 @@ static struct {
     EGL_NO_CONTEXT,
     XR_NULL_HANDLE,
     XR_NULL_HANDLE,
+    XR_NULL_HANDLE,
     XR_SESSION_STATE_UNKNOWN,
     {},
     {},
     false
 };
+
+static void openxr_wait_for_session_and_recenter(void)
+{
+    //
+    // Wait for session to be ready and start it
+    //
+    std::cout << "Waiting for OpenXR session to be ready..." << std::endl;
+    
+    // Simple state polling loop with timeout
+    int max_polls = 100;
+    bool session_started = false;
+    
+    while (max_polls > 0 && !session_started) {
+        XrEventDataBuffer eventData{};
+        eventData.type = XR_TYPE_EVENT_DATA_BUFFER;
+        
+        while (xrPollEvent(g_openxr_state.xrInstance, &eventData) == XR_SUCCESS) {
+            if (eventData.type == XR_TYPE_EVENT_DATA_SESSION_STATE_CHANGED) {
+                XrEventDataSessionStateChanged* stateChangeEvent = 
+                    reinterpret_cast<XrEventDataSessionStateChanged*>(&eventData);
+                g_openxr_state.sessionState = stateChangeEvent->state;
+                
+                std::cout << "Init: Session state changed to " << stateChangeEvent->state << std::endl;
+                
+                if (stateChangeEvent->state == XR_SESSION_STATE_READY) {
+                    XrSessionBeginInfo beginInfo{};
+                    beginInfo.type = XR_TYPE_SESSION_BEGIN_INFO;
+                    beginInfo.primaryViewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+                    
+                    if (xrBeginSession(g_openxr_state.xrSession, &beginInfo) == XR_SUCCESS) {
+                        g_openxr_state.sessionRunning = true;
+                        session_started = true;
+                        std::cout << "Init: Session started!" << std::endl;
+                    } else {
+                        std::cerr << "Init: Failed to begin session!" << std::endl;
+                    }
+                }
+            }
+            eventData.type = XR_TYPE_EVENT_DATA_BUFFER;
+        }
+        
+        if (session_started) break;
+        
+        SDL_Delay(10); // Wait 10ms
+        max_polls--;
+    }
+    
+    if (!session_started) {
+        std::cerr << "Warning: Timed out waiting for OpenXR session to be ready. VR might not work correctly until session starts." << std::endl;
+        return; // Return success anyway, maybe it will start later in update
+    }
+
+    //
+    // Wait for a valid pose to recenter
+    //
+    std::cout << "Waiting for valid head pose to recenter..." << std::endl;
+    
+    int max_frames = 60; // Wait up to ~1 sec (at 60hz)
+    bool recentered = false;
+    
+    while (max_frames > 0 && !recentered) {
+        // Must run the frame loop to get poses
+        XrFrameWaitInfo frameWaitInfo{};
+        frameWaitInfo.type = XR_TYPE_FRAME_WAIT_INFO;
+        XrFrameState frameState{};
+        frameState.type = XR_TYPE_FRAME_STATE;
+        
+        if (xrWaitFrame(g_openxr_state.xrSession, &frameWaitInfo, &frameState) == XR_SUCCESS) {
+            XrFrameBeginInfo frameBeginInfo{};
+            frameBeginInfo.type = XR_TYPE_FRAME_BEGIN_INFO;
+            xrBeginFrame(g_openxr_state.xrSession, &frameBeginInfo);
+            
+            if (frameState.shouldRender) {
+                XrViewLocateInfo viewLocateInfo{};
+                viewLocateInfo.type = XR_TYPE_VIEW_LOCATE_INFO;
+                viewLocateInfo.viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+                viewLocateInfo.displayTime = frameState.predictedDisplayTime;
+                viewLocateInfo.space = g_openxr_state.xrStageSpace; // Use STAGE space to check for recenter availability
+                
+                XrViewState viewState{XR_TYPE_VIEW_STATE};
+                uint32_t viewCount = 2;
+                XrView views[2] = {{XR_TYPE_VIEW}, {XR_TYPE_VIEW}};
+                
+                if (xrLocateViews(g_openxr_state.xrSession, &viewLocateInfo, &viewState, viewCount, &viewCount, views) == XR_SUCCESS) {
+                   if ((viewState.viewStateFlags & XR_VIEW_STATE_POSITION_VALID_BIT) &&
+                       (viewState.viewStateFlags & XR_VIEW_STATE_ORIENTATION_VALID_BIT)) {
+                       
+                       // Temporarily update global frame state for recenter function
+                       g_openxr_state.frameState = frameState;
+                       
+                       // Recenter now!
+                       openxr_recenter_view();
+                       recentered = true;
+                       std::cout << "Init: Successfully recentered view!" << std::endl;
+                   }
+                }
+            }
+            
+            // End frame immediately
+            XrFrameEndInfo frameEndInfo{};
+            frameEndInfo.type = XR_TYPE_FRAME_END_INFO;
+            frameEndInfo.displayTime = frameState.predictedDisplayTime;
+            frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
+            frameEndInfo.layerCount = 0;
+            frameEndInfo.layers = nullptr;
+            xrEndFrame(g_openxr_state.xrSession, &frameEndInfo);
+        }
+        
+        if (recentered) break;
+        
+        max_frames--;
+    }
+    
+    if (!recentered) {
+         std::cerr << "Warning: Timed out waiting for valid head pose. View might be uncentered." << std::endl;
+    }
+}
 
 int openxr_init(void)
 {
@@ -116,6 +235,17 @@ int openxr_init(void)
         return 0;
     }
 
+    // Create STAGE reference space for recentering
+    XrReferenceSpaceCreateInfo stageSpaceInfo{};
+    stageSpaceInfo.type = XR_TYPE_REFERENCE_SPACE_CREATE_INFO;
+    stageSpaceInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_STAGE;
+    stageSpaceInfo.poseInReferenceSpace = {{0.0f, 0.0f, 0.0f, 1.0f}, {0.0f, 0.0f, 0.0f}};
+    
+    if (xrCreateReferenceSpace(g_openxr_state.xrSession, &stageSpaceInfo, &g_openxr_state.xrStageSpace) != XR_SUCCESS) {
+        std::cerr << "Failed to create OpenXR STAGE reference space. Recentering will not work properly.";
+        // Don't fail completely, try to continue
+    }
+
     g_openxr_state.initialized = true;
     std::cout << "OpenXR context initialized successfully with OpenGL ES!";
     
@@ -127,12 +257,13 @@ int openxr_init(void)
 
     // Initialize Virtual Keyboard
     if (!OpenXRKeyboard::GetInstance().Init(g_openxr_state.xrInstance, g_openxr_state.xrSession)) {
-        std::cerr << "Warning: Failed to initialize Virtual Keyboard.";
+        std::cerr << "Warning: Failed to initialize Virtual Keyboard." << std::endl;
     }
+
+    openxr_wait_for_session_and_recenter();
 
     return 1;
 }
-
 
 void openxr_shutdown(void)
 {
@@ -148,7 +279,11 @@ void openxr_shutdown(void)
     vr_renderer_shutdown();
 
     // Destroy in reverse order of creation
+    // Destroy in reverse order of creation
     destroyXRSpace(g_openxr_state.xrSpace);
+    if (g_openxr_state.xrStageSpace != XR_NULL_HANDLE) {
+        xrDestroySpace(g_openxr_state.xrStageSpace);
+    }
     destroyXRSession(g_openxr_state.xrSession);
     destroyXRDebugMessenger(g_openxr_state.xrInstance, g_openxr_state.xrDebugMessenger);
     destroyXRInstance(g_openxr_state.xrInstance);
@@ -162,6 +297,7 @@ void openxr_shutdown(void)
     g_openxr_state.eglContext = EGL_NO_CONTEXT;
     g_openxr_state.xrSession = XR_NULL_HANDLE;
     g_openxr_state.xrSpace = XR_NULL_HANDLE;
+    g_openxr_state.xrStageSpace = XR_NULL_HANDLE;
 
     std::cout << "OpenXR context shutdown complete" << std::endl;
 }
@@ -190,6 +326,95 @@ static void quaternion_to_euler(const XrQuaternionf& q, float* yaw, float* pitch
     float siny_cosp = 2.0f * (q.w * q.z + q.x * q.y);
     float cosy_cosp = 1.0f - 2.0f * (q.y * q.y + q.z * q.z);
     *yaw = std::atan2(siny_cosp, cosy_cosp) * (180.0f / M_PI);
+}
+
+void openxr_recenter_view(void)
+{
+    if (g_openxr_state.xrStageSpace == XR_NULL_HANDLE) {
+        std::cerr << "Warning: STAGE space not initialized, cannot recenter properly." << std::endl;
+        return;
+    }
+
+    // Get head pose in absolute STAGE space
+    XrViewLocateInfo viewLocateInfo{};
+    viewLocateInfo.type = XR_TYPE_VIEW_LOCATE_INFO;
+    viewLocateInfo.viewConfigurationType = XR_VIEW_CONFIGURATION_TYPE_PRIMARY_STEREO;
+    viewLocateInfo.displayTime = g_openxr_state.frameState.predictedDisplayTime;
+    viewLocateInfo.space = g_openxr_state.xrStageSpace;
+    
+    XrViewState viewState{XR_TYPE_VIEW_STATE};
+    uint32_t viewCount = 2;
+    XrView views[2] = {{XR_TYPE_VIEW}, {XR_TYPE_VIEW}};
+    
+    if (xrLocateViews(g_openxr_state.xrSession, &viewLocateInfo, &viewState, viewCount, &viewCount, views) == XR_SUCCESS) {
+        // Average the pose of both eyes to get head pose in absolute STAGE space
+        XrPosef absoluteHeadPose;
+        absoluteHeadPose.orientation.x = (views[0].pose.orientation.x + views[1].pose.orientation.x) / 2.0f;
+        absoluteHeadPose.orientation.y = (views[0].pose.orientation.y + views[1].pose.orientation.y) / 2.0f;
+        absoluteHeadPose.orientation.z = (views[0].pose.orientation.z + views[1].pose.orientation.z) / 2.0f;
+        absoluteHeadPose.orientation.w = (views[0].pose.orientation.w + views[1].pose.orientation.w) / 2.0f;
+        
+        absoluteHeadPose.position.x = (views[0].pose.position.x + views[1].pose.position.x) / 2.0f;
+        absoluteHeadPose.position.y = (views[0].pose.position.y + views[1].pose.position.y) / 2.0f;
+        absoluteHeadPose.position.z = (views[0].pose.position.z + views[1].pose.position.z) / 2.0f;
+        
+        // Normalize quaternion
+        float length = std::sqrt(
+            absoluteHeadPose.orientation.x * absoluteHeadPose.orientation.x +
+            absoluteHeadPose.orientation.y * absoluteHeadPose.orientation.y +
+            absoluteHeadPose.orientation.z * absoluteHeadPose.orientation.z +
+            absoluteHeadPose.orientation.w * absoluteHeadPose.orientation.w
+        );
+        
+        if (length > 0.0f) {
+            absoluteHeadPose.orientation.x /= length;
+            absoluteHeadPose.orientation.y /= length;
+            absoluteHeadPose.orientation.z /= length;
+            absoluteHeadPose.orientation.w /= length;
+        }
+        
+        // Calculate yaw using quaternion-to-forward-vector approach
+        const XrQuaternionf& q = absoluteHeadPose.orientation;
+        
+        // We calculate the forward vector (Z component inverted) to determine yaw
+        float forwardX = 2.0f * (q.x * q.z + q.y * q.w);
+        float forwardZ = 1.0f - 2.0f * (q.x * q.x + q.y * q.y);
+
+        // No need to normalize, atan2 handles it
+        float yaw_radians = std::atan2(forwardX, -forwardZ) + M_PI / 2.0f;
+
+        float halfYaw = yaw_radians * 0.5f;
+        float sinHalfYaw = std::sin(halfYaw);
+        float cosHalfYaw = std::cos(halfYaw);
+        
+        XrQuaternionf yawOnlyRotation = {0.0f, sinHalfYaw, 0.0f, cosHalfYaw};
+        
+        std::cout << "Recreating reference space with yaw: " << yaw_radians * (180.0f / M_PI) << " deg" << std::endl;
+        
+        // Destroy old space
+        destroyXRSpace(g_openxr_state.xrSpace);
+        
+        // Create new space with yaw-only rotation and current head position as origin
+        // Negate the position so the current head position becomes the new origin (0,0,0)
+        XrVector3f newOrigin;
+        newOrigin.x = -absoluteHeadPose.position.x;
+        newOrigin.y = -absoluteHeadPose.position.y;
+        newOrigin.z = -absoluteHeadPose.position.z;
+        
+        g_openxr_state.xrSpace = createXRSpaceWithRotation(
+            g_openxr_state.xrSession, 
+            yawOnlyRotation,
+            newOrigin
+        );
+        
+        if (g_openxr_state.xrSpace == XR_NULL_HANDLE) {
+            std::cerr << "Failed to recreate reference space after recenter!" << std::endl;
+        } else {
+            std::cout << "Reference space successfully recreated with new yaw rotation" << std::endl;
+            // Update the VR renderer's cached space handle
+            vr_renderer_update_space();
+        }
+    }
 }
 
 int openxr_update(void)
@@ -308,6 +533,9 @@ int openxr_update(void)
                 SDL_PushEvent(&event);
                 break;
             }
+            case XR_TYPE_EVENT_DATA_REFERENCE_SPACE_CHANGE_PENDING:
+                openxr_recenter_view();
+                break;
             default:
                 break;
         }

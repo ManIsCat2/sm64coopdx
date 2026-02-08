@@ -112,7 +112,7 @@ void destroyXRSession(XrSession session)
     }
 }
 
-XrSpace createXRSpace(XrSession session)
+XrSpace createXRSpaceWithRotation(XrSession session, XrQuaternionf rotation, XrVector3f position)
 {
     XrSpace space;
 
@@ -120,27 +120,26 @@ XrSpace createXRSpace(XrSession session)
     spaceCreateInfo.type = XR_TYPE_REFERENCE_SPACE_CREATE_INFO;
     spaceCreateInfo.referenceSpaceType = XR_REFERENCE_SPACE_TYPE_STAGE;
 
-
-    // Rotate 90 degrees to the left (around +Y)
-    XrQuaternionf rotation;
-    rotation.x = 0.0f;
-    rotation.y = -sinf(M_PI / 4.0f);  // +90°/2
-    rotation.z = 0.0f;
-    rotation.w = cosf(M_PI / 4.0f);
-
-    spaceCreateInfo.poseInReferenceSpace = { { rotation.x, rotation.y, rotation.z, rotation.w }, { 5.0f, -3.0f, 5.0f } };
+    spaceCreateInfo.poseInReferenceSpace = { { rotation.x, rotation.y, rotation.z, rotation.w }, { position.x, position.y, position.z } };
 
     XrResult result = xrCreateReferenceSpace(session, &spaceCreateInfo, &space);
 
     if (result != XR_SUCCESS)
     {
         std::cerr << "Failed to create OpenXR reference space: " << result << std::endl;
-        return XR_NULL_HANDLE;
+        return XR_NULL_HANDLE;  
     }
 
     std::cout << "OpenXR reference space created successfully" << std::endl;
 
     return space;
+}
+
+XrSpace createXRSpace(XrSession session)
+{
+    XrQuaternionf rotation = {0.0f, 0.0f, 0.0f, 1.0f};
+    XrVector3f position = {0.0f, 0.0f, 0.0f};
+    return createXRSpaceWithRotation(session, rotation, position);
 }
 
 void destroyXRSpace(XrSpace space)

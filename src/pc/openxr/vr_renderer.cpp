@@ -710,3 +710,13 @@ extern "C" void vr_renderer_release_quad_images(void)
         }
     }
 }
+
+extern "C" void vr_renderer_update_space(void)
+{
+    if (!g_vr_renderer.initialized) {
+        return;
+    }
+    
+    g_vr_renderer.xrSpace = openxr_get_space();
+}
+

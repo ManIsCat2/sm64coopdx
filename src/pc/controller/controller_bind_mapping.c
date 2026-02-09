@@ -11,6 +11,9 @@
 #include "controller_bind_mapping.h"
 #include "controller_api.h"
 #include "controller_sdl.h"
+#ifdef OPENXR_ENABLED
+#include "controller_openxr.h"
+#endif
 
 #if defined(CAPI_SDL1) || defined(CAPI_SDL2)
 
@@ -102,6 +105,35 @@ const char* translate_bind_to_name(int bind) {
     sprintf(name, "%04X", bind);
 
     if (bind == VK_INVALID) { return ""; }
+
+#ifdef OPENXR_ENABLED
+    // OpenXR controller (check first since VK_BASE_OPENXR > VK_BASE_SDL_MOUSE)
+    if (bind >= VK_BASE_OPENXR) {
+        int openxr_button = (bind - VK_BASE_OPENXR);
+        switch (openxr_button) {
+            case 0: return "VR [A]";
+            case 1: return "VR [B]";
+            case 2: return "VR [X]";
+            case 3: return "VR [Y]";
+            case 4: return "VR [Menu]";
+            case 5: return "VR [L Trig]";
+            case 6: return "VR [R Trig]";
+            case 7: return "VR [L Grip]";
+            case 8: return "VR [R Grip]";
+            case 9: return "VR [L Up]";
+            case 10: return "VR [L Down]";
+            case 11: return "VR [L Left]";
+            case 12: return "VR [L Right]";
+            case 13: return "VR [R Up]";
+            case 14: return "VR [R Down]";
+            case 15: return "VR [R Left]";
+            case 16: return "VR [R Right]";
+            case 17: return "VR [LS Click]";
+            case 18: return "VR [RS Click]";
+            default: return name;
+        }
+    }
+#endif
 
     // mouse
     if (bind >= VK_BASE_SDL_MOUSE) {

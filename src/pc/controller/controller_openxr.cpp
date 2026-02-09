@@ -11,6 +11,7 @@ extern "C" {
 
 #include "pc/pc_main.h"
 #include "pc/djui/djui.h"
+#include "pc/configfile.h"
 }
 
 #include <iostream>
@@ -45,13 +46,17 @@ static XrActionSet s_actionSet = XR_NULL_HANDLE;
 // Actions
 static XrAction s_actionJump = XR_NULL_HANDLE;
 static XrAction s_actionAttack = XR_NULL_HANDLE;
-static XrAction s_actionCrouch = XR_NULL_HANDLE; // Z-trigger
-static XrAction s_actionCamera = XR_NULL_HANDLE; // Right stick / C-buttons
-static XrAction s_actionMovement = XR_NULL_HANDLE; // Left stick
+static XrAction s_actionX = XR_NULL_HANDLE;
+static XrAction s_actionY = XR_NULL_HANDLE;
+static XrAction s_actionLeftTrigger = XR_NULL_HANDLE;
+static XrAction s_actionRightTrigger = XR_NULL_HANDLE;
+static XrAction s_actionCamera = XR_NULL_HANDLE;
+static XrAction s_actionMovement = XR_NULL_HANDLE;
 static XrAction s_actionStart = XR_NULL_HANDLE;
 static XrAction s_actionL = XR_NULL_HANDLE;
 static XrAction s_actionR = XR_NULL_HANDLE;
-static XrAction s_actionToggleKeyboard = XR_NULL_HANDLE; // Y button
+static XrAction s_actionStickClickLeft = XR_NULL_HANDLE;
+static XrAction s_actionStickClickRight = XR_NULL_HANDLE;
 
 // Paths
 static XrPath s_pathHandLeft = XR_NULL_PATH;
@@ -82,6 +87,15 @@ static XrHandTrackingAimStateFB s_aimStateLeft{XR_TYPE_HAND_TRACKING_AIM_STATE_F
 static XrHandTrackingAimStateFB s_aimStateRight{XR_TYPE_HAND_TRACKING_AIM_STATE_FB};
 static XrHandJointLocationsEXT s_locationsLeft{XR_TYPE_HAND_JOINT_LOCATIONS_EXT};
 static XrHandJointLocationsEXT s_locationsRight{XR_TYPE_HAND_JOINT_LOCATIONS_EXT};
+
+// Binding system (similar to SDL controller)
+#define MAX_OPENXR_BINDS 32
+#define MAX_OPENXR_BUTTONS 19  // Number of virtual buttons we support
+
+static u32 num_openxr_binds = 0;
+static u32 openxr_binds[MAX_OPENXR_BINDS][2] = { 0 };
+static bool openxr_buttons[MAX_OPENXR_BUTTONS] = { false };
+static u32 last_openxr_button = VK_INVALID;
 
 // Helper function to update hand tracking and get aim state
 static bool update_hand_tracking(XrHandTrackerEXT tracker, XrSpace baseSpace, XrTime time,
@@ -117,6 +131,20 @@ static bool update_hand_tracking(XrHandTrackerEXT tracker, XrSpace baseSpace, Xr
     }
     
     return true;
+}
+
+// Helper function to update button state and track presses for rawkey
+static inline void update_openxr_button(const int i, const bool new_state) {
+    const bool pressed = !openxr_buttons[i] && new_state;
+    const bool unpressed = openxr_buttons[i] && !new_state;
+    openxr_buttons[i] = new_state;
+    if (pressed) {
+        last_openxr_button = i;
+        djui_interactable_on_key_down(VK_BASE_OPENXR + i);
+    }
+    if (unpressed) {
+        djui_interactable_on_key_up(VK_BASE_OPENXR + i);
+    }
 }
 
 static void controller_openxr_init(void) {
@@ -157,10 +185,26 @@ static void controller_openxr_init(void) {
     strcpy(actionInfo.localizedActionName, "Attack");
     XR_CHECK(xrCreateAction(s_actionSet, &actionInfo, &s_actionAttack));
 
-    // Crouch (Z)
-    strcpy(actionInfo.actionName, "crouch");
-    strcpy(actionInfo.localizedActionName, "Crouch");
-    XR_CHECK(xrCreateAction(s_actionSet, &actionInfo, &s_actionCrouch));
+    // X Button
+    strcpy(actionInfo.actionName, "x_button");
+    strcpy(actionInfo.localizedActionName, "X Button");
+    XR_CHECK(xrCreateAction(s_actionSet, &actionInfo, &s_actionX));
+
+    // Y button
+    actionInfo.actionType = XR_ACTION_TYPE_BOOLEAN_INPUT;
+    strcpy(actionInfo.actionName, "y_button");
+    strcpy(actionInfo.localizedActionName, "Y Button");
+    XR_CHECK(xrCreateAction(s_actionSet, &actionInfo, &s_actionY));
+
+    // Left Trigger
+    strcpy(actionInfo.actionName, "left_trigger");
+    strcpy(actionInfo.localizedActionName, "Left Trigger");
+    XR_CHECK(xrCreateAction(s_actionSet, &actionInfo, &s_actionLeftTrigger));
+
+    // Right Trigger
+    strcpy(actionInfo.actionName, "right_trigger");
+    strcpy(actionInfo.localizedActionName, "Right Trigger");
+    XR_CHECK(xrCreateAction(s_actionSet, &actionInfo, &s_actionRightTrigger));
 
     // Start
     strcpy(actionInfo.actionName, "start");
@@ -188,11 +232,17 @@ static void controller_openxr_init(void) {
     strcpy(actionInfo.localizedActionName, "Camera");
     XR_CHECK(xrCreateAction(s_actionSet, &actionInfo, &s_actionCamera));
 
-    // Toggle Keyboard (Y button)
+    // Stick Click Left
     actionInfo.actionType = XR_ACTION_TYPE_BOOLEAN_INPUT;
-    strcpy(actionInfo.actionName, "toggle_keyboard");
-    strcpy(actionInfo.localizedActionName, "Toggle Keyboard");
-    XR_CHECK(xrCreateAction(s_actionSet, &actionInfo, &s_actionToggleKeyboard));
+    strcpy(actionInfo.actionName, "stick_click_left");
+    strcpy(actionInfo.localizedActionName, "Stick Click Left");
+    XR_CHECK(xrCreateAction(s_actionSet, &actionInfo, &s_actionStickClickLeft));
+
+    // Stick Click Right
+    actionInfo.actionType = XR_ACTION_TYPE_BOOLEAN_INPUT;
+    strcpy(actionInfo.actionName, "stick_click_right");
+    strcpy(actionInfo.localizedActionName, "Stick Click Right");
+    XR_CHECK(xrCreateAction(s_actionSet, &actionInfo, &s_actionStickClickRight));
 
     // Aim Poses
     actionInfo.actionType = XR_ACTION_TYPE_POSE_INPUT;
@@ -230,14 +280,17 @@ static void controller_openxr_init(void) {
     // Controller Bindings
     addBinding(s_actionJump, "/user/hand/right/input/a/click");
     addBinding(s_actionAttack, "/user/hand/right/input/b/click");
-    addBinding(s_actionCrouch, "/user/hand/left/input/trigger/value");
-    addBinding(s_actionCrouch, "/user/hand/right/input/trigger/value");
+    addBinding(s_actionX, "/user/hand/left/input/x/click");
+    addBinding(s_actionLeftTrigger, "/user/hand/left/input/trigger/value");
+    addBinding(s_actionRightTrigger, "/user/hand/right/input/trigger/value");
     addBinding(s_actionStart, "/user/hand/left/input/menu/click");
     addBinding(s_actionMovement, "/user/hand/left/input/thumbstick");
     addBinding(s_actionCamera, "/user/hand/right/input/thumbstick");
     addBinding(s_actionL, "/user/hand/left/input/squeeze/value");
     addBinding(s_actionR, "/user/hand/right/input/squeeze/value");
-    addBinding(s_actionToggleKeyboard, "/user/hand/left/input/y/click");
+    addBinding(s_actionY, "/user/hand/left/input/y/click");
+    addBinding(s_actionStickClickLeft, "/user/hand/left/input/thumbstick/click");
+    addBinding(s_actionStickClickRight, "/user/hand/right/input/thumbstick/click");
     
     // Controller keyboard bindings (aim pose and trigger for selection)
     addBinding(s_actionPoseLeft, "/user/hand/left/input/aim/pose");
@@ -366,32 +419,103 @@ static void controller_openxr_read(OSContPad *pad) {
         return {{0.0f, 0.0f}, false};
     };
 
-    // Map Inputs
-    if (getBool(s_actionJump)) pad->button |= A_BUTTON;
-    if (getBool(s_actionAttack)) pad->button |= B_BUTTON;
-    if (getBool(s_actionCrouch)) pad->button |= Z_TRIG;
-    if (getBool(s_actionStart)) pad->button |= START_BUTTON;
-    if (getBool(s_actionL)) pad->button |= L_TRIG;
-    if (getBool(s_actionR)) pad->button |= R_TRIG;
+    // Read raw button states and update button tracking
+    bool btnA = getBool(s_actionJump);
+    bool btnB = getBool(s_actionAttack);
+    bool btnX = getBool(s_actionX);
+    bool btnY = getBool(s_actionY);
+    bool btnMenu = getBool(s_actionStart);
+    bool btnLTrigger = getBool(s_actionLeftTrigger);
+    bool btnRTrigger = getBool(s_actionRightTrigger);
+    bool btnLSqueeze = getBool(s_actionL);
+    bool btnRSqueeze = getBool(s_actionR);
+    bool btnStickClickLeft = getBool(s_actionStickClickLeft);
+    bool btnStickClickRight = getBool(s_actionStickClickRight);
+
+    // Update button states for rawkey tracking
+    update_openxr_button(0, btnA);          // VK_OPENXR_A
+    update_openxr_button(1, btnB);          // VK_OPENXR_B
+    update_openxr_button(2, btnX);          // VK_OPENXR_X
+    update_openxr_button(3, btnY);          // VK_OPENXR_Y
+    update_openxr_button(4, btnMenu);       // VK_OPENXR_MENU
+    update_openxr_button(5, btnLTrigger);   // VK_OPENXR_L_TRIGGER
+    update_openxr_button(6, btnRTrigger);   // VK_OPENXR_R_TRIGGER
+    update_openxr_button(7, btnLSqueeze);   // VK_OPENXR_L_SQUEEZE
+    update_openxr_button(8, btnRSqueeze);   // VK_OPENXR_R_SQUEEZE
+    update_openxr_button(17, btnStickClickLeft); // VK_OPENXR_L_STICK_CLICK
+    update_openxr_button(18, btnStickClickRight);// VK_OPENXR_R_STICK_CLICK
+
+    // Read stick states
+    Vec2State movement = getVec2(s_actionMovement);
+    Vec2State camera = getVec2(s_actionCamera);
+    float threshold = 0.5f;
+
+    // Update stick direction button states
+    update_openxr_button(9, movement.value.y > threshold);   // VK_OPENXR_L_STICK_UP
+    update_openxr_button(10, movement.value.y < -threshold); // VK_OPENXR_L_STICK_DOWN
+    update_openxr_button(11, movement.value.x < -threshold); // VK_OPENXR_L_STICK_LEFT
+    update_openxr_button(12, movement.value.x > threshold);  // VK_OPENXR_L_STICK_RIGHT
+    update_openxr_button(13, camera.value.y > threshold);    // VK_OPENXR_R_STICK_UP
+    update_openxr_button(14, camera.value.y < -threshold);   // VK_OPENXR_R_STICK_DOWN
+    update_openxr_button(15, camera.value.x < -threshold);   // VK_OPENXR_R_STICK_LEFT
+    update_openxr_button(16, camera.value.x > threshold);    // VK_OPENXR_R_STICK_RIGHT
+
+    // Apply bindings to pad
+    u32 buttons_down = 0;
+    for (u32 i = 0; i < num_openxr_binds; ++i) {
+        if (openxr_buttons[openxr_binds[i][0]]) {
+            buttons_down |= openxr_binds[i][1];
+        }
+    }
+    
+    // If no bindings are configured, use default mappings
+    if (num_openxr_binds == 0) {
+        // Default button mappings (same as original hardcoded behavior)
+        if (btnA) buttons_down |= A_BUTTON;
+        if (btnB) buttons_down |= B_BUTTON;
+        if (btnLTrigger || btnRTrigger) buttons_down |= Z_TRIG;
+        if (btnMenu) buttons_down |= START_BUTTON;
+        if (btnLSqueeze) buttons_down |= L_TRIG;
+        if (btnRSqueeze) buttons_down |= R_TRIG;
+        
+        // Default C-button mappings from right stick
+        if (camera.value.x > threshold) buttons_down |= R_CBUTTONS;
+        if (camera.value.x < -threshold) buttons_down |= L_CBUTTONS;
+        if (camera.value.y > threshold) buttons_down |= U_CBUTTONS;
+        if (camera.value.y < -threshold) buttons_down |= D_CBUTTONS;
+    }
+    
+    pad->button |= buttons_down;
+
+    // Handle stick movement from bindings
+    const u32 xstick = buttons_down & STICK_XMASK;
+    const u32 ystick = buttons_down & STICK_YMASK;
+    if (xstick == STICK_LEFT)
+        pad->stick_x = -128;
+    else if (xstick == STICK_RIGHT)
+        pad->stick_x = 127;
+    if (ystick == STICK_DOWN)
+        pad->stick_y = -128;
+    else if (ystick == STICK_UP)
+        pad->stick_y = 127;
 
     // Movement Stick - only update if OpenXR controller is active so vr controllers don't override bluetooth controller with 0
-    Vec2State movement = getVec2(s_actionMovement);
     if (movement.isActive) {
         pad->stick_x = (s8)(movement.value.x * 80.0f);
         pad->stick_y = (s8)(movement.value.y * 80.0f);
     }
 
-    // Camera Stick -> C-Buttons
-    Vec2State camera = getVec2(s_actionCamera);
-    float threshold = 0.5f;
-    if (camera.value.x > threshold) pad->button |= R_CBUTTONS;
-    if (camera.value.x < -threshold) pad->button |= L_CBUTTONS;
-    if (camera.value.y > threshold) pad->button |= U_CBUTTONS;
-    if (camera.value.y < -threshold) pad->button |= D_CBUTTONS;
+    // Camera Stick -> C-Buttons (only apply if bindings are configured and didn't already handle C-buttons)
+    if (num_openxr_binds > 0 && !(buttons_down & (U_CBUTTONS | D_CBUTTONS | L_CBUTTONS | R_CBUTTONS))) {
+        if (camera.value.x > threshold) pad->button |= R_CBUTTONS;
+        if (camera.value.x < -threshold) pad->button |= L_CBUTTONS;
+        if (camera.value.y > threshold) pad->button |= U_CBUTTONS;
+        if (camera.value.y < -threshold) pad->button |= D_CBUTTONS;
+    }
 
     // Handle Y button for keyboard toggle
     static bool s_lastToggleState = false;
-    bool currentToggleState = getBool(s_actionToggleKeyboard);
+    // bool currentToggleState = getBool(s_actionY);
     bool leftHandMenuPressed = false;
 
     // Update hand tracking data every frame (needed for menu button detection)
@@ -408,7 +532,7 @@ static void controller_openxr_read(OSContPad *pad) {
         update_hand_tracking(s_handTrackerRight, s_keyboardReferenceSpace, time, &s_locationsRight, &s_aimStateRight);
     }
 
-    if ((currentToggleState || leftHandMenuPressed) && !s_lastToggleState) {
+    if (leftHandMenuPressed && !s_lastToggleState) {
         djui_chat_box_toggle();
         if (gDjuiChatBoxFocus) {
             openxr_show_keyboard();
@@ -416,7 +540,7 @@ static void controller_openxr_read(OSContPad *pad) {
             openxr_hide_keyboard();
         }
     }
-    s_lastToggleState = currentToggleState;
+    s_lastToggleState = leftHandMenuPressed;
 
     // Send keyboard input only when keyboard is visible
     if (openxr_is_keyboard_visible()) {
@@ -482,6 +606,11 @@ static void controller_openxr_read(OSContPad *pad) {
 }
 
 static u32 controller_openxr_rawkey(void) {
+    if (last_openxr_button != VK_INVALID) {
+        const u32 ret = last_openxr_button;
+        last_openxr_button = VK_INVALID;
+        return ret;
+    }
     return VK_INVALID;
 }
 
@@ -493,8 +622,40 @@ static void controller_openxr_rumble_stop(void) {
     // TODO: Implement haptics
 }
 
+static inline void controller_openxr_add_binds(const u32 mask, const u32 *btns) {
+    for (u32 i = 0; i < MAX_BINDS; ++i) {
+        if (btns[i] >= VK_BASE_OPENXR && btns[i] < VK_BASE_OPENXR + VK_SIZE && num_openxr_binds < MAX_OPENXR_BINDS) {
+            openxr_binds[num_openxr_binds][0] = btns[i] - VK_BASE_OPENXR;
+            openxr_binds[num_openxr_binds][1] = mask;
+            ++num_openxr_binds;
+        }
+    }
+}
+
 static void controller_openxr_bind(void) {
-    // No-op for now
+    bzero(openxr_binds, sizeof(openxr_binds));
+    num_openxr_binds = 0;
+
+    controller_openxr_add_binds(A_BUTTON,     configKeyA);
+    controller_openxr_add_binds(B_BUTTON,     configKeyB);
+    controller_openxr_add_binds(X_BUTTON,     configKeyX);
+    controller_openxr_add_binds(Y_BUTTON,     configKeyY);
+    controller_openxr_add_binds(Z_TRIG,       configKeyZ);
+    controller_openxr_add_binds(STICK_UP,     configKeyStickUp);
+    controller_openxr_add_binds(STICK_LEFT,   configKeyStickLeft);
+    controller_openxr_add_binds(STICK_DOWN,   configKeyStickDown);
+    controller_openxr_add_binds(STICK_RIGHT,  configKeyStickRight);
+    controller_openxr_add_binds(U_CBUTTONS,   configKeyCUp);
+    controller_openxr_add_binds(L_CBUTTONS,   configKeyCLeft);
+    controller_openxr_add_binds(D_CBUTTONS,   configKeyCDown);
+    controller_openxr_add_binds(R_CBUTTONS,   configKeyCRight);
+    controller_openxr_add_binds(L_TRIG,       configKeyL);
+    controller_openxr_add_binds(R_TRIG,       configKeyR);
+    controller_openxr_add_binds(START_BUTTON, configKeyStart);
+    controller_openxr_add_binds(U_JPAD,       configKeyDUp);
+    controller_openxr_add_binds(D_JPAD,       configKeyDDown);
+    controller_openxr_add_binds(L_JPAD,       configKeyDLeft);
+    controller_openxr_add_binds(R_JPAD,       configKeyDRight);
 }
 
 static void controller_openxr_shutdown(void) {
@@ -518,7 +679,7 @@ static void controller_openxr_shutdown(void) {
 }
 
 struct ControllerAPI controller_openxr = {
-    0, // vkbase (not used for this backend really)
+    VK_BASE_OPENXR,
     controller_openxr_init,
     controller_openxr_read,
     controller_openxr_rawkey,

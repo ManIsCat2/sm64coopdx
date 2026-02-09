@@ -115,6 +115,34 @@ unsigned int configEnvVolume                      = MAX_VOLUME;
 bool         configFadeoutDistantSounds           = false;
 bool         configMuteFocusLoss                  = false;
 // control binds
+#ifdef OPENXR_ENABLED
+unsigned int configKeyA[MAX_BINDS]          = { 0x2000,   0x1000,     0x1103     };
+unsigned int configKeyB[MAX_BINDS]          = { 0x2001,   0x1001,     0x1101     };
+unsigned int configKeyX[MAX_BINDS]          = { 0x0017,   0x1002,     0x2002     };
+unsigned int configKeyY[MAX_BINDS]          = { 0x0032,   0x1003,     0x2003     };
+unsigned int configKeyStart[MAX_BINDS]      = { 0x2004,   0x1006,     VK_INVALID };
+unsigned int configKeyL[MAX_BINDS]          = { 0x2007,   0x1009,     0x1104     };
+unsigned int configKeyR[MAX_BINDS]          = { 0x2008,   0x100A,     0x101B     };
+unsigned int configKeyZ[MAX_BINDS]          = { 0x2005,   0x2006,     0x101A     };
+unsigned int configKeyCUp[MAX_BINDS]        = { 0x200D,   VK_INVALID, VK_INVALID };
+unsigned int configKeyCDown[MAX_BINDS]      = { 0x200E,   VK_INVALID, VK_INVALID };
+unsigned int configKeyCLeft[MAX_BINDS]      = { 0x200F,   VK_INVALID, VK_INVALID };
+unsigned int configKeyCRight[MAX_BINDS]     = { 0x2010,   VK_INVALID, VK_INVALID };
+unsigned int configKeyStickUp[MAX_BINDS]    = { 0x0011,   0x2009,     VK_INVALID };
+unsigned int configKeyStickDown[MAX_BINDS]  = { 0x001F,   0x200A,     VK_INVALID };
+unsigned int configKeyStickLeft[MAX_BINDS]  = { 0x001E,   0x200B,     VK_INVALID };
+unsigned int configKeyStickRight[MAX_BINDS] = { 0x0020,   0x200C,     VK_INVALID };
+unsigned int configKeyChat[MAX_BINDS]       = { 0x001C,   0x2012,     VK_INVALID };
+unsigned int configKeyPlayerList[MAX_BINDS] = { 0x000F,   0x1004,     0x2011     };
+unsigned int configKeyDUp[MAX_BINDS]        = { 0x0147,   0x100B,     VK_INVALID };
+unsigned int configKeyDDown[MAX_BINDS]      = { 0x014F,   0x100C,     VK_INVALID };
+unsigned int configKeyDLeft[MAX_BINDS]      = { 0x0153,   0x100D,     VK_INVALID };
+unsigned int configKeyDRight[MAX_BINDS]     = { 0x0151,   0x100E,     VK_INVALID };
+unsigned int configKeyConsole[MAX_BINDS]    = { 0x0029,   0x003B,     VK_INVALID };
+unsigned int configKeyPrevPage[MAX_BINDS]   = { 0x0016,   VK_INVALID, VK_INVALID };
+unsigned int configKeyNextPage[MAX_BINDS]   = { 0x0018,   VK_INVALID, VK_INVALID };
+unsigned int configKeyDisconnect[MAX_BINDS] = { VK_INVALID, VK_INVALID, VK_INVALID };
+#else
 #ifdef TOUCH_CONTROLS
 unsigned int configKeyA[MAX_BINDS]          = { 0x0026,   0x1000,     VK_INVALID };
 unsigned int configKeyB[MAX_BINDS]          = { 0x0033,   0x1001,     VK_INVALID };
@@ -152,6 +180,7 @@ unsigned int configKeyConsole[MAX_BINDS]          = { 0x0029,     0x003B,     VK
 unsigned int configKeyPrevPage[MAX_BINDS]         = { 0x0016,     VK_INVALID, VK_INVALID };
 unsigned int configKeyNextPage[MAX_BINDS]         = { 0x0018,     VK_INVALID, VK_INVALID };
 unsigned int configKeyDisconnect[MAX_BINDS]       = { VK_INVALID, VK_INVALID, VK_INVALID };
+#endif
 unsigned int configStickDeadzone                  = 16;
 unsigned int configRumbleStrength                 = 50;
 unsigned int configGamepadNumber                  = 0;

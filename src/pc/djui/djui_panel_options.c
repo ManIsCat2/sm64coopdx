@@ -8,6 +8,9 @@
 #include "djui_panel_misc.h"
 #include "djui_panel_menu.h"
 #include "djui_panel_dynos.h"
+#ifdef OPENXR_ENABLED
+#include "djui_panel_vr.h"
+#endif
 #include "pc/network/network.h"
 #include "pc/utils/misc.h"
 #include "pc/pc_main.h"
@@ -33,6 +36,9 @@ void djui_panel_options_create(struct DjuiBase* caller) {
         djui_button_create(body, DLANG(OPTIONS, CONTROLS), DJUI_BUTTON_STYLE_NORMAL, djui_panel_controls_create);
         djui_button_create(body, DLANG(OPTIONS, DISPLAY), DJUI_BUTTON_STYLE_NORMAL, djui_panel_display_create);
         djui_button_create(body, DLANG(OPTIONS, SOUND), DJUI_BUTTON_STYLE_NORMAL, djui_panel_sound_create);
+#ifdef OPENXR_ENABLED
+        djui_button_create(body, DLANG(VR, VR), DJUI_BUTTON_STYLE_NORMAL, djui_panel_vr_create);
+#endif
         djui_button_create(body, DLANG(OPTIONS, MISC), DJUI_BUTTON_STYLE_NORMAL, djui_panel_misc_create);
         djui_button_create(body, DLANG(MENU, BACK), DJUI_BUTTON_STYLE_BACK, djui_panel_options_back);
     }

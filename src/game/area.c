@@ -23,9 +23,6 @@
 #include "level_table.h"
 #include "pc/nametags.h"
 #include "engine/lighting_engine.h"
-#ifdef OPENXR_ENABLED
-#include "pc/openxr/openxr_manager.h"
-#endif
 #include "gfx_dimensions.h"
 #include "game/ingame_menu.h"
 #include "pc/network/network.h"

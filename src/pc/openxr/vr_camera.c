@@ -9,6 +9,7 @@
 
 static int vr_camera_initialized = 0;
 static int vr_camera_active = 0;
+static s16 vr_camera_yaw_offset = 0;  // Joystick-controlled yaw offset
 
 // Camera state
 static struct {
@@ -46,18 +47,6 @@ void vr_camera_update(void)
     }
 
     vr_camera_active = 1;
-
-    // Debug logging - print VR headset data
-    static int log_counter = 0;
-    if (log_counter % 60 == 0) {  // Log once per second (at 60 fps)
-        printf("\n=== VR HEADSET DATA ===\n");
-        printf("Rotation: Yaw=%.2f° Pitch=%.2f° Roll=%.2f°\n", 
-               vr_camera_state.yaw, vr_camera_state.pitch, vr_camera_state.roll);
-        printf("Position: X=%.3fm Y=%.3fm Z=%.3fm\n", 
-               vr_camera_state.x, vr_camera_state.y, vr_camera_state.z);
-    }
-    
-    log_counter++;
 }
 
 void vr_camera_apply_to_lakitu(struct Camera *c)
@@ -102,24 +91,6 @@ void vr_camera_apply_to_lakitu(struct Camera *c)
         c->focus[1] = base_focus_y + height_offset;
         gLakituState.focus[1] = c->focus[1];
     }
-    
-    // Debug logging - print Lakitu camera data
-    static int log_counter = 0;
-    if (log_counter % 60 == 0) {  // Log once per second
-        printf("\n=== LAKITU CAMERA DATA ===\n");
-        printf("Camera Yaw: %d (%.2f°)\n", c->yaw, c->yaw / 182.044444f);
-        printf("Camera Position: X=%.1f Y=%.1f Z=%.1f\n", 
-               c->pos[0], c->pos[1], c->pos[2]);
-        printf("Camera Focus: X=%.1f Y=%.1f Z=%.1f\n", 
-               c->focus[0], c->focus[1], c->focus[2]);
-        printf("Lakitu Position: X=%.1f Y=%.1f Z=%.1f\n", 
-               gLakituState.pos[0], gLakituState.pos[1], gLakituState.pos[2]);
-        printf("Lakitu Focus: X=%.1f Y=%.1f Z=%.1f\n", 
-               gLakituState.focus[0], gLakituState.focus[1], gLakituState.focus[2]);
-        printf("Lakitu Yaw: %d (%.2f°)\n", gLakituState.yaw, gLakituState.yaw / 182.044444f);
-        printf("==========================\n\n");
-    }
-    log_counter++;
 }
 
 void vr_camera_apply_to_default_camera(struct Camera *c, s16 *yaw)
@@ -166,3 +137,138 @@ int vr_camera_is_active(void)
     return vr_camera_active;
 }
 
+s16 vr_camera_get_yaw(void)
+{
+    if (!vr_camera_active) {
+        return 0;
+    }
+    
+    // Get head quaternion
+    float qx, qy, qz, qw;
+    if (!openxr_get_head_quaternion(&qx, &qy, &qz, &qw)) {
+        return 0;
+    }
+    
+    // Calculate forward vector from quaternion
+    // This is the forward direction the head is facing
+    float forwardX = 2.0f * (qx * qz + qy * qw);
+    float forwardY = 2.0f * (qy * qz - qx * qw);
+    float forwardZ = 1.0f - 2.0f * (qx * qx + qy * qy);
+    
+    // Project to horizontal plane (ignore Y component for yaw-only rotation)
+    float horizX = forwardX;
+    float horizZ = forwardZ;
+    
+    // Normalize the horizontal vector
+    float horizLen = sqrtf(horizX * horizX + horizZ * horizZ);
+    if (horizLen > 0.0001f) {
+        horizX /= horizLen;
+        horizZ /= horizLen;
+    }
+    
+    // Calculate yaw angle from horizontal forward vector
+    // This is the Position Angle (Backwards) in SM64 coords.
+    // horizX, horizZ points Back (Z+).
+    // atan2f(horizX, horizZ) gives CCW angle from South.
+        float yaw = -(atan2f(horizX, horizZ));// - M_PI / 2.0f);
+
+    // float yaw = atan2f(horizX, horizZ);
+    
+    // Convert from radians to SM64 angle format
+    // SM64 uses 65536 units per full rotation (360 degrees = 2*PI radians = 65536 units)
+    // So 1 radian = 65536 / (2*PI) = 10430.378 units
+    // No negation is needed as atan2f is CCW and SM64 is CCW.
+    float sm64_yaw = yaw * (65536.0f / (2.0f * M_PI));
+    
+    // Add 180 degrees (0x8000) offset to face the correct direction
+    return (s16)sm64_yaw + vr_camera_yaw_offset;
+}
+
+
+void vr_camera_add_yaw_offset(s16 delta)
+{
+    vr_camera_yaw_offset += delta;
+}
+
+void vr_camera_reset_yaw_offset(s16 targetYaw)
+{
+    if (!vr_camera_active) {
+        return;
+    }
+
+    // Get the raw yaw from the headset (without offset)
+    s16 current_vr_yaw = vr_camera_get_yaw() - vr_camera_yaw_offset;
+    
+    // We want: current_vr_yaw + new_offset = targetYaw
+    // So: new_offset = targetYaw - current_vr_yaw
+    vr_camera_yaw_offset = targetYaw - current_vr_yaw;
+}
+
+s16 vr_camera_get_yaw_delta(void)
+{
+    if (!vr_camera_active) {
+        return 0;
+    }
+    
+    // Get head quaternion
+    float qx, qy, qz, qw;
+    if (!openxr_get_head_quaternion(&qx, &qy, &qz, &qw)) {
+        return 0;
+    }
+    
+    // Calculate forward vector from quaternion
+    float forwardX = 2.0f * (qx * qz + qy * qw);
+    float forwardY = 2.0f * (qy * qz - qx * qw);
+    float forwardZ = 1.0f - 2.0f * (qx * qx + qy * qy);
+    
+    // Project to horizontal plane (ignore Y component for yaw-only rotation)
+    float horizX = forwardX;
+    float horizZ = forwardZ;
+    
+    // Normalize the horizontal vector
+    float horizLen = sqrtf(horizX * horizX + horizZ * horizZ);
+    if (horizLen > 0.0001f) {
+        horizX /= horizLen;
+        horizZ /= horizLen;
+    }
+    
+    // Calculate yaw angle from horizontal forward vector
+    float yaw = atan2f(horizX, horizZ);
+    
+    // Convert from radians to SM64 angle format
+    float sm64_yaw = yaw * (65536.0f / (2.0f * M_PI));
+    
+    // Return raw yaw without offset
+    return (s16)sm64_yaw;
+}
+
+
+s16 vr_camera_get_pitch(void)
+{
+    if (!vr_camera_active) {
+        return 0;
+    }
+    
+    // Get head quaternion
+    float qx, qy, qz, qw;
+    if (!openxr_get_head_quaternion(&qx, &qy, &qz, &qw)) {
+        return 0;
+    }
+    
+    // Calculate pitch from quaternion
+    // Pitch is rotation around X axis
+    // Use the formula: pitch = asin(2 * (qw * qx - qy * qz))
+    float sinPitch = 2.0f * (qw * qx - qy * qz);
+    
+    // Clamp to avoid asin domain errors
+    if (sinPitch > 1.0f) sinPitch = 1.0f;
+    if (sinPitch < -1.0f) sinPitch = -1.0f;
+    
+    float pitch = asinf(sinPitch);
+    
+    // Convert from radians to SM64 angle format
+    // Negate because SM64 pitch is inverted (positive = looking down)
+    float sm64_pitch = -pitch * (65536.0f / (2.0f * M_PI));
+    
+    return (s16)sm64_pitch;
+}

@@ -179,6 +179,13 @@ extern bool         configPhantomTouch;
 extern bool         configSnapTouch;
 #endif
 
+// VR settings
+#ifdef OPENXR_ENABLED
+extern bool         configVrFirstPersonCamera;
+extern unsigned int configVrTurnMode;
+extern unsigned int configVrSnapAngle;
+#endif
+
 // secrets
 extern bool configExCoopTheme;
 

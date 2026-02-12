@@ -37,6 +37,11 @@ int vr_renderer_end_frame(void);
 // Returns 1 on success, 0 on failure
 int vr_renderer_get_view_matrix(int eye, float* matrix);
 
+// Get view matrices for left and right eyes, but without the yaw component
+// This is useful when the game camera already handles yaw rotation
+// Returns 1 on success, 0 on failure
+int vr_renderer_get_view_matrix_no_yaw(int eye, float* matrix);
+
 // Get projection matrices for left and right eyes
 // Returns 1 on success, 0 on failure
 int vr_renderer_get_projection_matrix(int eye, float* matrix);

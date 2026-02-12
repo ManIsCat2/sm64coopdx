@@ -279,7 +279,6 @@ void openxr_shutdown(void)
     vr_renderer_shutdown();
 
     // Destroy in reverse order of creation
-    // Destroy in reverse order of creation
     destroyXRSpace(g_openxr_state.xrSpace);
     if (g_openxr_state.xrStageSpace != XR_NULL_HANDLE) {
         xrDestroySpace(g_openxr_state.xrStageSpace);
@@ -713,6 +712,20 @@ int openxr_get_head_position(float* x, float* y, float* z)
 int64_t openxr_get_predicted_display_time(void)
 {
     return (int64_t)g_openxr_state.frameState.predictedDisplayTime;
+}
+
+int openxr_get_head_quaternion(float* qx, float* qy, float* qz, float* qw)
+{
+    if (!g_openxr_state.initialized || !g_openxr_state.poseValid) {
+        return 0;
+    }
+
+    *qx = g_openxr_state.headPose.orientation.x;
+    *qy = g_openxr_state.headPose.orientation.y;
+    *qz = g_openxr_state.headPose.orientation.z;
+    *qw = g_openxr_state.headPose.orientation.w;
+    
+    return 1;
 }
 
 // Expose OpenXR handles for VR renderer

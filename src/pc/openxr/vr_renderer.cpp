@@ -455,13 +455,58 @@ int vr_renderer_get_projection_matrix(int eye, float* matrix)
     return vr_renderer_get_projection_matrix_ext(eye, 100.0f, 32000.0f, matrix);
 }
 
-// Helper function to convert XrPosef to view matrix
-static void pose_to_view_matrix(const XrPosef& pose, float* matrix)
+// Helper function to convert XrPosef to view matrix, optionally removing yaw
+static void pose_to_view_matrix(const XrPosef& pose, float* matrix, bool removeYaw)
 {
     // Convert quaternion to rotation matrix
-    const XrQuaternionf& q = pose.orientation;
+    XrQuaternionf q = pose.orientation;
     const XrVector3f& p = pose.position;
     
+    XrVector3f pos = p;
+    
+    if (removeYaw) {
+        // Extract yaw component from quaternion (rotation around Y axis)
+        // A pure yaw rotation has form (0, sin(theta/2), 0, cos(theta/2))
+        // So we extract y and w components and normalize
+        float mag = sqrtf(q.y * q.y + q.w * q.w);
+        
+        if (mag > 0.001f) {
+            // Create pure yaw quaternion
+            XrQuaternionf yawQ = {0.0f, q.y / mag, 0.0f, q.w / mag};
+            
+            // Calculate inverse (conjugate) of yaw quaternion
+            XrQuaternionf invYawQ = {-yawQ.x, -yawQ.y, -yawQ.z, yawQ.w};
+            
+            // Apply inverse yaw rotation to original orientation to remove yaw
+            // newQ = invYawQ * q
+            XrQuaternionf newQ;
+            newQ.w = invYawQ.w * q.w - invYawQ.x * q.x - invYawQ.y * q.y - invYawQ.z * q.z;
+            newQ.x = invYawQ.w * q.x + invYawQ.x * q.w + invYawQ.y * q.z - invYawQ.z * q.y;
+            newQ.y = invYawQ.w * q.y - invYawQ.x * q.z + invYawQ.y * q.w + invYawQ.z * q.x;
+            newQ.z = invYawQ.w * q.z + invYawQ.x * q.y - invYawQ.y * q.x + invYawQ.z * q.w;
+            
+            q = newQ;
+            
+            // Rotate position by negative yaw (invYawQ) to keep it relative to the now-yaw-aligned space
+            // p_new = invYawQ * p * invYawQ_conj
+            // Since invYawQ is around Y axis, we can use 2D rotation
+            // invYawQ = (0, y, 0, w) where w=cos(-yaw/2), y=sin(-yaw/2)
+            // standard rotation formula around Y axis:
+            // x' = x*cos(theta) + z*sin(theta)
+            // z' = -x*sin(theta) + z*cos(theta)
+            
+            // We can extract sin/cos directly from the half-angle quaternion components
+            // sin(theta) = 2*w*y
+            // cos(theta) = 1 - 2*y*y (or w*w - y*y)
+            float sinTheta = 2.0f * invYawQ.w * invYawQ.y;
+            float cosTheta = 1.0f - 2.0f * invYawQ.y * invYawQ.y;
+            
+            pos.x = p.x * cosTheta + p.z * sinTheta;
+            pos.z = -p.x * sinTheta + p.z * cosTheta;
+            // pos.y remains unchanged
+        }
+    }
+
     // Create rotation matrix from quaternion
     float rotMatrix[16];
     memset(rotMatrix, 0, 16 * sizeof(float));
@@ -488,6 +533,7 @@ static void pose_to_view_matrix(const XrPosef& pose, float* matrix)
     
     // Invert the view matrix (view = inverse of pose)
     // For a rigid body transform, inverse is transpose of rotation and negated position
+
     matrix[0] = rotMatrix[0];
     matrix[1] = rotMatrix[4];
     matrix[2] = rotMatrix[8];
@@ -503,9 +549,9 @@ static void pose_to_view_matrix(const XrPosef& pose, float* matrix)
     matrix[10] = rotMatrix[10];
     matrix[11] = 0.0f;
     
-    matrix[12] = -(rotMatrix[0] * p.x + rotMatrix[1] * p.y + rotMatrix[2] * p.z);
-    matrix[13] = -(rotMatrix[4] * p.x + rotMatrix[5] * p.y + rotMatrix[6] * p.z);
-    matrix[14] = -(rotMatrix[8] * p.x + rotMatrix[9] * p.y + rotMatrix[10] * p.z);
+    matrix[12] = -(rotMatrix[0] * pos.x + rotMatrix[1] * pos.y + rotMatrix[2] * pos.z);
+    matrix[13] = -(rotMatrix[4] * pos.x + rotMatrix[5] * pos.y + rotMatrix[6] * pos.z);
+    matrix[14] = -(rotMatrix[8] * pos.x + rotMatrix[9] * pos.y + rotMatrix[10] * pos.z);
     matrix[15] = 1.0f;
 }
 
@@ -515,7 +561,18 @@ int vr_renderer_get_view_matrix(int eye, float* matrix)
         return 0;
     }
     
-    pose_to_view_matrix(g_vr_renderer.views[eye].pose, matrix);
+    pose_to_view_matrix(g_vr_renderer.views[eye].pose, matrix, false);
+    
+    return 1;
+}
+
+extern "C" int vr_renderer_get_view_matrix_no_yaw(int eye, float* matrix)
+{
+    if (!g_vr_renderer.initialized || !g_vr_renderer.viewsValid || eye < 0 || eye > 1) {
+        return 0;
+    }
+    
+    pose_to_view_matrix(g_vr_renderer.views[eye].pose, matrix, true);
     
     return 1;
 }

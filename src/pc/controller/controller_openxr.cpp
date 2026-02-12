@@ -147,6 +147,8 @@ static inline void update_openxr_button(const int i, const bool new_state) {
     }
 }
 
+static void controller_openxr_bind(void);
+
 static void controller_openxr_init(void) {
     if (s_initialized) return;
     
@@ -374,6 +376,7 @@ static void controller_openxr_init(void) {
     xrStringToPath(instance, "/user/hand/left", &s_pathHandLeft);
     xrStringToPath(instance, "/user/hand/right", &s_pathHandRight);
 
+    controller_openxr_bind();
     s_initialized = true;
 }
 
@@ -450,6 +453,22 @@ static void controller_openxr_read(OSContPad *pad) {
     Vec2State camera = getVec2(s_actionCamera);
     float threshold = 0.5f;
 
+    if (configStick.rotateLeft) {
+        float tmp = movement.value.x;
+        movement.value.x = -movement.value.y;
+        movement.value.y = tmp;
+    }
+    if (configStick.rotateRight) {
+        float tmp = camera.value.x;
+        camera.value.x = -camera.value.y;
+        camera.value.y = tmp;
+    }
+
+    if (configStick.invertLeftX) { movement.value.x = -movement.value.x; }
+    if (configStick.invertLeftY) { movement.value.y = -movement.value.y; }
+    if (configStick.invertRightX) { camera.value.x = -camera.value.x; }
+    if (configStick.invertRightY) { camera.value.y = -camera.value.y; }
+
     // Update stick direction button states
     update_openxr_button(9, movement.value.y > threshold);   // VK_OPENXR_L_STICK_UP
     update_openxr_button(10, movement.value.y < -threshold); // VK_OPENXR_L_STICK_DOWN
@@ -477,6 +496,8 @@ static void controller_openxr_read(OSContPad *pad) {
         if (btnMenu) buttons_down |= START_BUTTON;
         if (btnLSqueeze) buttons_down |= L_TRIG;
         if (btnRSqueeze) buttons_down |= R_TRIG;
+        if (btnX) buttons_down |= X_BUTTON;
+        if (btnY) buttons_down |= Y_BUTTON;
         
         // Default C-button mappings from right stick
         if (camera.value.x > threshold) buttons_down |= R_CBUTTONS;
@@ -503,6 +524,12 @@ static void controller_openxr_read(OSContPad *pad) {
     if (movement.isActive) {
         pad->stick_x = (s8)(movement.value.x * 80.0f);
         pad->stick_y = (s8)(movement.value.y * 80.0f);
+    }
+
+    // Camera Stick - only update if OpenXR controller is active
+    if (camera.isActive) {
+        pad->ext_stick_x = (s8)(camera.value.x * 80.0f);
+        pad->ext_stick_y = (s8)(camera.value.y * 80.0f);
     }
 
     // Camera Stick -> C-Buttons (only apply if bindings are configured and didn't already handle C-buttons)

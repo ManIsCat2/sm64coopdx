@@ -283,6 +283,12 @@ bool         configSlideTouch                     = true;
 bool         configPhantomTouch                   = false;
 bool         configSnapTouch                      = false;
 #endif
+// VR settings
+#ifdef OPENXR_ENABLED
+bool         configVrFirstPersonCamera            = false;
+unsigned int configVrTurnMode                     = 0; // 0 = Smooth, 1 = Snap
+unsigned int configVrSnapAngle                    = 2; // 0 = 15, 1 = 30, 2 = 45, etc.
+#endif
 // secrets
 bool configExCoopTheme = false;
 
@@ -469,6 +475,12 @@ static const struct ConfigOption options[] = {
     {.name = "rules_version",                  .type = CONFIG_TYPE_UINT,   .uintValue   = &configRulesVersion},
     {.name = "compress_on_startup",            .type = CONFIG_TYPE_BOOL,   .boolValue   = &configCompressOnStartup},
     {.name = "skip_pack_generation",           .type = CONFIG_TYPE_BOOL,   .boolValue   = &configSkipPackGeneration},
+    // VR settings
+#ifdef OPENXR_ENABLED
+    {.name = "vr_first_person_camera",         .type = CONFIG_TYPE_BOOL,   .boolValue   = &configVrFirstPersonCamera},
+    {.name = "vr_turn_mode",                   .type = CONFIG_TYPE_UINT,   .uintValue   = &configVrTurnMode},
+    {.name = "vr_snap_angle",                  .type = CONFIG_TYPE_UINT,   .uintValue   = &configVrSnapAngle},
+#endif
 };
 
 struct SecretConfigOption {

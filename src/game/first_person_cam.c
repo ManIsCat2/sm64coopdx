@@ -18,6 +18,11 @@
 #include "pc/lua/utils/smlua_camera_utils.h"
 #include "pc/lua/smlua_hooks.h"
 
+#include "pc/configfile.h"
+#ifdef OPENXR_ENABLED
+#include "pc/openxr/vr_camera.h"
+#endif
+
 struct FirstPersonCamera gFirstPersonCamera = {
     .enabled = false,
     .forcePitch = false,
@@ -55,14 +60,39 @@ bool get_first_person_enabled(void) {
     return gFirstPersonCamera.enabled && !first_person_check_cancels(&gMarioStates[0]);
 }
 
+static bool sOriginalInvertRightX = false;
+static bool sStoredInvertRightX = false;
+
 void set_first_person_enabled(bool enable) {
     gFirstPersonCamera.enabled = enable;
+
+    if (enable) {
+#ifdef OPENXR_ENABLED
+        configVrFirstPersonCamera = true;
+#endif
+
+        if (!sStoredInvertRightX) {
+            sOriginalInvertRightX = configStick.invertRightX;
+            sStoredInvertRightX = true;
+        }
+        configStick.invertRightX = true;
+    } else {
+#ifdef OPENXR_ENABLED
+        configVrFirstPersonCamera = false;
+#endif
+        if (sStoredInvertRightX) {
+            configStick.invertRightX = sOriginalInvertRightX;
+            sStoredInvertRightX = false;
+        }
+    }
 }
 
 static void first_person_camera_update(void) {
     struct MarioState *m = &gMarioStates[0];
     f32 sensX = 0.3f * camera_config_get_x_sensitivity();
     f32 sensY = 0.4f * camera_config_get_y_sensitivity();
+
+    gFirstPersonCamera.yaw = vr_camera_get_yaw();
 
     if (mouse_relative_enabled) {
         // hack: make c buttons work for moving the camera
@@ -75,18 +105,50 @@ static void first_person_camera_update(void) {
             extStickY = (clamp(m->controller->buttonDown & U_CBUTTONS, 0, 1) - clamp(m->controller->buttonDown & D_CBUTTONS, 0, 1)) * 24;
         }
 
-        // update pitch
+#ifndef OPENXR_ENABLED
         if (!gFirstPersonCamera.forcePitch) {
             gFirstPersonCamera.pitch -= sensY * (extStickY - 1.5f * mouse_y);
             gFirstPersonCamera.pitch = clamp(gFirstPersonCamera.pitch, -0x3F00, 0x3F00);
         }
+#endif
 
         // update yaw
         if (!gFirstPersonCamera.forceYaw) {
             if (m->controller->buttonDown & L_TRIG && gFirstPersonCamera.centerL) {
                 gFirstPersonCamera.yaw = m->faceAngle[1] + 0x8000;
+                vr_camera_reset_yaw_offset(gFirstPersonCamera.yaw);
             } else {
-                gFirstPersonCamera.yaw += sensX * (extStickX - 1.5f * mouse_x);
+#ifdef OPENXR_ENABLED
+            if (configVrFirstPersonCamera) {
+                if (configVrTurnMode == 0) { // Smooth turn
+                    s16 yawDelta = sensX * (extStickX - 1.5f * mouse_x);
+                    vr_camera_add_yaw_offset(yawDelta);
+                    gFirstPersonCamera.yaw += yawDelta;
+                } else { // Snap turn
+                    static bool sSnapReady = true;
+                    if (ABS(extStickX) < 16) {
+                        sSnapReady = true;
+                    } else if (sSnapReady && ABS(extStickX) > 64) {
+                        s16 snapAngle = (configVrSnapAngle + 1) * (0x10000 / 24); // 15 degrees * (index + 1)
+                        if (extStickX > 0) {
+                            vr_camera_add_yaw_offset(snapAngle);
+                            gFirstPersonCamera.yaw += snapAngle;
+                        } else {
+                            // Right Push (Negative due to inversion) -> Turn Right (Decrease Yaw)
+                            vr_camera_add_yaw_offset(-snapAngle);
+                            gFirstPersonCamera.yaw -= snapAngle;
+                        }
+                        sSnapReady = false;
+                    }
+                }
+            } else {
+                s16 yawDelta = sensX * (extStickX - 1.5f * mouse_x);
+                gFirstPersonCamera.yaw += yawDelta;
+            }
+#else
+            s16 yawDelta = sensX * (extStickX - 1.5f * mouse_x);
+            gFirstPersonCamera.yaw += yawDelta;
+#endif
             }
         }
     }
@@ -99,6 +161,9 @@ static void first_person_camera_update(void) {
         u32 flag = actions[i];
         if ((m->action & flag) == flag) {
             if (ABS(m->controller->stickX) > 4) {
+#ifdef OPENXR_ENABLED
+                if (!configVrFirstPersonCamera)
+#endif
                 gFirstPersonCamera.yaw = m->faceAngle[1] + 0x8000;
             } else {
                 m->faceAngle[1] = gFirstPersonCamera.yaw - 0x8000;
@@ -107,6 +172,9 @@ static void first_person_camera_update(void) {
         }
     }
     if (m->action == ACT_LEDGE_GRAB) {
+#ifdef OPENXR_ENABLED
+        if (!configVrFirstPersonCamera)
+#endif
         gFirstPersonCamera.yaw = m->faceAngle[1] + 0x8000;
     }
 

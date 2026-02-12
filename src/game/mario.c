@@ -45,6 +45,10 @@
 #include "bettercamera.h"
 #include "first_person_cam.h"
 
+#ifdef OPENXR_ENABLED
+#include "pc/openxr/vr_camera.h"
+#endif
+
 #define MAX_HANG_PREVENTION 64
 
 u32 unused80339F10;
@@ -1500,9 +1504,26 @@ void update_mario_joystick_inputs(struct MarioState *m) {
 
     if (m->intendedMag > 0.0f) {
         if (gLakituState.mode != CAMERA_MODE_NEWCAM) {
+#ifdef OPENXR_ENABLED
+            if (configVrFirstPersonCamera) {
+                m->intendedYaw = atan2s(-controller->stickY, controller->stickX) + m->area->camera->yaw;
+            } else {
+                m->intendedYaw = atan2s(-controller->stickY, controller->stickX) + m->area->camera->yaw;
+            }
+#else
             m->intendedYaw = atan2s(-controller->stickY, controller->stickX) + m->area->camera->yaw;
+#endif
         } else if (get_first_person_enabled()) {
+#ifdef OPENXR_ENABLED
+            if (configVrFirstPersonCamera) {
+                s16 stickAngle = atan2s(-controller->stickY, controller->stickX);
+                m->intendedYaw = stickAngle + gLakituState.yaw;
+            } else {
+                m->intendedYaw = atan2s(-controller->stickY, controller->stickX) + gLakituState.yaw;
+            }
+#else
             m->intendedYaw = atan2s(-controller->stickY, controller->stickX) + gLakituState.yaw;
+#endif
         } else {
             m->intendedYaw = atan2s(-controller->stickY, controller->stickX) - gNewCamera.yaw + 0x4000;
         }

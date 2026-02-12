@@ -2065,7 +2065,17 @@ static void gfx_setup_vr_matrices_for_eye(int eye) {
     
     if (vr_renderer_get_projection_matrix(eye, (float*)rsp.vr_projection_override)) {
         // Fetch VR view matrix (contains IPD offset)
-        if (vr_renderer_get_view_matrix(eye, (float*)rsp.vr_view_offset)) {
+        // If first person camera is enabled, the game camera already handles yaw, so we remove it from the VR view matrix
+        // Otherwise (third person), we want the full VR view matrix including yaw
+        bool success = false;
+        
+        if (configVrFirstPersonCamera) {
+            success = vr_renderer_get_view_matrix_no_yaw(eye, (float*)rsp.vr_view_offset);
+        } else {
+            success = vr_renderer_get_view_matrix(eye, (float*)rsp.vr_view_offset);
+        }
+
+        if (success) {
             rsp.vr_matrices_valid = true;
             rsp.vr_current_eye = eye;
         }

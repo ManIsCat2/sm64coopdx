@@ -40,7 +40,10 @@ extern struct ControllerAPI controller_openxr;
 #ifdef OPENXR_ENABLED
 // C++ only functions
 #include <openxr/openxr.h>
+#include <stdbool.h>
 XrSpace controller_openxr_get_keyboard_space(void);
+XrSpace controller_openxr_get_left_hand_space(void);
+bool controller_openxr_get_left_hand_palm_pose(XrPosef* out_pose);
 #endif
 
 #endif

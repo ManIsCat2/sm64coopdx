@@ -184,6 +184,7 @@ extern bool         configSnapTouch;
 extern bool         configVrFirstPersonCamera;
 extern unsigned int configVrTurnMode;
 extern unsigned int configVrSnapAngle;
+extern unsigned int configVrHudPosition;
 #endif
 
 // secrets

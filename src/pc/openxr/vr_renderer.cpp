@@ -1,6 +1,8 @@
 #include "vr_renderer.h"
 #include "openxr_manager.h"
 #include "openxr_swapchain.h"
+#include "pc/controller/controller_openxr.h"
+#include "pc/configfile.h"
 
 #include <iostream>
 #include <cstring>
@@ -267,6 +269,59 @@ int vr_renderer_render_eye(int eye)
     return 1;
 }
 
+// Helper to rotate a vector by a quaternion
+static XrVector3f rotate_vector(const XrQuaternionf& q, const XrVector3f& v) {
+    float x = v.x;
+    float y = v.y;
+    float z = v.z;
+    
+    float xx = q.x * q.x;
+    float yy = q.y * q.y;
+    float zz = q.z * q.z;
+    float xy = q.x * q.y;
+    float xz = q.x * q.z;
+    float yz = q.y * q.z;
+    float wx = q.w * q.x;
+    float wy = q.w * q.y;
+    float wz = q.w * q.z;
+    
+    float ox = (1.0f - 2.0f*yy - 2.0f*zz)*x + (2.0f*xy - 2.0f*wz)*y + (2.0f*xz + 2.0f*wy)*z;
+    float oy = (2.0f*xy + 2.0f*wz)*x + (1.0f - 2.0f*xx - 2.0f*zz)*y + (2.0f*yz - 2.0f*wx)*z;
+    float oz = (2.0f*xz - 2.0f*wy)*x + (2.0f*yz + 2.0f*wx)*y + (1.0f - 2.0f*xx - 2.0f*yy)*z;
+    
+    return {ox, oy, oz};
+}
+
+// Extract HUD/DJUI positioning logic for hand tracking
+static void calculate_hand_ui_transforms(const XrPosef& handPose, XrVector3f& hudPosition, XrVector3f& djuiPosition, XrQuaternionf& layerOrientation, XrSpace& targetSpace) {
+    targetSpace = controller_openxr_get_keyboard_space(); // This space corresponds to the handPose
+    
+    // Position HUD relative to Palm
+    // Palm pose orientation: +Y = Up (out of back of hand), -Z = Forward (fingers), +X = Right (thumb)
+    // We want HUD floating above the palm
+    
+    // Create offset vector in local hand space
+    // Up 15cm, Forward 5cm
+    XrVector3f hudOffset = {0.0f, 0.15f, -0.05f};
+    
+    // Rotate offset by hand orientation to get world offset
+    XrVector3f worldHudOffset = rotate_vector(handPose.orientation, hudOffset);
+    
+    hudPosition.x = handPose.position.x + worldHudOffset.x;
+    hudPosition.y = handPose.position.y + worldHudOffset.y;
+    hudPosition.z = handPose.position.z + worldHudOffset.z;
+    
+    // Place DJUI slightly behind HUD
+    XrVector3f djuiOffset = {0.0f, 0.15f, -0.06f}; 
+    XrVector3f worldDjuiOffset = rotate_vector(handPose.orientation, djuiOffset);
+    
+    djuiPosition.x = handPose.position.x + worldDjuiOffset.x;
+    djuiPosition.y = handPose.position.y + worldDjuiOffset.y;
+    djuiPosition.z = handPose.position.z + worldDjuiOffset.z;
+    
+    layerOrientation = handPose.orientation;
+}
+
 int vr_renderer_end_frame(void)
 {
     if (!g_vr_renderer.initialized || !g_vr_renderer.frameActive) {
@@ -358,10 +413,60 @@ int vr_renderer_end_frame(void)
     // Size: 1.0m wide x 0.5625m tall (16:9 aspect ratio)
     djuiLayer.size = {0.8f, 0.45f};
     
+    //
+    // Update HUD/DJUI position based on config
+    //
+    XrSpace targetSpace = g_vr_renderer.xrViewSpace; // Default to head-locked
+    
+    // Default Head-Locked positions (relative to VIEW space)
+    XrVector3f hudPosition = {0.0f, -0.2f, -1.0f};
+    XrVector3f djuiPosition = {0.0f, -0.2f, -1.1f};
+    XrQuaternionf layerOrientation = {0.0f, 0.0f, 0.0f, 1.0f}; // Identity
+
+    // Check for Left Hand mode (1)
+    if (configVrHudPosition == 1) {
+        // Try to get hand tracking pose first
+        XrPosef handPose;
+        if (controller_openxr_get_left_hand_palm_pose(&handPose)) {
+             // Hand tracking is active and valid
+             // Hand tracking is active and valid
+             calculate_hand_ui_transforms(handPose, hudPosition, djuiPosition, layerOrientation, targetSpace);
+             
+        } else {
+             // Fallback to Controller Space
+             XrSpace handSpace = controller_openxr_get_left_hand_space();
+             
+             // Only use hand space if it's valid/initialized
+             if (handSpace != XR_NULL_HANDLE) {
+                 targetSpace = handSpace;
+                 
+                 // Position relative to left hand controller (Grip)
+                 // We want it floating slightly above and in front of the hand
+                 hudPosition = {0.1f, 0.1f, -0.2f};   // Right 10cm, Up 10cm, Forward 20cm
+                 djuiPosition = {0.1f, 0.1f, -0.21f}; // Slightly behind HUD
+             }
+        }
+    }
+    
+    // Scale size down if on hand
+    if (targetSpace != g_vr_renderer.xrViewSpace) {
+        hudLayer.size = {0.4f, 0.225f}; // Much smaller for hand
+        djuiLayer.size = {0.4f, 0.225f};
+    }
+    
     djuiLayer.subImage.swapchain = g_vr_renderer.djuiSwapchain->swapchain;
     djuiLayer.subImage.imageRect.offset = {0, 0};
     djuiLayer.subImage.imageRect.extent = {(int32_t)g_vr_renderer.djuiSwapchain->width, (int32_t)g_vr_renderer.djuiSwapchain->height};
     djuiLayer.subImage.imageArrayIndex = 0;
+
+    // Apply calculated poses
+    hudLayer.space = targetSpace;
+    hudLayer.pose.position = hudPosition;
+    hudLayer.pose.orientation = layerOrientation;
+    
+    djuiLayer.space = targetSpace;
+    djuiLayer.pose.position = djuiPosition;
+    djuiLayer.pose.orientation = layerOrientation;
     
     // Submit all layers (projection first, then quads on top)
     const XrCompositionLayerBaseHeader* layers[] = {

@@ -19,6 +19,9 @@ void djui_panel_vr_create(struct DjuiBase* caller) {
     {
         djui_checkbox_create(body, DLANG(VR, FIRST_PERSON_CAMERA), &configVrFirstPersonCamera, NULL);
 
+        char* hudPositionChoices[2] = { DLANG(VR, HUD_POSITION_HEAD_LOCKED), DLANG(VR, HUD_POSITION_LEFT_HAND) };
+        djui_selectionbox_create(body, DLANG(VR, HUD_POSITION), hudPositionChoices, 2, &configVrHudPosition, NULL);
+
         char* turnModeChoices[2] = { DLANG(VR, TURN_MODE_CONTINUOUS), DLANG(VR, TURN_MODE_SNAP) };
         djui_selectionbox_create(body, DLANG(VR, TURN_MODE), turnModeChoices, 2, &configVrTurnMode, djui_panel_vr_turn_mode_change);
 

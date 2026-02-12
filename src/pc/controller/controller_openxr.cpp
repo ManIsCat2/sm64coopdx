@@ -720,4 +720,34 @@ XrSpace controller_openxr_get_keyboard_space(void) {
     return s_keyboardReferenceSpace;
 }
 
+XrSpace controller_openxr_get_left_hand_space(void) {
+    return s_spacePoseLeft;
+}
+
+bool controller_openxr_get_left_hand_palm_pose(XrPosef* out_pose) {
+    if (!s_locationsLeft.isActive) {
+        return false;
+    }
+    
+    // Check if palm joint is valid
+    if (s_jointLocationsLeft[XR_HAND_JOINT_PALM_EXT].locationFlags & XR_SPACE_LOCATION_POSITION_VALID_BIT) {
+        // Rotate 90 degrees clockwise on Roll (Z-axis) so thumbs up position is up and facing camera
+        const float sin_neg_45 = -0.70710678f;
+        const float cos_neg_45 = 0.70710678f;
+        
+        XrQuaternionf q = s_jointLocationsLeft[XR_HAND_JOINT_PALM_EXT].pose.orientation;
+        
+        // Apply rotation: q_new = q * q_rot (local rotation)
+        out_pose->orientation.x = q.x * cos_neg_45 + q.y * sin_neg_45;
+        out_pose->orientation.y = q.y * cos_neg_45 - q.x * sin_neg_45;
+        out_pose->orientation.z = q.z * cos_neg_45 + q.w * sin_neg_45;
+        out_pose->orientation.w = q.w * cos_neg_45 - q.z * sin_neg_45;
+        
+        out_pose->position = s_jointLocationsLeft[XR_HAND_JOINT_PALM_EXT].pose.position;
+        return true;
+    }
+    
+    return false;
+}
+
 #endif // OPENXR_ENABLED

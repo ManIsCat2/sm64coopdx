@@ -288,6 +288,7 @@ bool         configSnapTouch                      = false;
 bool         configVrFirstPersonCamera            = false;
 unsigned int configVrTurnMode                     = 0; // 0 = Smooth, 1 = Snap
 unsigned int configVrSnapAngle                    = 2; // 0 = 15, 1 = 30, 2 = 45, etc.
+unsigned int configVrHudPosition                  = 1;  // 0 = head-locked, 1 = left hand
 #endif
 // secrets
 bool configExCoopTheme = false;
@@ -478,6 +479,7 @@ static const struct ConfigOption options[] = {
     // VR settings
 #ifdef OPENXR_ENABLED
     {.name = "vr_first_person_camera",         .type = CONFIG_TYPE_BOOL,   .boolValue   = &configVrFirstPersonCamera},
+    {.name = "vr_hud_position",                .type = CONFIG_TYPE_UINT,   .uintValue   = &configVrHudPosition},
     {.name = "vr_turn_mode",                   .type = CONFIG_TYPE_UINT,   .uintValue   = &configVrTurnMode},
     {.name = "vr_snap_angle",                  .type = CONFIG_TYPE_UINT,   .uintValue   = &configVrSnapAngle},
 #endif

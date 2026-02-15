@@ -15,10 +15,11 @@
 #ifndef _LANGUAGE_C
 #define _LANGUAGE_C
 #endif
-#include <PR/gbi.h>
-
+#include "types.h"
 #include "config.h"
-#include "macros.h"
+#include "gfx_dimensions.h"
+#include "game/camera.h"
+#include "game/ingame_menu.h"
 
 #include "engine/lighting_engine.h"
 #include "engine/math_util.h"
@@ -812,7 +813,15 @@ static void OPTIMIZE_O3 gfx_sp_vertex(size_t n_vertices, size_t dest_index, cons
         float w = v->ob[0] * rsp.MP_matrix[0][3] + v->ob[1] * rsp.MP_matrix[1][3] + v->ob[2] * rsp.MP_matrix[2][3] + rsp.MP_matrix[3][3];
 #endif
 
+#ifdef OPENXR_ENABLED
+        // In VR mode, the projection matrix already handles aspect ratio.
+        // However, some users report a double vision effect if it's not applied, so allow it via config.
+        if (!rsp.vr_rendering_active || configVrAspectRatioCorrection) {
+            x = gfx_adjust_x_for_aspect_ratio(x);
+        }
+#else
         x = gfx_adjust_x_for_aspect_ratio(x);
+#endif
 
         short U = v->tc[0] * rsp.texture_scaling_factor.s >> 16;
         short V = v->tc[1] * rsp.texture_scaling_factor.t >> 16;
@@ -2069,7 +2078,8 @@ static void gfx_setup_vr_matrices_for_eye(int eye) {
         // Otherwise (third person), we want the full VR view matrix including yaw
         bool success = false;
         
-        if (configVrFirstPersonCamera) {
+        // if the game is paused or in a cutscene use the other one
+        if (configVrFirstPersonCamera && !(gCamera && gCamera->cutscene != 0) && (gMenuMode == -1)) {
             success = vr_renderer_get_view_matrix_no_yaw(eye, (float*)rsp.vr_view_offset);
         } else {
             success = vr_renderer_get_view_matrix(eye, (float*)rsp.vr_view_offset);

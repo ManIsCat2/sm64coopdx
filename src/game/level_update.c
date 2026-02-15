@@ -51,6 +51,10 @@
 #include "game/screen_transition.h"
 
 #include "engine/level_script.h"
+#include "game/first_person_cam.h"
+#ifdef OPENXR_ENABLED
+#include "pc/openxr/vr_camera.h"
+#endif
 
 #define MENU_LEVEL_MIN 0
 #define MENU_LEVEL_MAX 17
@@ -452,6 +456,13 @@ void init_mario_after_warp(void) {
 
         init_mario();
         set_mario_initial_action(gMarioState, marioSpawnType, sWarpDest.arg);
+
+#ifdef OPENXR_ENABLED
+        if (gMarioState) {
+            gFirstPersonCamera.yaw = gMarioState->faceAngle[1] + 0x8000;
+            vr_camera_reset_yaw_offset(gFirstPersonCamera.yaw);
+        }
+#endif
 
         // remove offset from local mario during warps
         if (sWarpDest.type == WARP_TYPE_SAME_AREA && marioSpawnType != MARIO_SPAWN_DOOR_WARP) {

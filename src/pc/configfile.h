@@ -185,6 +185,12 @@ extern bool         configVrFirstPersonCamera;
 extern unsigned int configVrTurnMode;
 extern unsigned int configVrSnapAngle;
 extern unsigned int configVrHudPosition;
+extern unsigned int configVrHudDistance;
+extern bool         configVrAspectRatioCorrection;
+extern unsigned int configVrHudYaw;
+extern unsigned int configVrHudPitch;
+extern unsigned int configVrHudX;
+extern unsigned int configVrHudY;
 #endif
 
 // secrets

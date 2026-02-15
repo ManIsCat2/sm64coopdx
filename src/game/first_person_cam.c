@@ -156,8 +156,8 @@ static void first_person_camera_update(void) {
     // fix yaw for some specific actions
     // if the left stick is held, use Mario's yaw to set the camera's yaw
     // otherwise, set Mario's yaw to the camera's yaw
-    u32 actions[] = { ACT_FLYING, ACT_HOLDING_BOWSER, ACT_TORNADO_TWIRLING, ACT_FLAG_ON_POLE, ACT_FLAG_SWIMMING, ACT_FLAG_SWIMMING_OR_FLYING };
-    for (s32 i = 0; i < 6; i++) {
+    u32 actions[] = { ACT_FLYING, ACT_TORNADO_TWIRLING, ACT_FLAG_ON_POLE, ACT_FLAG_SWIMMING, ACT_FLAG_SWIMMING_OR_FLYING };
+    for (s32 i = 0; i < 5; i++) {
         u32 flag = actions[i];
         if ((m->action & flag) == flag) {
             if (ABS(m->controller->stickX) > 4) {
@@ -171,10 +171,7 @@ static void first_person_camera_update(void) {
             break;
         }
     }
-    if (m->action == ACT_LEDGE_GRAB) {
-#ifdef OPENXR_ENABLED
-        if (!configVrFirstPersonCamera)
-#endif
+    if (m->action == ACT_LEDGE_GRAB || m->action == ACT_HOLDING_BOWSER) {
         gFirstPersonCamera.yaw = m->faceAngle[1] + 0x8000;
     }
 

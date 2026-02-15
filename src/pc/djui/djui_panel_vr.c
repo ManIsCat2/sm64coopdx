@@ -2,6 +2,7 @@
 #include "djui_panel.h"
 #include "djui_panel_menu.h"
 #include "djui_panel_vr.h"
+#include "djui_slider.h"
 #include "pc/utils/misc.h"
 #include "pc/configfile.h"
 
@@ -18,9 +19,15 @@ void djui_panel_vr_create(struct DjuiBase* caller) {
     struct DjuiBase* body = djui_three_panel_get_body(panel);
     {
         djui_checkbox_create(body, DLANG(VR, FIRST_PERSON_CAMERA), &configVrFirstPersonCamera, NULL);
+        djui_checkbox_create(body, DLANG(VR, ASPECT_RATIO_CORRECTION), &configVrAspectRatioCorrection, NULL);
 
         char* hudPositionChoices[2] = { DLANG(VR, HUD_POSITION_HEAD_LOCKED), DLANG(VR, HUD_POSITION_LEFT_HAND) };
         djui_selectionbox_create(body, DLANG(VR, HUD_POSITION), hudPositionChoices, 2, &configVrHudPosition, NULL);
+        djui_slider_create(body, DLANG(VR, HUD_DISTANCE), &configVrHudDistance, 1, 25, NULL);
+        djui_slider_create(body, DLANG(VR, HUD_YAW), &configVrHudYaw, 0, 100, NULL);
+        djui_slider_create(body, DLANG(VR, HUD_PITCH), &configVrHudPitch, 0, 100, NULL);
+        djui_slider_create(body, DLANG(VR, HUD_X), &configVrHudX, 0, 100, NULL);
+        djui_slider_create(body, DLANG(VR, HUD_Y), &configVrHudY, 0, 100, NULL);
 
         char* turnModeChoices[2] = { DLANG(VR, TURN_MODE_CONTINUOUS), DLANG(VR, TURN_MODE_SNAP) };
         djui_selectionbox_create(body, DLANG(VR, TURN_MODE), turnModeChoices, 2, &configVrTurnMode, djui_panel_vr_turn_mode_change);

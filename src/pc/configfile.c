@@ -289,6 +289,12 @@ bool         configVrFirstPersonCamera            = false;
 unsigned int configVrTurnMode                     = 0; // 0 = Smooth, 1 = Snap
 unsigned int configVrSnapAngle                    = 2; // 0 = 15, 1 = 30, 2 = 45, etc.
 unsigned int configVrHudPosition                  = 1;  // 0 = head-locked, 1 = left hand
+unsigned int configVrHudDistance                  = 1; // 1.0 meters
+bool         configVrAspectRatioCorrection        = true;
+unsigned int configVrHudYaw                       = 50; // 0-100, 50 = neutral
+unsigned int configVrHudPitch                     = 50; // 0-100, 50 = neutral
+unsigned int configVrHudX                         = 50; // 0-100, 50 = neutral
+unsigned int configVrHudY                         = 50; // 0-100, 50 = neutral
 #endif
 // secrets
 bool configExCoopTheme = false;
@@ -480,8 +486,14 @@ static const struct ConfigOption options[] = {
 #ifdef OPENXR_ENABLED
     {.name = "vr_first_person_camera",         .type = CONFIG_TYPE_BOOL,   .boolValue   = &configVrFirstPersonCamera},
     {.name = "vr_hud_position",                .type = CONFIG_TYPE_UINT,   .uintValue   = &configVrHudPosition},
+    {.name = "vr_hud_distance",                .type = CONFIG_TYPE_UINT,   .uintValue   = &configVrHudDistance},
     {.name = "vr_turn_mode",                   .type = CONFIG_TYPE_UINT,   .uintValue   = &configVrTurnMode},
     {.name = "vr_snap_angle",                  .type = CONFIG_TYPE_UINT,   .uintValue   = &configVrSnapAngle},
+    {.name = "vr_aspect_ratio_correction",     .type = CONFIG_TYPE_BOOL,   .boolValue   = &configVrAspectRatioCorrection},
+    {.name = "vr_hud_yaw",                     .type = CONFIG_TYPE_UINT,   .uintValue   = &configVrHudYaw},
+    {.name = "vr_hud_pitch",                   .type = CONFIG_TYPE_UINT,   .uintValue   = &configVrHudPitch},
+    {.name = "vr_hud_x",                       .type = CONFIG_TYPE_UINT,   .uintValue   = &configVrHudX},
+    {.name = "vr_hud_y",                       .type = CONFIG_TYPE_UINT,   .uintValue   = &configVrHudY},
 #endif
 };
 

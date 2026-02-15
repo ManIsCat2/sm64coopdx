@@ -3,6 +3,7 @@
 #include "openxr_swapchain.h"
 #include "pc/controller/controller_openxr.h"
 #include "pc/configfile.h"
+#include "pc/gfx/gfx.h"
 
 #include <iostream>
 #include <cstring>
@@ -292,8 +293,17 @@ static XrVector3f rotate_vector(const XrQuaternionf& q, const XrVector3f& v) {
     return {ox, oy, oz};
 }
 
+static XrQuaternionf multiply_quaternions(const XrQuaternionf& q1, const XrQuaternionf& q2) {
+    XrQuaternionf result;
+    result.w = q1.w * q2.w - q1.x * q2.x - q1.y * q2.y - q1.z * q2.z;
+    result.x = q1.w * q2.x + q1.x * q2.w + q1.y * q2.z - q1.z * q2.y;
+    result.y = q1.w * q2.y - q1.x * q2.z + q1.y * q2.w + q1.z * q2.x;
+    result.z = q1.w * q2.z + q1.x * q2.y - q1.y * q2.x + q1.z * q2.w;
+    return result;
+}
+
 // Extract HUD/DJUI positioning logic for hand tracking
-static void calculate_hand_ui_transforms(const XrPosef& handPose, XrVector3f& hudPosition, XrVector3f& djuiPosition, XrQuaternionf& layerOrientation, XrSpace& targetSpace) {
+static void calculate_hand_ui_transforms(const XrPosef& handPose, XrVector3f& hudPosition, XrVector3f& djuiPosition, XrQuaternionf& layerOrientation, XrSpace& targetSpace, const XrQuaternionf& localRotation) {
     targetSpace = controller_openxr_get_keyboard_space(); // This space corresponds to the handPose
     
     // Position HUD relative to Palm
@@ -302,7 +312,18 @@ static void calculate_hand_ui_transforms(const XrPosef& handPose, XrVector3f& hu
     
     // Create offset vector in local hand space
     // Up 15cm, Forward 5cm
-    XrVector3f hudOffset = {0.0f, 0.15f, -0.05f};
+
+    
+    
+    float hud_distance = (float)configVrHudDistance / 50.0f;
+    float hud_x = (float)((int)configVrHudX - 50) * 0.01f;
+    float hud_y = (float)((int)configVrHudY - 50) * 0.01f;
+    XrVector3f hudOffset = {hud_x, 0.15f + hud_y, -hud_distance};
+    
+    // Apply local rotation (yaw/pitch) to offset in hand space BEFORE transforming to world
+    if (localRotation.x != 0.0f || localRotation.y != 0.0f || localRotation.z != 0.0f || localRotation.w != 1.0f) {
+        hudOffset = rotate_vector(localRotation, hudOffset);
+    }
     
     // Rotate offset by hand orientation to get world offset
     XrVector3f worldHudOffset = rotate_vector(handPose.orientation, hudOffset);
@@ -312,14 +333,21 @@ static void calculate_hand_ui_transforms(const XrPosef& handPose, XrVector3f& hu
     hudPosition.z = handPose.position.z + worldHudOffset.z;
     
     // Place DJUI slightly behind HUD
-    XrVector3f djuiOffset = {0.0f, 0.15f, -0.06f}; 
+    XrVector3f djuiOffset = {hud_x, 0.15f + hud_y, -hud_distance};
+    
+    // Apply local rotation to DJUI offset as well
+    if (localRotation.x != 0.0f || localRotation.y != 0.0f || localRotation.z != 0.0f || localRotation.w != 1.0f) {
+        djuiOffset = rotate_vector(localRotation, djuiOffset);
+    }
+     
     XrVector3f worldDjuiOffset = rotate_vector(handPose.orientation, djuiOffset);
     
     djuiPosition.x = handPose.position.x + worldDjuiOffset.x;
     djuiPosition.y = handPose.position.y + worldDjuiOffset.y;
     djuiPosition.z = handPose.position.z + worldDjuiOffset.z;
     
-    layerOrientation = handPose.orientation;
+    // Combine hand orientation with local rotation for layer orientation
+    layerOrientation = multiply_quaternions(handPose.orientation, localRotation);
 }
 
 int vr_renderer_end_frame(void)
@@ -357,6 +385,7 @@ int vr_renderer_end_frame(void)
         projectionViews[eye].subImage.swapchain = swapchain->swapchain;
         projectionViews[eye].subImage.imageRect.offset = {0, 0};
         projectionViews[eye].subImage.imageRect.extent = {(int32_t)swapchain->width, (int32_t)swapchain->height};
+        projectionViews[eye].subImage.imageRect.extent = {(int32_t)swapchain->width, (int32_t)swapchain->height};
         projectionViews[eye].subImage.imageArrayIndex = 0;
     }
     
@@ -376,7 +405,8 @@ int vr_renderer_end_frame(void)
     
     // Position HUD 1.0 meter forward in VIEW space (head-locked)
     // In VIEW space, -Z is forward, so we use negative Z
-    float hud_distance = 1.0f;
+    // Position HUD based on config (10 units = 1.0 meter)
+    float hud_distance = 1.0f;//(float)configVrHudDistance / 10.0f;
     hudLayer.pose.position.x = 0.0f;
     hudLayer.pose.position.y = -0.2f;  // Move down 0.2 meters, feels more centered
     hudLayer.pose.position.z = -hud_distance;  // Forward is -Z in VIEW space
@@ -402,7 +432,8 @@ int vr_renderer_end_frame(void)
     
     // Position DJUI 1.1 meters forward in VIEW space (head-locked)
     // In VIEW space, -Z is forward, so we use negative Z
-    float djui_distance = 1.1f;
+    // Position DJUI slightly behind HUD
+    float djui_distance = hud_distance + 0.1f;
     djuiLayer.pose.position.x = 0.0f;
     djuiLayer.pose.position.y = -0.2f;
     djuiLayer.pose.position.z = -djui_distance;  // Forward is -Z in VIEW space
@@ -419,9 +450,34 @@ int vr_renderer_end_frame(void)
     XrSpace targetSpace = g_vr_renderer.xrViewSpace; // Default to head-locked
     
     // Default Head-Locked positions (relative to VIEW space)
-    XrVector3f hudPosition = {0.0f, -0.2f, -1.0f};
-    XrVector3f djuiPosition = {0.0f, -0.2f, -1.1f};
+    // Default Head-Locked positions (relative to VIEW space)
+    float hud_x = (float)((int)configVrHudX - 50) * 0.01f;
+    float hud_y = (float)((int)configVrHudY - 50) * 0.01f;
+    XrVector3f hudPosition = {hud_x, -0.2f + hud_y, -hud_distance};
+    XrVector3f djuiPosition = {hud_x, -0.2f + hud_y, -djui_distance};
     XrQuaternionf layerOrientation = {0.0f, 0.0f, 0.0f, 1.0f}; // Identity
+
+    // Calculate Yaw and Pitch Rotation once
+    XrQuaternionf combinedQ = {0.0f, 0.0f, 0.0f, 1.0f};
+    bool applyRotation = false;
+
+    if (configVrHudYaw != 50 && configVrHudPosition != 0) {
+        float angleY = (float)((int)configVrHudYaw - 50) * (M_PI / 100.0f); // Map -50..50 to approx -90..90 degrees
+        float halfAngleY = angleY * 0.5f;
+        XrQuaternionf yawQ = { 0.0f, sinf(halfAngleY), 0.0f, cosf(halfAngleY) };
+        combinedQ = multiply_quaternions(combinedQ, yawQ);
+        applyRotation = true;
+    }
+
+    if (configVrHudPitch != 50 && configVrHudPosition != 0) {
+        float angleX = (float)((int)configVrHudPitch - 50) * (M_PI / 100.0f); // Map -50..50 to approx -90..90 degrees
+        float halfAngleX = angleX * 0.5f;
+        XrQuaternionf pitchQ = { sinf(halfAngleX), 0.0f, 0.0f, cosf(halfAngleX) };
+        // Apply Pitch AFTER Yaw (or before? Yaw then Pitch usually better for Orbit)
+        // If we want \"global\" yaw then \"local\" pitch, we should multiply Yaw * Pitch
+        combinedQ = multiply_quaternions(combinedQ, pitchQ);
+        applyRotation = true;
+    }
 
     // Check for Left Hand mode (1)
     if (configVrHudPosition == 1) {
@@ -429,8 +485,9 @@ int vr_renderer_end_frame(void)
         XrPosef handPose;
         if (controller_openxr_get_left_hand_palm_pose(&handPose)) {
              // Hand tracking is active and valid
-             // Hand tracking is active and valid
-             calculate_hand_ui_transforms(handPose, hudPosition, djuiPosition, layerOrientation, targetSpace);
+             // Pass the rotation to be applied in hand-local space
+             calculate_hand_ui_transforms(handPose, hudPosition, djuiPosition, layerOrientation, targetSpace, combinedQ);
+             applyRotation = false; // Already applied in hand-local space
              
         } else {
              // Fallback to Controller Space
@@ -442,8 +499,11 @@ int vr_renderer_end_frame(void)
                  
                  // Position relative to left hand controller (Grip)
                  // We want it floating slightly above and in front of the hand
-                 hudPosition = {0.1f, 0.1f, -0.2f};   // Right 10cm, Up 10cm, Forward 20cm
-                 djuiPosition = {0.1f, 0.1f, -0.21f}; // Slightly behind HUD
+                 float hud_distance = (float)configVrHudDistance / 50.0f;
+                 float hud_x = (float)((int)configVrHudX - 50) * 0.01f;
+                 float hud_y = (float)((int)configVrHudY - 50) * 0.01f;
+                 hudPosition = {hud_x, 0.15f + hud_y, -hud_distance};
+                 djuiPosition = {hud_x, 0.15f + hud_y, -hud_distance};
              }
         }
     }
@@ -467,6 +527,16 @@ int vr_renderer_end_frame(void)
     djuiLayer.space = targetSpace;
     djuiLayer.pose.position = djuiPosition;
     djuiLayer.pose.orientation = layerOrientation;
+
+    // Apply Yaw and Pitch Rotation (only for head-locked mode; already applied for hand-attached mode)
+
+    if (applyRotation) { 
+        hudLayer.pose.position = rotate_vector(combinedQ, hudLayer.pose.position);
+        djuiLayer.pose.position = rotate_vector(combinedQ, djuiLayer.pose.position);
+        
+        hudLayer.pose.orientation = multiply_quaternions(hudLayer.pose.orientation, combinedQ);
+        djuiLayer.pose.orientation = multiply_quaternions(djuiLayer.pose.orientation, combinedQ);
+    }
     
     // Submit all layers (projection first, then quads on top)
     const XrCompositionLayerBaseHeader* layers[] = {
@@ -549,7 +619,15 @@ int vr_renderer_get_projection_matrix_ext(int eye, float nearZ, float farZ, floa
     }
     
     // Convert OpenXR FOV to projection matrix
-    fov_to_projection_matrix(g_vr_renderer.views[eye].fov, nearZ, farZ, matrix);
+    XrFovf fov = g_vr_renderer.views[eye].fov;
+
+    if (configVrAspectRatioCorrection && gfx_current_dimensions.x_adjust_ratio > 0.0f) {
+        float ratio = gfx_current_dimensions.x_adjust_ratio;
+        fov.angleLeft = atanf(tanf(fov.angleLeft) / ratio);
+        fov.angleRight = atanf(tanf(fov.angleRight) / ratio);
+    }
+
+    fov_to_projection_matrix(fov, nearZ, farZ, matrix);
     
     return 1;
 }

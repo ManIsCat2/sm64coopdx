@@ -1,12 +1,8 @@
-#ifdef __ANDROID__
-#define XR_USE_PLATFORM_ANDROID
-#include <jni.h>
-#endif
-#include <openxr/openxr.h>
-#include <openxr/openxr_platform.h>
+#include "openxr_platform_defines.h"
 #include "openxr_instance.h"
 #include <iostream>
 #include <cstring>
+#include <vector>
 
 #ifdef __ANDROID__
 #include <SDL2/SDL.h>
@@ -24,10 +20,18 @@ static const unsigned int patchVersion = 0;
 static jobject gAndroidActivityGlobalRef = nullptr;
 #endif
 
-// Extension names
-static const char* const extensionNames[] = {
+// Required extensions
+static const std::vector<const char*> requiredExtensions = {
+#ifdef __ANDROID__
     "XR_KHR_opengl_es_enable",
-    "XR_EXT_debug_utils",
+#else
+    "XR_KHR_opengl_enable",
+#endif
+    "XR_EXT_debug_utils"
+};
+
+// Optional extensions - will be enabled if available
+static const std::vector<const char*> optionalExtensions = {
     "XR_META_virtual_keyboard",
     "XR_FB_render_model",
     "XR_EXT_hand_tracking",
@@ -162,6 +166,64 @@ XrInstance createXRInstance()
     }
 #endif
 
+    // Enumerate supported extensions
+    uint32_t extensionCount = 0;
+    if (xrEnumerateInstanceExtensionProperties(nullptr, 0, &extensionCount, nullptr) != XR_SUCCESS) {
+        std::cerr << "Failed to enumerate OpenXR extensions count" << std::endl;
+        return XR_NULL_HANDLE;
+    }
+
+    std::vector<XrExtensionProperties> supportedExtensions(extensionCount);
+    for (auto& ext : supportedExtensions) {
+        ext.type = XR_TYPE_EXTENSION_PROPERTIES;
+        ext.next = nullptr;
+    }
+
+    if (xrEnumerateInstanceExtensionProperties(nullptr, extensionCount, &extensionCount, supportedExtensions.data()) != XR_SUCCESS) {
+        std::cerr << "Failed to enumerate OpenXR extensions" << std::endl;
+        return XR_NULL_HANDLE;
+    }
+
+    std::cout << "Supported OpenXR extensions:" << std::endl;
+    for (const auto& ext : supportedExtensions) {
+        std::cout << "  " << ext.extensionName << " (v" << ext.extensionVersion << ")" << std::endl;
+    }
+
+    // Build list of enabled extensions
+    std::vector<const char*> enabledExtensions;
+    
+    // Check required extensions
+    for (const auto& required : requiredExtensions) {
+        bool found = false;
+        for (const auto& supported : supportedExtensions) {
+            if (strcmp(required, supported.extensionName) == 0) {
+                enabledExtensions.push_back(required);
+                found = true;
+                break;
+            }
+        }
+        
+        if (!found) {
+            std::cerr << "Error: Required OpenXR extension not supported: " << required << std::endl;
+            return XR_NULL_HANDLE;
+        }
+    }
+
+    // Check optional extensions
+    for (const auto& optional : optionalExtensions) {
+        for (const auto& supported : supportedExtensions) {
+            if (strcmp(optional, supported.extensionName) == 0) {
+                enabledExtensions.push_back(optional);
+                std::cout << "Enabling optional extension: " << optional << std::endl;
+                break;
+            }
+        }
+    }
+
+    std::cout << "Enabled OpenXR extensions:" << std::endl;
+    for (const auto& ext : enabledExtensions) {
+        std::cout << "  " << ext << std::endl;
+    }
 
     XrInstance instance;
 
@@ -169,14 +231,16 @@ XrInstance createXRInstance()
     instanceCreateInfo.type = XR_TYPE_INSTANCE_CREATE_INFO;
     instanceCreateInfo.createFlags = 0;
     strncpy(instanceCreateInfo.applicationInfo.applicationName, applicationName, XR_MAX_APPLICATION_NAME_SIZE);
-    instanceCreateInfo.applicationInfo.applicationVersion = XR_MAKE_VERSION(majorVersion, minorVersion, patchVersion);
+    // XR_MAKE_VERSION returns 64-bit, but applicationVersion is 32-bit. 
+    // We just use 1 for now or cast to uint32_t if we want to pack it, but OpenXR 1.0 headers usually expect 32-bit here.
+    instanceCreateInfo.applicationInfo.applicationVersion = 1; 
     strncpy(instanceCreateInfo.applicationInfo.engineName, applicationName, XR_MAX_ENGINE_NAME_SIZE);
-    instanceCreateInfo.applicationInfo.engineVersion = XR_MAKE_VERSION(majorVersion, minorVersion, patchVersion);
+    instanceCreateInfo.applicationInfo.engineVersion = 1;
     instanceCreateInfo.applicationInfo.apiVersion = XR_MAKE_VERSION(1, 0, 34);
     instanceCreateInfo.enabledApiLayerCount = 0;
     instanceCreateInfo.enabledApiLayerNames = nullptr;
-    instanceCreateInfo.enabledExtensionCount = sizeof(extensionNames) / sizeof(const char*);
-    instanceCreateInfo.enabledExtensionNames = extensionNames;
+    instanceCreateInfo.enabledExtensionCount = static_cast<uint32_t>(enabledExtensions.size());
+    instanceCreateInfo.enabledExtensionNames = enabledExtensions.data();
 
     XrResult result = xrCreateInstance(&instanceCreateInfo, &instance);
 

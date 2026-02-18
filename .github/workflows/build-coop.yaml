@@ -7,6 +7,38 @@ on:
           - '**'
 
 jobs:
+    build-linux:
+        if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build]') }}
+        runs-on: ubuntu-22.04
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Install dependencies
+              run: |
+                sudo apt update
+                sudo apt install -y build-essential git python3 libglew-dev libsdl2-dev libz-dev libcurl4-openssl-dev libopenxr-dev zip
+
+            - name: Build the game
+              run: make -j$(nproc) OPENXR=1
+
+            - name: Generate hash
+              run: |
+                cd tools
+                g++ -std=c++17 -o hash_file hash_file.cpp
+                echo "::notice ::$(./hash_file ../build/us_pc/sm64coopdx)"
+            
+            - name: Zip the game
+              run: |
+                cd ./build/us_pc
+                zip -r sm64coopdx_Linux.zip dynos lang mods palettes libdiscord_game_sdk.so sm64coopdx
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                name: sm64coopdx-linux
+                path: ./build/us_pc/sm64coopdx_Linux.zip
+
     build-android-xr:
         if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build]') }}
         runs-on: ubuntu-22.04
@@ -67,3 +99,77 @@ jobs:
               with:
                 name: sm64coopdx-android
                 path: ./build/us_pc/sm64coopdx.apk
+
+    build-windows-opengl-xr:
+        if: ${{ github.event_name == 'workflow_dispatch' || contains(github.event.head_commit.message, '[build]') }}
+        runs-on: windows-latest
+        defaults:
+            run:
+                shell: msys2 {0}
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+
+            - name: Install dependencies
+              uses: msys2/setup-msys2@v2
+              with:
+                msystem: mingw64
+                update: true
+                install: >
+                    unzip
+                    make
+                    git
+                    mingw-w64-x86_64-toolchain
+                    mingw-w64-x86_64-cmake
+                    mingw-w64-x86_64-ninja
+                    mingw-w64-i686-gcc
+                    mingw-w64-x86_64-gcc
+                    mingw-w64-i686-glew
+                    mingw-w64-x86_64-glew
+                    mingw-w64-i686-SDL2
+                    mingw-w64-i686-SDL
+                    mingw-w64-x86_64-SDL2
+                    mingw-w64-x86_64-SDL
+                    mingw-w64-x86_64-openxr-sdk
+                    python3
+                    zip
+
+            - name: Build OpenXR loader (static)
+              run: |
+                set -euxo pipefail
+                mkdir -p _deps
+                cd _deps
+                git clone --depth 1 https://github.com/KhronosGroup/OpenXR-SDK.git openxr-sdk
+                cmake -S openxr-sdk -B openxr-build -G Ninja \
+                  -DCMAKE_BUILD_TYPE=Release \
+                  -DDYNAMIC_LOADER=OFF \
+                  -DCMAKE_C_FLAGS="-DWINAPI_PARTITION_SYSTEM=0" \
+                  -DCMAKE_CXX_FLAGS="-DWINAPI_PARTITION_SYSTEM=0" \
+                  -DCMAKE_INSTALL_PREFIX="$GITHUB_WORKSPACE/openxr-static"
+                cmake --build openxr-build
+                cmake --install openxr-build
+                ls -la "$GITHUB_WORKSPACE/openxr-static/lib/libopenxr_loader.a"
+    
+            - name: Build the game
+              shell: msys2 {0}
+              run: |
+                OPENXR_PREFIX="$(cygpath -u "$GITHUB_WORKSPACE")/openxr-static"
+                make -j"$(nproc)" OPENXR=1 OPENXR_PREFIX="$OPENXR_PREFIX"
+            
+            - name: Generate hash
+              run: |
+                cd tools
+                g++ -std=c++17 -o hash_file.exe hash_file.cpp
+                echo "::notice ::$(./hash_file.exe ../build/us_pc/sm64coopdx.exe)"
+            
+            - name: Zip the game
+              run: |
+                cd ./build/us_pc
+                find /mingw64 -name "openxr_loader.dll" -exec cp {} . \;
+                zip -r sm64coopdx_Windows_OpenGL.zip dynos lang mods palettes coop.map discord_game_sdk.dll openxr_loader.dll sm64coopdx.exe
+
+            - name: Upload artifact
+              uses: actions/upload-artifact@v4
+              with:
+                name: sm64coopdx-windows-opengl
+                path: ./build/us_pc/sm64coopdx_Windows_OpenGL.zip

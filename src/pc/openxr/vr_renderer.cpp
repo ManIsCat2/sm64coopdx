@@ -9,12 +9,7 @@
 #include <cstring>
 #include <cmath>
 
-#ifdef __ANDROID__
-#define XR_USE_PLATFORM_ANDROID
-#endif
-#define XR_USE_GRAPHICS_API_OPENGL_ES
-#include <openxr/openxr.h>
-#include <openxr/openxr_platform.h>
+
 
 using namespace std;
 
@@ -220,7 +215,15 @@ int vr_renderer_begin_frame(void)
         g_vr_renderer.viewsValid = false;
         return 0;
     }
+
     
+    // If we shouldn't render (e.g. frame discarded), return 0 to skip frame
+    if (!g_vr_renderer.frameState.shouldRender) {
+        g_vr_renderer.frameActive = true; // Still mark active so we can call end_frame
+        // Returning 0 will cause gfx_pc.c to call openxr_end_frame_empty() and skip rendering
+        return 0;
+    }
+
     g_vr_renderer.viewsValid = true;
     return 1;
 }
@@ -229,6 +232,10 @@ int vr_renderer_render_eye(int eye)
 {
     if (!g_vr_renderer.initialized || !g_vr_renderer.frameActive || !g_vr_renderer.viewsValid) {
         return 0;
+    }
+
+    if (!g_vr_renderer.frameState.shouldRender) {
+        return 1; // Skip rendering, but return success
     }
     
     if (eye < 0 || eye > 1) {
@@ -268,6 +275,45 @@ int vr_renderer_render_eye(int eye)
     // This will be handled by the OpenGL integration
     
     return 1;
+}
+
+// Helper to get eye pose with IPD offset
+static XrPosef get_eye_pose_with_ipd(int eye) {
+    if (!g_vr_renderer.viewsValid) {
+        return { {0,0,0,1}, {0,0,0} };
+    }
+
+    XrPosef pose = g_vr_renderer.views[eye].pose;
+
+    if (configVrIpdOffset != 50) {
+        XrVector3f leftPos = g_vr_renderer.views[0].pose.position;
+        XrVector3f rightPos = g_vr_renderer.views[1].pose.position;
+
+        // Calculate vector from left to right
+        float dbx = rightPos.x - leftPos.x;
+        float dby = rightPos.y - leftPos.y;
+        float dbz = rightPos.z - leftPos.z;
+        float dist = sqrt(dbx*dbx + dby*dby + dbz*dbz);
+
+        if (dist > 0.001f) {
+            float offset = ((float)configVrIpdOffset - 50.0f) * 0.001f; 
+            float dirX = dbx / dist;
+            float dirY = dby / dist;
+            float dirZ = dbz / dist;
+
+            // Apply offset
+            if (eye == 0) {
+                pose.position.x -= dirX * (offset * 0.5f);
+                pose.position.y -= dirY * (offset * 0.5f);
+                pose.position.z -= dirZ * (offset * 0.5f);
+            } else {
+                pose.position.x += dirX * (offset * 0.5f);
+                pose.position.y += dirY * (offset * 0.5f);
+                pose.position.z += dirZ * (offset * 0.5f);
+            }
+        }
+    }
+    return pose;
 }
 
 // Helper to rotate a vector by a quaternion
@@ -357,8 +403,9 @@ int vr_renderer_end_frame(void)
     }
     
     // Release swapchain images for both eyes
-    for (int eye = 0; eye < 2; eye++) {
-        OpenXRSwapchain* swapchain = (eye == 0) ? g_vr_renderer.leftSwapchain : g_vr_renderer.rightSwapchain;
+    if (g_vr_renderer.frameState.shouldRender) {
+        for (int eye = 0; eye < 2; eye++) {
+            OpenXRSwapchain* swapchain = (eye == 0) ? g_vr_renderer.leftSwapchain : g_vr_renderer.rightSwapchain;
         
         XrSwapchainImageReleaseInfo releaseInfo{};
         releaseInfo.type = XR_TYPE_SWAPCHAIN_IMAGE_RELEASE_INFO;
@@ -369,9 +416,12 @@ int vr_renderer_end_frame(void)
             cerr << "Failed to release swapchain image for eye " << eye << ": " << result << endl;
         }
     }
+    }
 
     // Release quad swapchain images  
-    vr_renderer_release_quad_images();
+    if (g_vr_renderer.frameState.shouldRender) {
+        vr_renderer_release_quad_images();
+    }
     
     // Submit frame to OpenXR with all layers (projection + quads)
     XrCompositionLayerProjectionView projectionViews[2]{};
@@ -380,7 +430,7 @@ int vr_renderer_end_frame(void)
         OpenXRSwapchain* swapchain = (eye == 0) ? g_vr_renderer.leftSwapchain : g_vr_renderer.rightSwapchain;
         
         projectionViews[eye].type = XR_TYPE_COMPOSITION_LAYER_PROJECTION_VIEW;
-        projectionViews[eye].pose = g_vr_renderer.views[eye].pose;
+        projectionViews[eye].pose = get_eye_pose_with_ipd(eye);
         projectionViews[eye].fov = g_vr_renderer.views[eye].fov;
         projectionViews[eye].subImage.swapchain = swapchain->swapchain;
         projectionViews[eye].subImage.imageRect.offset = {0, 0};
@@ -539,6 +589,7 @@ int vr_renderer_end_frame(void)
     }
     
     // Submit all layers (projection first, then quads on top)
+    // Submit all layers (projection first, then quads on top)
     const XrCompositionLayerBaseHeader* layers[] = {
         (const XrCompositionLayerBaseHeader*)&projectionLayer,
         (const XrCompositionLayerBaseHeader*)&hudLayer,
@@ -549,8 +600,14 @@ int vr_renderer_end_frame(void)
     frameEndInfo.type = XR_TYPE_FRAME_END_INFO;
     frameEndInfo.displayTime = g_vr_renderer.frameState.predictedDisplayTime;
     frameEndInfo.environmentBlendMode = XR_ENVIRONMENT_BLEND_MODE_OPAQUE;
-    frameEndInfo.layerCount = 3;  // Projection + 2 quad layers
-    frameEndInfo.layers = layers;
+    
+    if (g_vr_renderer.frameState.shouldRender) {
+        frameEndInfo.layerCount = 3;  // Projection + 2 quad layers
+        frameEndInfo.layers = layers;
+    } else {
+        frameEndInfo.layerCount = 0;
+        frameEndInfo.layers = nullptr;
+    }
     
     XrResult result = xrEndFrame(g_vr_renderer.xrSession, &frameEndInfo);
     
@@ -744,7 +801,7 @@ int vr_renderer_get_view_matrix(int eye, float* matrix)
         return 0;
     }
     
-    pose_to_view_matrix(g_vr_renderer.views[eye].pose, matrix, false);
+    pose_to_view_matrix(get_eye_pose_with_ipd(eye), matrix, false);
     
     return 1;
 }
@@ -755,7 +812,7 @@ extern "C" int vr_renderer_get_view_matrix_no_yaw(int eye, float* matrix)
         return 0;
     }
     
-    pose_to_view_matrix(g_vr_renderer.views[eye].pose, matrix, true);
+    pose_to_view_matrix(get_eye_pose_with_ipd(eye), matrix, true);
     
     return 1;
 }
@@ -878,6 +935,10 @@ extern "C" int vr_renderer_acquire_quad_images(void)
 {
     if (!g_vr_renderer.initialized || !g_vr_renderer.frameActive) {
         return 0;
+    }
+    
+    if (!g_vr_renderer.frameState.shouldRender) {
+        return 1; // Skip acquisition but return success
     }
     
     // Acquire HUD quad swapchain image

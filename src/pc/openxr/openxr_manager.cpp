@@ -11,7 +11,9 @@
 #include <cmath>
 
 #include <SDL2/SDL.h>
-#include <EGL/egl.h>
+#include <SDL2/SDL_syswm.h>
+
+
 
 
 // Forward declaration from vr_renderer.cpp
@@ -24,8 +26,8 @@ static struct {
     XrInstance xrInstance;
     XrDebugUtilsMessengerEXT xrDebugMessenger;
     XrSystemId xrSystemId;
-    EGLDisplay eglDisplay;
-    EGLContext eglContext;
+    XRNativeDisplayType nativeDisplay;
+    XRNativeContextType nativeContext;
     XrSession xrSession;
     XrSpace xrSpace;
     XrSpace xrStageSpace;
@@ -41,8 +43,8 @@ static struct {
     XR_NULL_HANDLE,
     XR_NULL_HANDLE,
     XR_NULL_SYSTEM_ID,
-    EGL_NO_DISPLAY,
-    EGL_NO_CONTEXT,
+    0,
+    0,
     XR_NULL_HANDLE,
     XR_NULL_HANDLE,
     XR_NULL_HANDLE,
@@ -196,20 +198,71 @@ int openxr_init(void)
         return 0;
     }
 
+#ifdef __ANDROID__
     // Get current EGL display and context from SDL
-    g_openxr_state.eglDisplay = eglGetCurrentDisplay();
-    if (g_openxr_state.eglDisplay == EGL_NO_DISPLAY) {
+    g_openxr_state.nativeDisplay = eglGetCurrentDisplay();
+    if (g_openxr_state.nativeDisplay == EGL_NO_DISPLAY) {
         std::cerr << "Failed to get current EGL display. VR will not be available.";
         openxr_shutdown();
         return 0;
     }
 
-    g_openxr_state.eglContext = eglGetCurrentContext();
-    if (g_openxr_state.eglContext == EGL_NO_CONTEXT) {
+    g_openxr_state.nativeContext = eglGetCurrentContext();
+    if (g_openxr_state.nativeContext == EGL_NO_CONTEXT) {
         std::cerr << "Failed to get current EGL context. VR will not be available.";
         openxr_shutdown();
         return 0;
     }
+#elif defined(_WIN32)
+    // Get current WGL context
+    g_openxr_state.nativeContext = wglGetCurrentContext();
+    if (g_openxr_state.nativeContext == NULL) {
+        std::cerr << "Failed to get current WGL context. VR will not be available.";
+        openxr_shutdown();
+        return 0;
+    }
+
+    // Get DC from SDL window
+    SDL_Window* window = SDL_GL_GetCurrentWindow();
+    SDL_SysWMinfo info;
+    SDL_VERSION(&info.version);
+    
+    if (SDL_GetWindowWMInfo(window, &info)) {
+        if (info.subsystem == SDL_SYSWM_WINDOWS) {
+            g_openxr_state.nativeDisplay = GetDC(info.info.win.window);
+        } else {
+             std::cerr << "SDL Window is not Windows. VR will not be available.";
+             return 0;
+        }
+    } else {
+        std::cerr << "Failed to get SDL Window info: " << SDL_GetError();
+        return 0;
+    }
+#else
+    // Get current X11 display and GLX context
+    SDL_Window* window = SDL_GL_GetCurrentWindow();
+    SDL_SysWMinfo info;
+    SDL_VERSION(&info.version);
+    
+    if (SDL_GetWindowWMInfo(window, &info)) {
+        if (info.subsystem == SDL_SYSWM_X11) {
+            g_openxr_state.nativeDisplay = info.info.x11.display;
+        } else {
+             std::cerr << "SDL Window is not X11. VR will not be available.";
+             return 0;
+        }
+    } else {
+        std::cerr << "Failed to get SDL Window info: " << SDL_GetError();
+        return 0;
+    }
+    
+    g_openxr_state.nativeContext = glXGetCurrentContext();
+    if (!g_openxr_state.nativeContext) {
+         std::cerr << "Failed to get current GLX context. VR will not be available.";
+         openxr_shutdown();
+         return 0;
+    }
+#endif
 
     std::cout << "Got EGL display and context";
 
@@ -217,8 +270,8 @@ int openxr_init(void)
     g_openxr_state.xrSession = createXRSession(
         g_openxr_state.xrInstance,
         g_openxr_state.xrSystemId,
-        g_openxr_state.eglDisplay,
-        g_openxr_state.eglContext
+        g_openxr_state.nativeDisplay,
+        g_openxr_state.nativeContext
     );
 
     if (g_openxr_state.xrSession == XR_NULL_HANDLE) {
@@ -292,8 +345,13 @@ void openxr_shutdown(void)
     g_openxr_state.xrInstance = XR_NULL_HANDLE;
     g_openxr_state.xrDebugMessenger = XR_NULL_HANDLE;
     g_openxr_state.xrSystemId = XR_NULL_SYSTEM_ID;
-    g_openxr_state.eglDisplay = EGL_NO_DISPLAY;
-    g_openxr_state.eglContext = EGL_NO_CONTEXT;
+#ifdef __ANDROID__
+    g_openxr_state.nativeDisplay = EGL_NO_DISPLAY;
+    g_openxr_state.nativeContext = EGL_NO_CONTEXT;
+#else
+    g_openxr_state.nativeDisplay = 0;
+    g_openxr_state.nativeContext = 0;
+#endif
     g_openxr_state.xrSession = XR_NULL_HANDLE;
     g_openxr_state.xrSpace = XR_NULL_HANDLE;
     g_openxr_state.xrStageSpace = XR_NULL_HANDLE;
@@ -616,7 +674,10 @@ int openxr_update(void)
     frameBeginInfo.type = XR_TYPE_FRAME_BEGIN_INFO;
     
     result = xrBeginFrame(g_openxr_state.xrSession, &frameBeginInfo);
-    if (result != XR_SUCCESS) {
+    if (result == XR_FRAME_DISCARDED) {
+        // Frame discarded is not an error, but we shouldn't render
+        frameState.shouldRender = XR_FALSE;
+    } else if (result != XR_SUCCESS) {
         std::cerr << "xrBeginFrame failed: " << result;
         return 0;
     }
@@ -749,15 +810,7 @@ XrSystemId openxr_get_system_id(void)
     return g_openxr_state.xrSystemId;
 }
 
-EGLDisplay openxr_get_egl_display(void)
-{
-    return g_openxr_state.eglDisplay;
-}
 
-EGLContext openxr_get_egl_context(void)
-{
-    return g_openxr_state.eglContext;
-}
 
 int openxr_end_frame_empty(void)
 {

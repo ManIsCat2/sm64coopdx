@@ -826,6 +826,7 @@ ifeq ($(WINDOW_API),DXGI)
 else ifeq ($(findstring SDL,$(WINDOW_API)),SDL)
   ifeq ($(WINDOWS_BUILD),1)
     BACKEND_LDFLAGS += -lglew32 -lglu32 -lopengl32
+    BACKEND_CFLAGS += -DGLEW_STATIC
   else ifeq ($(TARGET_ANDROID),1)
     BACKEND_LDFLAGS += -lGLESv2 -lEGL -llog
   else ifeq ($(TARGET_RPI),1)
@@ -844,9 +845,15 @@ endif
 ifeq ($(OPENXR),1)
   ifeq ($(TARGET_ANDROID),1)
     BACKEND_LDFLAGS += -Llib/openxr/android/$(ANDROID_ARCH) -l:libopenxr_loader.so
+  else ifeq ($(WINDOWS_BUILD),1)
+    OPENXR_PREFIX ?=
+    BACKEND_CFLAGS  += -I$(OPENXR_PREFIX)/include
+    BACKEND_LDFLAGS += -L$(OPENXR_PREFIX)/lib
+    BACKEND_LDFLAGS += -l:libopenxr_loader.a
+    BACKEND_LDFLAGS += -ljsoncpp
   else
-    # For Linux/desktop builds, link EGL and OpenXR
-    BACKEND_LDFLAGS += -lEGL -lopenxr_loader
+    # For Linux/desktop builds, link EGL, X11 and OpenXR
+    BACKEND_LDFLAGS += -lEGL -lX11 -lopenxr_loader
   endif
   BACKEND_CFLAGS += -Ilib/openxr/include
   # Ensure C++ files use local OpenXR headers (with META extensions) instead of system headers
@@ -971,7 +978,7 @@ ifeq ($(TARGET_N64),1)
 endif
 
 ifeq ($(WINDOWS_BUILD),1)
-  LDFLAGS := $(BITS) -march=$(TARGET_ARCH) -Llib -lpthread $(BACKEND_LDFLAGS) -static -mconsole
+  LDFLAGS := $(BITS) -march=$(TARGET_ARCH) -Llib -lpthread $(BACKEND_LDFLAGS) -static-libgcc -static-libstdc++ -mconsole -static
   ifeq ($(CROSS),)
     LDFLAGS += -no-pie
   endif
@@ -1034,6 +1041,8 @@ endif
 # Zlib
 ifeq ($(TARGET_ANDROID),1)
   LDFLAGS += -Llib/zlib/android/$(ANDROID_ARCH) -l:libz.a
+else ifeq ($(WINDOWS_BUILD),1)
+  LDFLAGS += -l:libz.a
 else
   LDFLAGS += -lz
 endif

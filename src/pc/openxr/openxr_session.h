@@ -1,17 +1,20 @@
 #ifndef OPENXR_SESSION_H
 #define OPENXR_SESSION_H
 
-#include <EGL/egl.h>
+#include "openxr_platform_defines.h"
 
 #ifdef __ANDROID__
-#include <jni.h>
-#define XR_USE_PLATFORM_ANDROID
+#include <EGL/egl.h>
+typedef EGLDisplay XRNativeDisplayType;
+typedef EGLContext XRNativeContextType;
+#elif defined(_WIN32)
+typedef HDC XRNativeDisplayType;
+typedef HGLRC XRNativeContextType;
 #else
-#define XR_USE_PLATFORM_EGL
+// Linux/PC
+typedef Display* XRNativeDisplayType;
+typedef GLXContext XRNativeContextType;
 #endif
-#define XR_USE_GRAPHICS_API_OPENGL_ES
-#include <openxr/openxr.h>
-#include <openxr/openxr_platform.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -21,8 +24,8 @@ extern "C" {
 XrSession createXRSession(
     XrInstance instance,
     XrSystemId systemID,
-    EGLDisplay display,
-    EGLContext context
+    XRNativeDisplayType display,
+    XRNativeContextType context
 );
 void destroyXRSession(XrSession session);
 

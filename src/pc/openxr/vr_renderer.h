@@ -93,7 +93,11 @@ void vr_renderer_update_space(void);
 }
 
 // C++ only - Get OpenGL handles for interop
+#ifdef __ANDROID__
 #include <GLES3/gl3.h>
+#else
+#include <GL/gl.h>
+#endif
 
 // Get the current swapchain GL texture for an eye
 // Returns 0 if not available

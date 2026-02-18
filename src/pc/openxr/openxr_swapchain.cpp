@@ -73,7 +73,7 @@ int createOpenXRSwapchains(
         cerr << "Failed to enumerate swapchain formats: " << result << endl;
         return 0;
     }
-    
+
     // Choose format - prefer SRGB8_ALPHA8 (sRGB)
     int64_t chosenFormat = formats[0];
     for (int64_t format : formats) {
@@ -109,12 +109,31 @@ int createOpenXRSwapchains(
         cout << "Creating swapchain for eye " << i 
              << " with resolution " << sc->width << "x" << sc->height << endl;
         
+        // Minimal usage flags - just color attachment for now to rule out SAMPLED issues
+        int64_t usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
+        cout << "Swapchain usage flags: " << usageFlags << endl;
+        cout << "Swapchain format: " << chosenFormat << endl;
+        
+#if !defined(__ANDROID__) && !defined(_WIN32)
+        // Check GLX context on Linux
+        if (glXGetCurrentContext() == NULL) {
+             cerr << "CRITICAL ERROR: No current GLX context before xrCreateSwapchain!" << endl;
+        } else {
+             cout << "Current GLX Context: " << glXGetCurrentContext() << endl;
+        }
+#endif
+        // Check for any pre-existing GL errors
+        GLenum err;
+        while((err = glGetError()) != GL_NO_ERROR) {
+            cerr << "Pre-existing GL error before xrCreateSwapchain: 0x" << hex << err << dec << endl;
+        }
+
+        cout << "Session Handle: " << session << endl;
+
         // Create swapchain
         XrSwapchainCreateInfo swapchainCreateInfo{};
         swapchainCreateInfo.type = XR_TYPE_SWAPCHAIN_CREATE_INFO;
-        swapchainCreateInfo.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | 
-                                         XR_SWAPCHAIN_USAGE_SAMPLED_BIT |
-                                         XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT;
+        swapchainCreateInfo.usageFlags = usageFlags;
         swapchainCreateInfo.format = chosenFormat;
         swapchainCreateInfo.sampleCount = 1;
         swapchainCreateInfo.width = sc->width;
@@ -142,11 +161,19 @@ int createOpenXRSwapchains(
             return 0;
         }
         
+#ifdef __ANDROID__
         vector<XrSwapchainImageOpenGLESKHR> swapchainImages(imageCount);
         for (uint32_t j = 0; j < imageCount; j++) {
             swapchainImages[j].type = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_ES_KHR;
             swapchainImages[j].next = nullptr;
         }
+#else
+        vector<XrSwapchainImageOpenGLKHR> swapchainImages(imageCount);
+        for (uint32_t j = 0; j < imageCount; j++) {
+            swapchainImages[j].type = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_KHR;
+            swapchainImages[j].next = nullptr;
+        }
+#endif
         
         result = xrEnumerateSwapchainImages(
             sc->swapchain,
@@ -249,9 +276,7 @@ int createQuadSwapchain(
     // Create swapchain
     XrSwapchainCreateInfo swapchainCreateInfo{};
     swapchainCreateInfo.type = XR_TYPE_SWAPCHAIN_CREATE_INFO;
-    swapchainCreateInfo.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT | 
-                                     XR_SWAPCHAIN_USAGE_SAMPLED_BIT |
-                                     XR_SWAPCHAIN_USAGE_TRANSFER_DST_BIT;
+    swapchainCreateInfo.usageFlags = XR_SWAPCHAIN_USAGE_COLOR_ATTACHMENT_BIT;
     swapchainCreateInfo.format = chosenFormat;
     swapchainCreateInfo.sampleCount = 1;
     swapchainCreateInfo.width = sc->width;
@@ -279,11 +304,19 @@ int createQuadSwapchain(
         return 0;
     }
     
+#ifdef __ANDROID__
     vector<XrSwapchainImageOpenGLESKHR> swapchainImages(imageCount);
     for (uint32_t j = 0; j < imageCount; j++) {
         swapchainImages[j].type = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_ES_KHR;
         swapchainImages[j].next = nullptr;
     }
+#else
+    vector<XrSwapchainImageOpenGLKHR> swapchainImages(imageCount);
+    for (uint32_t j = 0; j < imageCount; j++) {
+        swapchainImages[j].type = XR_TYPE_SWAPCHAIN_IMAGE_OPENGL_KHR;
+        swapchainImages[j].next = nullptr;
+    }
+#endif
     
     result = xrEnumerateSwapchainImages(
         sc->swapchain,

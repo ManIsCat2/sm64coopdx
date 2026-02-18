@@ -27,7 +27,26 @@ void openxr_render_keyboard(int eye);
 #ifdef USE_GLES
 #include <GLES3/gl3.h>
 #else
-#include <GL/gl.h>
+# if defined(WAPI_SDL2)
+#  ifndef GL_GLEXT_PROTOTYPES
+#   define GL_GLEXT_PROTOTYPES 1
+#  endif
+#  include <SDL2/SDL_opengl.h>
+# elif defined(WAPI_SDL1)
+#  ifndef GL_GLEXT_PROTOTYPES
+#   define GL_GLEXT_PROTOTYPES 1
+#  endif
+#  include <SDL/SDL_opengl.h>
+# else
+#  if defined(__linux__) || defined(__APPLE__)
+    // Fallback for Linux/Mac if not using SDL (unlikely but safe)
+#   ifndef GL_GLEXT_PROTOTYPES
+#    define GL_GLEXT_PROTOTYPES 1
+#   endif
+#  endif
+#  include <GL/glew.h>
+#  include <GL/gl.h>
+# endif
 #endif
 
 #include "openxr_keyboard_gltf.h"

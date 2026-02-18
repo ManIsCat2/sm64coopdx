@@ -2,15 +2,9 @@
 #define OPENXR_MANAGER_H
 
 #include <stdint.h>
-#include <EGL/egl.h>
 
-#ifdef __ANDROID__
-#include <jni.h>
-#define XR_USE_PLATFORM_ANDROID
-#endif
-#define XR_USE_GRAPHICS_API_OPENGL_ES
-#include <openxr/openxr.h>
-#include <openxr/openxr_platform.h>
+
+#include "openxr_platform_defines.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -54,9 +48,7 @@ XrSession openxr_get_session(void);
 XrSpace openxr_get_space(void);
 XrSystemId openxr_get_system_id(void);
 
-// Get EGL/OpenGL context for OpenXR
-EGLDisplay openxr_get_egl_display(void);
-EGLContext openxr_get_egl_context(void);
+
 
 // End frame with no layers (used when VR rendering didn't happen but xrBeginFrame was called)
 int openxr_end_frame_empty(void);

@@ -286,11 +286,11 @@ bool         configSnapTouch                      = false;
 // VR settings
 #ifdef OPENXR_ENABLED
 bool         configVrFirstPersonCamera            = false;
+bool         configVrAspectRatioCorrection        = true;
 unsigned int configVrTurnMode                     = 0; // 0 = Smooth, 1 = Snap
 unsigned int configVrSnapAngle                    = 2; // 0 = 15, 1 = 30, 2 = 45, etc.
 unsigned int configVrHudPosition                  = 1;  // 0 = head-locked, 1 = left hand
 unsigned int configVrHudDistance                  = 1; // 1.0 meters
-bool         configVrAspectRatioCorrection        = true;
 unsigned int configVrHudYaw                       = 50; // 0-100, 50 = neutral
 unsigned int configVrHudPitch                     = 50; // 0-100, 50 = neutral
 unsigned int configVrHudX                         = 50; // 0-100, 50 = neutral

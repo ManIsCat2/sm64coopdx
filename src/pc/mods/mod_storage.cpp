@@ -114,11 +114,10 @@ static bool mod_storage_check_inputs(const char *key, const char *value, char *f
     if (gLuaActiveMod == NULL) { return false; }
 
 #ifdef __ANDROID__
-    if (!key_cached(key, value)) {
+    if (value && !key_cached(key, value)) {
         cache_key(key, value);
     }
 #endif
-
     // retrieve filename
     mod_storage_get_filename(filename);
 

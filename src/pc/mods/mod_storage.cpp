@@ -158,7 +158,9 @@ static mINI::INIStructure &mod_storage_read_file(const char *filename) {
 
     mINI::INIFile file(filename);
     mINI::INIStructure ini;
+    if (fs_sys_path_exists(filename)) {
     file.read(ini);
+    }
     sModStorageFiles[filename] = ini;
     return sModStorageFiles[filename];
 }
@@ -168,28 +170,18 @@ C_FIELD const char* mod_storage_load(const char* key) {
     if (!mod_storage_check_inputs(key, NULL, filename)) {
         return NULL;
     }
+const mINI::INIStructure &ini = mod_storage_read_file(filename);
+std::string str = ini.get("storage").get(key);
+if (str.empty()) { return NULL; }
 
+// save cache before read
 #ifdef __ANDROID__
-    char *cached_value = NULL;
-    cached_value = key_cached(key, NULL);
-    if (cached_value) {
-        return cached_value;
-    }
+    cache_key(key, str.c_str());
 #endif
 
-    const mINI::INIStructure &ini = mod_storage_read_file(filename);
-    std::string str = ini.get("storage").get(key);
-    if (str.empty()) { return NULL; }
-
-    // Store string results in a temporary buffer
-    // this assumes mod_storage_load will only ever be called by Lua
-    static char value[MAX_KEY_VALUE_LENGTH];
-    snprintf(value, MAX_KEY_VALUE_LENGTH, "%s", str.c_str());
-
-#ifdef __ANDROID__
-    cache_key(key, (char*)value);
-#endif
-    return value;
+static char value[MAX_KEY_VALUE_LENGTH];
+snprintf(value, MAX_KEY_VALUE_LENGTH, "%s", str.c_str());
+return value;
 }
 
 C_FIELD f32 mod_storage_load_number(const char* key) {
@@ -315,4 +307,10 @@ C_FIELD void mod_storage_shutdown(void) {
         file.second.clear();
     }
     sModStorageFiles.clear();
+}
+
+C_FIELD void mod_storage_init(void) {
+#ifdef __ANDROID__
+    key_cache_init();
+#endif
 }

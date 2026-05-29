@@ -18,12 +18,12 @@ Unlike previous multiplayer projects, this one synchronizes enemies and events. 
 
 Interestingly enough though, the goal of the project has slowly evolved over time from simply just making a Super Mario 64 multiplayer mod to constantly maintaining and improving the project (notably the Lua API.)
 
-## Lua
-sm64coopdx is moddable via Lua, similar to Roblox and Garry's Mod's Lua APIs. To get started, click [here](docs/lua/lua.md) to see the Lua documentation.
+## Documentation
+
+sm64coopdx is moddable via Lua, similar to Roblox and Garry's Mod's Lua APIs. To get started, click [here](docs/lua/lua.md) to see the Lua documentation. If you want to contribute to the repo, you can view the C documentation [here](docs/c/c.md).
 
 ## Wiki
 The wiki is made using GitHub's wiki feature, you can go to the wiki tab or click [here](https://github.com/ManIsCat2/sm64coopdx/wiki).
 
-## Discord
-This SM64CoopDX android port has a discord server that you can join if you have questions or want to report bugs or just wanna download the game.
-[discord link](https://discord.gg/WzQSRfHh6g)
+## Community
+We have an official Discord server open to the public [here](https://discord.gg/TJVKHS4).

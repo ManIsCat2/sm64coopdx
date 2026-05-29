@@ -40,7 +40,7 @@
 static u16 gRandomSeed16;
 
 // Unused function that directly jumps to a behavior command and resets the object's stack index.
-static void goto_behavior_unused(const BehaviorScript *bhvAddr) {
+UNUSED static void goto_behavior_unused(const BehaviorScript *bhvAddr) {
     gCurBhvCommand = segmented_to_virtual(bhvAddr);
     gCurrentObject->bhvStackIndex = 0;
 }
@@ -145,12 +145,6 @@ static uintptr_t cur_obj_bhv_stack_pop(void) {
     }
 
     return bhvAddr;
-}
-
-static void stub_behavior_script_1(void) {
-    for (;;) {
-        ;
-    }
 }
 
 // Command 0x22: Hides the current object.
@@ -743,7 +737,7 @@ static s32 bhv_cmd_begin(void) {
 // It cannot be simply re-added to the table, as unlike all other bhv commands it takes a parameter.
 // Theoretically this command would have been of variable size.
 // Included below is a modified/repaired version of this function that would work properly.
-static void bhv_cmd_set_int_random_from_table(s32 tableSize) {
+UNUSED static void bhv_cmd_set_int_random_from_table(s32 tableSize) {
     u8 field = BHV_CMD_GET_2ND_U8(0);
     s32 table[16];
     s32 i;
@@ -797,7 +791,22 @@ static s32 bhv_cmd_load_collision_data(void) {
 // Command 0x2D: Sets the home position of the object to its current position.
 // Usage: SET_HOME()
 static s32 bhv_cmd_set_home(void) {
-    if (!(gCurrentObject->coopFlags & (COOP_OBJ_FLAG_LUA | COOP_OBJ_FLAG_NETWORK))) {
+    // COOP: only set home via behavior for the following cases
+    if (
+        // if the object wasn't created via Lua
+        !(gCurrentObject->coopFlags & COOP_OBJ_FLAG_LUA)
+        // if the object wasn't created via network
+        // OR
+        // the object has never had its home set via behavior AND its home is default (e.g. (0, 0, 0))
+        // (this case handles an object that needs its home set via behavior after being spawned by another player)
+        && (
+            !(gCurrentObject->coopFlags & COOP_OBJ_FLAG_NETWORK)
+            || (
+                !gCurrentObject->setHome
+                && gCurrentObject->oHomeX == 0.0f && gCurrentObject->oHomeY == 0.0f && gCurrentObject->oHomeZ == 0.0f
+            )
+        )
+    ) {
         gCurrentObject->oHomeX = gCurrentObject->oPosX;
         gCurrentObject->oHomeY = gCurrentObject->oPosY;
         gCurrentObject->oHomeZ = gCurrentObject->oPosZ;
@@ -987,15 +996,14 @@ static s32 bhv_cmd_call_native_ext(void) {
     }
 
     const char *funcStr = dynos_behavior_get_token(behavior, BHV_CMD_GET_U32(1));
+    if (!funcStr) {
+        LOG_LUA("Could not retrieve function name from behavior command.");
+        gCurBhvCommand += 2;
+        return BHV_PROC_CONTINUE;
+    }
 
     gSmLuaConvertSuccess = true;
     LuaFunction funcRef = smlua_get_function_mod_variable(modIndex, funcStr);
-
-    if (!gSmLuaConvertSuccess) {
-        gSmLuaConvertSuccess = true;
-        funcRef = smlua_get_any_function_mod_variable(funcStr);
-    }
-
     if (!gSmLuaConvertSuccess || funcRef == 0) {
         LOG_LUA("Failed to call lua behavior function, could not find lua function '%s'", funcStr);
         gCurBhvCommand += 2;
@@ -1364,21 +1372,17 @@ cur_obj_update_begin:;
 
     // Execute the behavior script.
     gCurBhvCommand = gCurrentObject->curBhvCommand;
-    u8 skipBehavior = smlua_call_behavior_hook(&gCurBhvCommand, gCurrentObject, true);
+    do {
+        if (!gCurBhvCommand) { break; }
 
-    if (!skipBehavior) {
-        do {
-            if (!gCurBhvCommand) { break; }
+        u32 index = *gCurBhvCommand >> 24;
+        if (index >= BEHAVIOR_CMD_TABLE_MAX) { break; }
 
-            u32 index = *gCurBhvCommand >> 24;
-            if (index >= BEHAVIOR_CMD_TABLE_MAX) { break; }
+        bhvCmdProc = BehaviorCmdTable[index];
+        bhvProcResult = bhvCmdProc();
+    } while (bhvProcResult == BHV_PROC_CONTINUE);
 
-            bhvCmdProc = BehaviorCmdTable[index];
-            bhvProcResult = bhvCmdProc();
-        } while (bhvProcResult == BHV_PROC_CONTINUE);
-    }
-
-    smlua_call_behavior_hook(&gCurBhvCommand, gCurrentObject, false);
+    smlua_call_behavior_hook(gCurrentObject);
     gCurrentObject->curBhvCommand = gCurBhvCommand;
 
     // Increment the object's timer.
@@ -1430,7 +1434,9 @@ cur_obj_update_begin:;
     } else if ((objFlags & OBJ_FLAG_COMPUTE_DIST_TO_MARIO) && gCurrentObject->collisionData == NULL) {
         if (!(objFlags & OBJ_FLAG_ACTIVE_FROM_AFAR)) {
             // If the object has a render distance, check if it should be shown.
-            if (distanceFromMario > gCurrentObject->oDrawingDistance * draw_distance_scalar()) {
+            if (!draw_distance_scalar_is_infinite() &&
+                distanceFromMario > gCurrentObject->oDrawingDistance * draw_distance_scalar()
+            ) {
                 // Out of render distance, hide the object.
                 gCurrentObject->header.gfx.node.flags &= ~GRAPH_RENDER_ACTIVE;
 
@@ -1476,6 +1482,13 @@ u16 position_based_random_u16(void) {
 f32 position_based_random_float_position(void) {
     f32 rnd = position_based_random_u16();
     return rnd / (double)0x10000;
+}
+
+bool draw_distance_scalar_is_infinite(void) {
+    if (!gBehaviorValues.InfiniteRenderDistance) {
+        return false;
+    }
+    return configDrawDistance == 6; // Expecting this to be "Infinite"
 }
 
 f32 draw_distance_scalar(void) {

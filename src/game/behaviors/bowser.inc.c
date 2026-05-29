@@ -50,14 +50,14 @@ s16 D_8032F520[][3] = { { 1, 10, 40 },   { 0, 0, 74 },    { -1, -10, 114 },  { 1
 
 void bhv_bowser_tail_anchor_init(void) {
     if (!o->parentObj) { mark_obj_for_deletion(o); return; }
-    sync_object_init_field(o->parentObj, &o->oAction);
-    sync_object_init_field(o->parentObj, &o->oPrevAction);
-    sync_object_init_field(o->parentObj, &o->oTimer);
-    sync_object_init_field(o->parentObj, &o->oIntangibleTimer);
-    sync_object_init_field(o->parentObj, &o->oInteractStatus);
-    sync_object_init_field(o->parentObj, &o->header.gfx.scale[0]);
-    sync_object_init_field(o->parentObj, &o->header.gfx.scale[1]);
-    sync_object_init_field(o->parentObj, &o->header.gfx.scale[2]);
+    sync_object_init_field(o->parentObj, o->oAction);
+    sync_object_init_field(o->parentObj, o->oPrevAction);
+    sync_object_init_field(o->parentObj, o->oTimer);
+    sync_object_init_field(o->parentObj, o->oIntangibleTimer);
+    sync_object_init_field(o->parentObj, o->oInteractStatus);
+    sync_object_init_field(o->parentObj, o->header.gfx.scale[0]);
+    sync_object_init_field(o->parentObj, o->header.gfx.scale[1]);
+    sync_object_init_field(o->parentObj, o->header.gfx.scale[2]);
 }
 
 void bhv_bowser_tail_anchor_loop(void) {
@@ -112,10 +112,10 @@ void bhv_bowser_flame_spawn_loop(void) {
 
 void bhv_bowser_body_anchor_init(void) {
     if (!o->parentObj) { mark_obj_for_deletion(o); return; }
-    sync_object_init_field(o->parentObj, &o->oInteractType);
-    sync_object_init_field(o->parentObj, &o->oInteractStatus);
-    sync_object_init_field(o->parentObj, &o->oIntangibleTimer);
-    sync_object_init_field(o->parentObj, &o->oDamageOrCoinValue);
+    sync_object_init_field(o->parentObj, o->oInteractType);
+    sync_object_init_field(o->parentObj, o->oInteractStatus);
+    sync_object_init_field(o->parentObj, o->oIntangibleTimer);
+    sync_object_init_field(o->parentObj, o->oDamageOrCoinValue);
 }
 
 void bhv_bowser_body_anchor_loop(void) {
@@ -245,7 +245,7 @@ void bowser_act_intro_walk(void) {
     }
 }
 
-static void bowser_debug_actions(void) // unused
+UNUSED static void bowser_debug_actions(void) // unused
 {
     if (gDebugInfo[5][1] != 0) {
         o->oAction = D_8032F4FC[gDebugInfo[5][2] & 0xf];
@@ -778,7 +778,7 @@ void bowser_act_thrown_dropped(void)
             o->oAction = 4;
         else
             o->oAction = 12;
-        
+
         if (is_nearest_mario_state_to_object(gMarioState, o)) {
             network_send_object(o);
         }
@@ -887,9 +887,9 @@ void bowser_spawn_grand_star_key(void) {
             reward->oHomeX = reward->oPosX;
             reward->oHomeY = reward->oPosY;
             reward->oHomeZ = reward->oPosZ;
-            
+
             sync_object_set_id(reward);
-            
+
             struct Object* spawn_objects[] = { reward };
             u32 models[] = { MODEL_STAR };
             network_send_spawn_objects(spawn_objects, models, 1);
@@ -1003,7 +1003,7 @@ s32 bowser_dead_not_bits_end(void) {
         bowser_dead_hide();
         spawn_triangle_break_particles(20, 116, 1.0f, 0);
         bowser_spawn_grand_star_key();
-        if (gMarioStates[0].visibleToEnemies) {
+        if (gMarioStates[0].visibleToObjects) {
             set_mario_npc_dialog(&gMarioStates[0], 0, NULL);
         }
         return 1;
@@ -1015,7 +1015,7 @@ u8 bowser_dead_bits_end_continue_dialog(void) { return o->oAction == 4 && o->oBo
 
 s32 bowser_dead_bits_end(void) {
     struct MarioState *marioState = nearest_mario_state_to_object(o);
-    
+
     if (o->oBowserUnkF8 < 2) {
         s32 dialogID = gBehaviorValues.dialogs.Bowser3Defeated120StarsDialog;
         if (gHudDisplay.stars < 120) {
@@ -1077,12 +1077,12 @@ void bowser_act_dead(void) {
 
 void bhv_tilting_bowser_lava_platform_init(void) {
     sync_object_init(o, SYNC_DISTANCE_ONLY_EVENTS);
-    sync_object_init_field(o, &o->oAngleVelPitch);
-    sync_object_init_field(o, &o->oAngleVelRoll);
-    sync_object_init_field(o, &o->oFaceAnglePitch);
-    sync_object_init_field(o, &o->oFaceAngleRoll);
-    sync_object_init_field(o, &o->oMoveAnglePitch);
-    sync_object_init_field(o, &o->oMoveAngleRoll);
+    sync_object_init_field(o, o->oAngleVelPitch);
+    sync_object_init_field(o, o->oAngleVelRoll);
+    sync_object_init_field(o, o->oFaceAnglePitch);
+    sync_object_init_field(o, o->oFaceAngleRoll);
+    sync_object_init_field(o, o->oMoveAnglePitch);
+    sync_object_init_field(o, o->oMoveAngleRoll);
 }
 
 void bowser_tilt_platform(struct Object* platform, s16 a1) {
@@ -1382,7 +1382,7 @@ void bhv_bowser_override_ownership(u8* shouldOverride, u8* shouldOwn) {
         *shouldOwn = FALSE;
         return;
     }
-    
+
     // tilting platform
     static u8 tiltingTimer = 0;
     if (o->oAction == 19) { tiltingTimer = 5; }
@@ -1426,7 +1426,7 @@ void bhv_bowser_init(void) {
     o->oBowserUnk1AE = 0;
     o->oBowserEyesShut = 0;
     bowserCutscenePlayed = FALSE;
-    
+
     // Make sure we're the first to trigger Bowser.
     if (!is_other_player_active()) {
         bowserIsCutscenePlayer = TRUE;
@@ -1437,7 +1437,7 @@ void bhv_bowser_init(void) {
         bowserCutsceneGlobalIndex = UNKNOWN_GLOBAL_INDEX;
         o->oAction = 20; // bowser_act_nothing
     }
-    
+
     if (!sync_object_is_initialized(o->oSyncID)) {
         struct SyncObject* so = sync_object_init(o, 8000.0f);
         if (so) {
@@ -1445,13 +1445,13 @@ void bhv_bowser_init(void) {
             so->ignore_if_true = bhv_bowser_ignore_if_true;
             so->on_received_post = bhv_bowser_on_received_post;
             so->fullObjectSync = TRUE;
-            sync_object_init_field_with_size(o, &o->header.gfx.node.flags, 16);
-            sync_object_init_field_with_size(o, &o->header.gfx.animInfo.animFrame, 16);
-            sync_object_init_field_with_size(o, &bowserCutsceneGlobalIndex, 8);
-            sync_object_init_field(o, &networkBowserAnimationIndex);
-            sync_object_init_field(o, &o->header.gfx.scale[0]);
-            sync_object_init_field(o, &o->header.gfx.scale[1]);
-            sync_object_init_field(o, &o->header.gfx.scale[2]);
+            sync_object_init_field(o, o->header.gfx.node.flags);
+            sync_object_init_field(o, o->header.gfx.animInfo.animFrame);
+            sync_object_init_field(o, bowserCutsceneGlobalIndex);
+            sync_object_init_field(o, networkBowserAnimationIndex);
+            sync_object_init_field(o, o->header.gfx.scale[0]);
+            sync_object_init_field(o, o->header.gfx.scale[1]);
+            sync_object_init_field(o, o->header.gfx.scale[2]);
         }
     }
 }
@@ -1692,9 +1692,9 @@ void bhv_falling_bowser_platform_loop(void) {
         struct SyncObject* so = sync_object_init(o, SYNC_DISTANCE_ONLY_EVENTS);
         if (so) {
             so->ignore_if_true = bhv_falling_bowser_platform_ignore_if_true;
-            sync_object_init_field(o, &o->oAction);
-            sync_object_init_field(o, &o->oPrevAction);
-            sync_object_init_field(o, &o->oTimer);
+            sync_object_init_field(o, o->oAction);
+            sync_object_init_field(o, o->oPrevAction);
+            sync_object_init_field(o, o->oTimer);
         }
     }
 

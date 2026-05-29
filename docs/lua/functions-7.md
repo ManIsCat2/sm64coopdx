@@ -6,6 +6,1268 @@
 
 
 ---
+# functions from smlua_gfx_utils.h
+
+<br />
+
+
+## [get_shader_flag_enabled](#get_shader_flag_enabled)
+
+### Description
+Gets if a custom shader flag (`SHADER_FLAG_*`) is enabled or not
+
+### Lua Example
+`local booleanValue = get_shader_flag_enabled(flag)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| flag | [enum ShaderFlag](constants.md#enum-ShaderFlag) |
+
+### Returns
+- `boolean`
+
+### C Prototype
+`bool get_shader_flag_enabled(enum ShaderFlag flag);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_shader_flag_enabled](#set_shader_flag_enabled)
+
+### Description
+Enables a custom shader flag (`SHADER_FLAG_*`) for the renderer
+
+### Lua Example
+`set_shader_flag_enabled(flag, enabled)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| flag | [enum ShaderFlag](constants.md#enum-ShaderFlag) |
+| enabled | `boolean` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_shader_flag_enabled(enum ShaderFlag flag, bool enabled);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_shader_flag_value](#get_shader_flag_value)
+
+### Description
+Gets a value for one of the custom shader flags (`SHADER_FLAG_*`)
+
+### Lua Example
+`local numberValue = get_shader_flag_value(flag)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| flag | [enum ShaderFlag](constants.md#enum-ShaderFlag) |
+
+### Returns
+- `number`
+
+### C Prototype
+`f32 get_shader_flag_value(enum ShaderFlag flag);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_shader_flag_value](#set_shader_flag_value)
+
+### Description
+Sets a value for one of the custom shader flags (`SHADER_FLAG_*`) for the renderer
+
+### Lua Example
+`set_shader_flag_value(flag, value)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| flag | [enum ShaderFlag](constants.md#enum-ShaderFlag) |
+| value | `number` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_shader_flag_value(enum ShaderFlag flag, f32 value);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_global_shader_flags_enabled](#get_global_shader_flags_enabled)
+
+### Description
+Gets if custom shader flags are enabled globally
+
+### Lua Example
+`local booleanValue = get_global_shader_flags_enabled()`
+
+### Parameters
+- None
+
+### Returns
+- `boolean`
+
+### C Prototype
+`bool get_global_shader_flags_enabled(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_global_shader_flags_enabled](#set_global_shader_flags_enabled)
+
+### Description
+Enables custom shader flags as a global toggle, useful for disabling without manually going through every effect
+
+### Lua Example
+`set_global_shader_flags_enabled(enabled)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| enabled | `boolean` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_global_shader_flags_enabled(bool enabled);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [clear_all_shader_flags](#clear_all_shader_flags)
+
+### Description
+Clears all custom shader flags (`SHADER_FLAG_*`) for the renderer
+
+### Lua Example
+`clear_all_shader_flags()`
+
+### Parameters
+- None
+
+### Returns
+- None
+
+### C Prototype
+`void clear_all_shader_flags(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_shading_fullbright_enabled](#get_shading_fullbright_enabled)
+
+### Description
+Gets if fullbright mode is enabled for shaded materials (`G_LIGHTING`)
+
+### Lua Example
+`local booleanValue = get_shading_fullbright_enabled()`
+
+### Parameters
+- None
+
+### Returns
+- `boolean`
+
+### C Prototype
+`bool get_shading_fullbright_enabled(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_shading_fullbright_enabled](#set_shading_fullbright_enabled)
+
+### Description
+Enables fullbright mode for shaded materials (`G_LIGHTING`.)
+If a light color is completely black, the rendered color will default to the shade color.
+This is for already fullbright materials that set their shade color to something and their light color to black.
+This visually corrects rendering on materials such as Mario's emblem.
+Useful for using the lighting engine and having entirely your own shading without the game's own systems
+and compatibility with most models, not having to used specialized env/prim color approaches for example
+
+### Lua Example
+`set_shading_fullbright_enabled(enabled)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| enabled | `boolean` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_shading_fullbright_enabled(bool enabled);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_override_fov](#set_override_fov)
+
+### Description
+Sets the override FOV
+
+### Lua Example
+`set_override_fov(fov)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| fov | `number` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_override_fov(f32 fov);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_override_near](#set_override_near)
+
+### Description
+Sets the override near plane
+
+### Lua Example
+`set_override_near(near)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| near | `number` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_override_near(f32 near);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_override_far](#set_override_far)
+
+### Description
+Sets the override far plane
+
+### Lua Example
+`set_override_far(far)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| far | `number` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_override_far(f32 far);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_lighting_dir](#get_lighting_dir)
+
+### Description
+Gets a value of the global lighting direction
+
+### Lua Example
+`local numberValue = get_lighting_dir(index)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| index | `integer` |
+
+### Returns
+- `number`
+
+### C Prototype
+`f32 get_lighting_dir(u8 index);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_lighting_dir](#set_lighting_dir)
+
+### Description
+Sets a value of the global lighting direction
+
+### Lua Example
+`set_lighting_dir(index, value)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| index | `integer` |
+| value | `number` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_lighting_dir(u8 index, f32 value);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_lighting_color](#get_lighting_color)
+
+### Description
+Gets a value of the global lighting color
+
+### Lua Example
+`local integerValue = get_lighting_color(index)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| index | `integer` |
+
+### Returns
+- `integer`
+
+### C Prototype
+`u8 get_lighting_color(u8 index);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_lighting_color_ambient](#get_lighting_color_ambient)
+
+### Description
+Gets a value of the global ambient lighting color
+
+### Lua Example
+`local integerValue = get_lighting_color_ambient(index)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| index | `integer` |
+
+### Returns
+- `integer`
+
+### C Prototype
+`u8 get_lighting_color_ambient(u8 index);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_lighting_color](#set_lighting_color)
+
+### Description
+Sets a value of the global lighting color
+
+### Lua Example
+`set_lighting_color(index, value)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| index | `integer` |
+| value | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_lighting_color(u8 index, u8 value);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_lighting_color_ambient](#set_lighting_color_ambient)
+
+### Description
+Sets a value of the global lighting color (run this after `set_lighting_color` for the ambient color to not be overriden)
+
+### Lua Example
+`set_lighting_color_ambient(index, value)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| index | `integer` |
+| value | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_lighting_color_ambient(u8 index, u8 value);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_vertex_color](#get_vertex_color)
+
+### Description
+Gets a value of the global vertex shading color
+
+### Lua Example
+`local integerValue = get_vertex_color(index)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| index | `integer` |
+
+### Returns
+- `integer`
+
+### C Prototype
+`u8 get_vertex_color(u8 index);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_vertex_color](#set_vertex_color)
+
+### Description
+Sets a value of the global vertex shading color
+
+### Lua Example
+`set_vertex_color(index, value)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| index | `integer` |
+| value | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_vertex_color(u8 index, u8 value);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_fog_color](#get_fog_color)
+
+### Description
+Gets a value of the global fog color
+
+### Lua Example
+`local integerValue = get_fog_color(index)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| index | `integer` |
+
+### Returns
+- `integer`
+
+### C Prototype
+`u8 get_fog_color(u8 index);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_fog_color](#set_fog_color)
+
+### Description
+Sets a value of the global fog color
+
+### Lua Example
+`set_fog_color(index, value)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| index | `integer` |
+| value | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_fog_color(u8 index, u8 value);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_fog_intensity](#get_fog_intensity)
+
+### Description
+Gets the intensity of the fog
+
+### Lua Example
+`local numberValue = get_fog_intensity()`
+
+### Parameters
+- None
+
+### Returns
+- `number`
+
+### C Prototype
+`f32 get_fog_intensity(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_fog_intensity](#set_fog_intensity)
+
+### Description
+Sets the intensity of the fog (this value scales very quickly, 1.0 to 1.1 is a desirable range)
+
+### Lua Example
+`set_fog_intensity(intensity)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| intensity | `number` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_fog_intensity(f32 intensity);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_skybox](#get_skybox)
+
+### Description
+Gets the current skybox
+
+### Lua Example
+`local integerValue = get_skybox()`
+
+### Parameters
+- None
+
+### Returns
+- `integer`
+
+### C Prototype
+`s8 get_skybox(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_override_skybox](#set_override_skybox)
+
+### Description
+Sets the override skybox
+
+### Lua Example
+`set_override_skybox(background)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| background | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_override_skybox(s8 background);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_skybox_color](#get_skybox_color)
+
+### Description
+Gets a value of the global skybox color
+
+### Lua Example
+`local integerValue = get_skybox_color(index)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| index | `integer` |
+
+### Returns
+- `integer`
+
+### C Prototype
+`u8 get_skybox_color(u8 index);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [set_skybox_color](#set_skybox_color)
+
+### Description
+Sets a value of the global skybox color
+
+### Lua Example
+`set_skybox_color(index, value)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| index | `integer` |
+| value | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_skybox_color(u8 index, u8 value);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_parse](#gfx_parse)
+
+### Description
+Traverses a display list. Takes a Lua function as a parameter, which is called back for each command in the display list with the parameters `cmd` (display list pointer), and `op`
+
+### Lua Example
+`gfx_parse(cmd, func)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| cmd | `Pointer` <`Gfx`> |
+| func | `Lua Function` () |
+
+### Returns
+- None
+
+### C Prototype
+`void gfx_parse(Gfx *cmd, LuaFunction func);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_get_op](#gfx_get_op)
+
+### Description
+Gets the op of the display list command
+
+### Lua Example
+`local integerValue = gfx_get_op(cmd)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| cmd | `Pointer` <`Gfx`> |
+
+### Returns
+- `integer`
+
+### C Prototype
+`u32 gfx_get_op(Gfx *cmd);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_get_display_list](#gfx_get_display_list)
+
+### Description
+Gets the display list from a display list command if it has the op `G_DL`
+
+### Lua Example
+`local pointerValue = gfx_get_display_list(cmd)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| cmd | `Pointer` <`Gfx`> |
+
+### Returns
+- `Pointer` <`Gfx`>
+
+### C Prototype
+`Gfx *gfx_get_display_list(Gfx *cmd);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_get_vertex_buffer](#gfx_get_vertex_buffer)
+
+### Description
+Gets the vertex buffer from a display list command if it has the op `G_VTX`
+
+### Lua Example
+`local pointerValue = gfx_get_vertex_buffer(cmd)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| cmd | `Pointer` <`Gfx`> |
+
+### Returns
+- `Pointer` <`Vtx`>
+
+### C Prototype
+`Vtx *gfx_get_vertex_buffer(Gfx *cmd);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_get_vertex_count](#gfx_get_vertex_count)
+
+### Description
+Gets the number of vertices from a display list command if it has the op `G_VTX`
+
+### Lua Example
+`local integerValue = gfx_get_vertex_count(cmd)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| cmd | `Pointer` <`Gfx`> |
+
+### Returns
+- `integer`
+
+### C Prototype
+`u16 gfx_get_vertex_count(Gfx *cmd);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_get_texture](#gfx_get_texture)
+
+### Description
+Gets the texture from a display list command if it has an image related op
+
+### Lua Example
+`local pointerValue = gfx_get_texture(cmd)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| cmd | `Pointer` <`Gfx`> |
+
+### Returns
+- `Pointer` <`Texture`>
+
+### C Prototype
+`Texture *gfx_get_texture(Gfx *cmd);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_get_from_name](#gfx_get_from_name)
+
+### Description
+Gets a display list of the current mod from its name.
+Returns a pointer to the display list and its length
+
+### Lua Example
+`local pointerValue, length = gfx_get_from_name(name)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| name | `string` |
+
+### Returns
+- `Pointer` <`Gfx`>
+- `integer`
+
+### C Prototype
+`Gfx *gfx_get_from_name(const char *name, RET u32 *length);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_get_name](#gfx_get_name)
+
+### Description
+Gets the name of a display list
+
+### Lua Example
+`local stringValue = gfx_get_name(gfx)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| gfx | `Pointer` <`Gfx`> |
+
+### Returns
+- `string`
+
+### C Prototype
+`const char *gfx_get_name(Gfx *gfx);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_get_length](#gfx_get_length)
+
+### Description
+Gets the max length of a display list
+
+### Lua Example
+`local integerValue = gfx_get_length(gfx)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| gfx | `Pointer` <`Gfx`> |
+
+### Returns
+- `integer`
+
+### C Prototype
+`u32 gfx_get_length(Gfx *gfx);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_get_command](#gfx_get_command)
+
+### Description
+Gets a command of a display list at position `offset`
+
+### Lua Example
+`local pointerValue = gfx_get_command(gfx, offset)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| gfx | `Pointer` <`Gfx`> |
+| offset | `integer` |
+
+### Returns
+- `Pointer` <`Gfx`>
+
+### C Prototype
+`Gfx *gfx_get_command(Gfx *gfx, u32 offset);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_get_next_command](#gfx_get_next_command)
+
+### Description
+Gets the next command of a given display list pointer. Intended to use in a for loop
+
+### Lua Example
+`local pointerValue = gfx_get_next_command(gfx)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| gfx | `Pointer` <`Gfx`> |
+
+### Returns
+- `Pointer` <`Gfx`>
+
+### C Prototype
+`Gfx *gfx_get_next_command(Gfx *gfx);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_copy](#gfx_copy)
+
+### Description
+Copies `length` commands from display list `src` to display list `dest`
+
+### Lua Example
+`gfx_copy(dest, src, length)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | `Pointer` <`Gfx`> |
+| src | `Pointer` <`Gfx`> |
+| length | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void gfx_copy(Gfx *dest, Gfx *src, u32 length);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_create](#gfx_create)
+
+### Description
+Creates a new named display list of `length` commands
+
+### Lua Example
+`local pointerValue = gfx_create(name, length)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| name | `string` |
+| length | `integer` |
+
+### Returns
+- `Pointer` <`Gfx`>
+
+### C Prototype
+`Gfx *gfx_create(const char *name, u32 length);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_resize](#gfx_resize)
+
+### Description
+Resizes a display list created by `gfx_create`
+
+### Lua Example
+`gfx_resize(gfx, newLength)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| gfx | `Pointer` <`Gfx`> |
+| newLength | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void gfx_resize(Gfx *gfx, u32 newLength);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_delete](#gfx_delete)
+
+### Description
+Deletes a display list created by `gfx_create`
+
+### Lua Example
+`gfx_delete(gfx)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| gfx | `Pointer` <`Gfx`> |
+
+### Returns
+- None
+
+### C Prototype
+`void gfx_delete(Gfx *gfx);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [gfx_delete_all](#gfx_delete_all)
+
+### Description
+Deletes all display lists created by `gfx_create`
+
+### Lua Example
+`gfx_delete_all()`
+
+### Parameters
+- None
+
+### Returns
+- None
+
+### C Prototype
+`void gfx_delete_all();`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vtx_get_from_name](#vtx_get_from_name)
+
+### Description
+Gets a vertex buffer of the current mod from its name.
+Returns a pointer to the vertex buffer and its vertex count
+
+### Lua Example
+`local pointerValue, count = vtx_get_from_name(name)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| name | `string` |
+
+### Returns
+- `Pointer` <`Vtx`>
+- `integer`
+
+### C Prototype
+`Vtx *vtx_get_from_name(const char *name, RET u32 *count);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vtx_get_name](#vtx_get_name)
+
+### Description
+Gets the name of a vertex buffer
+
+### Lua Example
+`local stringValue = vtx_get_name(vtx)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| vtx | `Pointer` <`Vtx`> |
+
+### Returns
+- `string`
+
+### C Prototype
+`const char *vtx_get_name(Vtx *vtx);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vtx_get_count](#vtx_get_count)
+
+### Description
+Gets the max count of vertices of a vertex buffer
+
+### Lua Example
+`local integerValue = vtx_get_count(vtx)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| vtx | `Pointer` <`Vtx`> |
+
+### Returns
+- `integer`
+
+### C Prototype
+`u32 vtx_get_count(Vtx *vtx);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vtx_get_vertex](#vtx_get_vertex)
+
+### Description
+Gets a vertex of a vertex buffer at position `offset`
+
+### Lua Example
+`local pointerValue = vtx_get_vertex(vtx, offset)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| vtx | `Pointer` <`Vtx`> |
+| offset | `integer` |
+
+### Returns
+- `Pointer` <`Vtx`>
+
+### C Prototype
+`Vtx *vtx_get_vertex(Vtx *vtx, u32 offset);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vtx_get_next_vertex](#vtx_get_next_vertex)
+
+### Description
+Gets the next vertex of a given vertex pointer. Intended to use in a for loop
+
+### Lua Example
+`local pointerValue = vtx_get_next_vertex(vtx)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| vtx | `Pointer` <`Vtx`> |
+
+### Returns
+- `Pointer` <`Vtx`>
+
+### C Prototype
+`Vtx *vtx_get_next_vertex(Vtx *vtx);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vtx_copy](#vtx_copy)
+
+### Description
+Copies `count` vertices from vertex buffer `src` to vertex buffer `dest`
+
+### Lua Example
+`vtx_copy(dest, src, count)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | `Pointer` <`Vtx`> |
+| src | `Pointer` <`Vtx`> |
+| count | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void vtx_copy(Vtx *dest, Vtx *src, u32 count);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vtx_create](#vtx_create)
+
+### Description
+Creates a new named vertex buffer of `count` vertices
+
+### Lua Example
+`local pointerValue = vtx_create(name, count)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| name | `string` |
+| count | `integer` |
+
+### Returns
+- `Pointer` <`Vtx`>
+
+### C Prototype
+`Vtx *vtx_create(const char *name, u32 count);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vtx_resize](#vtx_resize)
+
+### Description
+Resizes a vertex buffer created by `vtx_create`
+
+### Lua Example
+`vtx_resize(vtx, newCount)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| vtx | `Pointer` <`Vtx`> |
+| newCount | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void vtx_resize(Vtx *vtx, u32 newCount);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vtx_delete](#vtx_delete)
+
+### Description
+Deletes a vertex buffer created by `vtx_create`
+
+### Lua Example
+`vtx_delete(vtx)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| vtx | `Pointer` <`Vtx`> |
+
+### Returns
+- None
+
+### C Prototype
+`void vtx_delete(Vtx *vtx);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vtx_delete_all](#vtx_delete_all)
+
+### Description
+Deletes all vertex buffers created by `vtx_create`
+
+### Lua Example
+`vtx_delete_all()`
+
+### Parameters
+- None
+
+### Returns
+- None
+
+### C Prototype
+`void vtx_delete_all();`
+
+[:arrow_up_small:](#)
+
+<br />
+
+---
 # functions from smlua_level_utils.h
 
 <br />
@@ -40,7 +1302,7 @@ Instantly changes the current area to `areaIndex`
 Gets information on a custom level from `levelNum`
 
 ### Lua Example
-`local CustomLevelInfoValue = smlua_level_util_get_info(levelNum)`
+`local customLevelInfoValue = smlua_level_util_get_info(levelNum)`
 
 ### Parameters
 | Field | Type |
@@ -48,7 +1310,7 @@ Gets information on a custom level from `levelNum`
 | levelNum | `integer` |
 
 ### Returns
-[CustomLevelInfo](structs.md#CustomLevelInfo)
+- [CustomLevelInfo](structs.md#CustomLevelInfo)
 
 ### C Prototype
 `struct CustomLevelInfo* smlua_level_util_get_info(s16 levelNum);`
@@ -63,7 +1325,7 @@ Gets information on a custom level from `levelNum`
 Gets information on a custom level from `shortName`
 
 ### Lua Example
-`local CustomLevelInfoValue = smlua_level_util_get_info_from_short_name(shortName)`
+`local customLevelInfoValue = smlua_level_util_get_info_from_short_name(shortName)`
 
 ### Parameters
 | Field | Type |
@@ -71,7 +1333,7 @@ Gets information on a custom level from `shortName`
 | shortName | `string` |
 
 ### Returns
-[CustomLevelInfo](structs.md#CustomLevelInfo)
+- [CustomLevelInfo](structs.md#CustomLevelInfo)
 
 ### C Prototype
 `struct CustomLevelInfo* smlua_level_util_get_info_from_short_name(const char* shortName);`
@@ -86,7 +1348,7 @@ Gets information on a custom level from `shortName`
 Gets information on a custom level from `courseNum`
 
 ### Lua Example
-`local CustomLevelInfoValue = smlua_level_util_get_info_from_course_num(courseNum)`
+`local customLevelInfoValue = smlua_level_util_get_info_from_course_num(courseNum)`
 
 ### Parameters
 | Field | Type |
@@ -94,7 +1356,7 @@ Gets information on a custom level from `courseNum`
 | courseNum | `integer` |
 
 ### Returns
-[CustomLevelInfo](structs.md#CustomLevelInfo)
+- [CustomLevelInfo](structs.md#CustomLevelInfo)
 
 ### C Prototype
 `struct CustomLevelInfo* smlua_level_util_get_info_from_course_num(u8 courseNum);`
@@ -349,7 +1611,7 @@ Gets the area update counter incremented when objects are updated
 Returns a temporary signed 32-bit integer pointer with its value set to `initialValue`
 
 ### Lua Example
-`local PointerValue = get_temp_s32_pointer(initialValue)`
+`local pointerValue = get_temp_s32_pointer(initialValue)`
 
 ### Parameters
 | Field | Type |
@@ -574,7 +1836,7 @@ Gets the DJUI menu font
 - None
 
 ### Returns
-[enum DjuiFontType](constants.md#enum-DjuiFontType)
+- [enum DjuiFontType](constants.md#enum-DjuiFontType)
 
 ### C Prototype
 `enum DjuiFontType djui_menu_get_font(void);`
@@ -589,13 +1851,13 @@ Gets the DJUI menu font
 Gets the DJUI menu theme
 
 ### Lua Example
-`local DjuiThemeValue = djui_menu_get_theme()`
+`local djuiThemeValue = djui_menu_get_theme()`
 
 ### Parameters
 - None
 
 ### Returns
-[DjuiTheme](structs.md#DjuiTheme)
+- [DjuiTheme](structs.md#DjuiTheme)
 
 ### C Prototype
 `struct DjuiTheme* djui_menu_get_theme(void);`
@@ -1296,6 +2558,48 @@ Checks if a screen transition is playing
 
 <br />
 
+## [get_current_play_mode](#get_current_play_mode)
+
+### Description
+Gets the current play mode (`PLAY_MODE_*`)
+
+### Lua Example
+`local integerValue = get_current_play_mode()`
+
+### Parameters
+- None
+
+### Returns
+- `integer`
+
+### C Prototype
+`s16 get_current_play_mode(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_delayed_warp_op](#get_delayed_warp_op)
+
+### Description
+Gets the delayed warp operation type (`WARP_OP_*`)
+
+### Lua Example
+`local integerValue = get_delayed_warp_op()`
+
+### Parameters
+- None
+
+### Returns
+- `integer`
+
+### C Prototype
+`s16 get_delayed_warp_op(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [allocate_mario_action](#allocate_mario_action)
 
 ### Description
@@ -1322,7 +2626,8 @@ Allocates an action ID with bitwise flags
 ## [get_hand_foot_pos_x](#get_hand_foot_pos_x)
 
 ### Description
-Gets the X coordinate of Mario's hand (0-1) or foot (2-3) but it is important to note that the positions are not updated off-screen
+Gets the X coordinate of Mario's hand (0-1) or foot (2-3)
+but it is important to note that the positions are not updated off-screen
 
 ### Lua Example
 `local numberValue = get_hand_foot_pos_x(m, index)`
@@ -1346,7 +2651,8 @@ Gets the X coordinate of Mario's hand (0-1) or foot (2-3) but it is important to
 ## [get_hand_foot_pos_y](#get_hand_foot_pos_y)
 
 ### Description
-Gets the Y coordinate of Mario's hand (0-1) or foot (2-3) but It is important to note that the positions are not updated off-screen
+Gets the Y coordinate of Mario's hand (0-1) or foot (2-3)
+but It is important to note that the positions are not updated off-screen
 
 ### Lua Example
 `local numberValue = get_hand_foot_pos_y(m, index)`
@@ -1370,7 +2676,8 @@ Gets the Y coordinate of Mario's hand (0-1) or foot (2-3) but It is important to
 ## [get_hand_foot_pos_z](#get_hand_foot_pos_z)
 
 ### Description
-Gets the Z coordinate of Mario's hand (0-1) or foot (2-3) but it is important to note that the positions are not updated off-screen
+Gets the Z coordinate of Mario's hand (0-1) or foot (2-3)
+but it is important to note that the positions are not updated off-screen
 
 ### Lua Example
 `local numberValue = get_hand_foot_pos_z(m, index)`
@@ -1410,7 +2717,32 @@ Retrieves the animated part position associated to `animPart` from the MarioStat
 - `boolean`
 
 ### C Prototype
-`bool get_mario_anim_part_pos(struct MarioState *m, u32 animPart, OUT Vec3f pos);`
+`bool get_mario_anim_part_pos(struct MarioState *m, u32 animPart, VEC_OUT Vec3f pos);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_mario_anim_part_rot](#get_mario_anim_part_rot)
+
+### Description
+Retrieves the animated part rotation associated to `animPart` from the MarioState `m` and stores it into `rot`. Returns `true` on success or `false` on failure
+
+### Lua Example
+`local booleanValue = get_mario_anim_part_rot(m, animPart, rot)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| m | [MarioState](structs.md#MarioState) |
+| animPart | `integer` |
+| rot | [Vec3s](structs.md#Vec3s) |
+
+### Returns
+- `boolean`
+
+### C Prototype
+`bool get_mario_anim_part_rot(struct MarioState *m, u32 animPart, VEC_OUT Vec3s rot);`
 
 [:arrow_up_small:](#)
 
@@ -1649,13 +2981,13 @@ Gets the Unix Timestamp
 Gets the system clock's date and time
 
 ### Lua Example
-`local DateTimeValue = get_date_and_time()`
+`local dateTimeValue = get_date_and_time()`
 
 ### Parameters
 - None
 
 ### Returns
-[DateTime](structs.md#DateTime)
+- [DateTime](structs.md#DateTime)
 
 ### C Prototype
 `struct DateTime* get_date_and_time(void);`
@@ -1745,6 +3077,27 @@ Gets the choice selected inside of a dialog box (0-1)
 
 ### C Prototype
 `s32 get_dialog_response(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_time_stop_flags](#get_time_stop_flags)
+
+### Description
+Gets the active time stop flags, used to freeze specific objects during cutscenes
+
+### Lua Example
+`local integerValue = get_time_stop_flags()`
+
+### Parameters
+- None
+
+### Returns
+- `integer`
+
+### C Prototype
+`u32 get_time_stop_flags(void);`
 
 [:arrow_up_small:](#)
 
@@ -2046,16 +3399,40 @@ Checks if a file exists inside of a mod
 Gets the mod currently being processed
 
 ### Lua Example
-`local ModValue = get_active_mod()`
+`local modValue = get_active_mod()`
 
 ### Parameters
 - None
 
 ### Returns
-[Mod](structs.md#Mod)
+- [Mod](structs.md#Mod)
 
 ### C Prototype
 `struct Mod* get_active_mod(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [get_mod_files](#get_mod_files)
+
+### Description
+Gets all files a mod contains
+
+### Lua Example
+`local tableValue = get_mod_files(mod, subDirectory)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| mod | [Mod](structs.md#Mod) |
+| subDirectory | `string` |
+
+### Returns
+- `table`
+
+### C Prototype
+`LuaTable get_mod_files(struct Mod* mod, OPTIONAL const char* subDirectory);`
 
 [:arrow_up_small:](#)
 
@@ -2129,16 +3506,16 @@ Gets the name of the operating system the game is running on
 ## [geo_get_current_root](#geo_get_current_root)
 
 ### Description
-Gets the current GraphNodeRoot
+Gets the current root node being processed
 
 ### Lua Example
-`local GraphNodeRootValue = geo_get_current_root()`
+`local graphNodeRootValue = geo_get_current_root()`
 
 ### Parameters
 - None
 
 ### Returns
-[GraphNodeRoot](structs.md#GraphNodeRoot)
+- [GraphNodeRoot](structs.md#GraphNodeRoot)
 
 ### C Prototype
 `struct GraphNodeRoot* geo_get_current_root(void);`
@@ -2150,16 +3527,16 @@ Gets the current GraphNodeRoot
 ## [geo_get_current_master_list](#geo_get_current_master_list)
 
 ### Description
-Gets the current GraphNodeMasterList
+Gets the current master list node being processed
 
 ### Lua Example
-`local GraphNodeMasterListValue = geo_get_current_master_list()`
+`local graphNodeMasterListValue = geo_get_current_master_list()`
 
 ### Parameters
 - None
 
 ### Returns
-[GraphNodeMasterList](structs.md#GraphNodeMasterList)
+- [GraphNodeMasterList](structs.md#GraphNodeMasterList)
 
 ### C Prototype
 `struct GraphNodeMasterList* geo_get_current_master_list(void);`
@@ -2171,16 +3548,16 @@ Gets the current GraphNodeMasterList
 ## [geo_get_current_perspective](#geo_get_current_perspective)
 
 ### Description
-Gets the current GraphNodePerspective
+Gets the current perspective node being processed
 
 ### Lua Example
-`local GraphNodePerspectiveValue = geo_get_current_perspective()`
+`local graphNodePerspectiveValue = geo_get_current_perspective()`
 
 ### Parameters
 - None
 
 ### Returns
-[GraphNodePerspective](structs.md#GraphNodePerspective)
+- [GraphNodePerspective](structs.md#GraphNodePerspective)
 
 ### C Prototype
 `struct GraphNodePerspective* geo_get_current_perspective(void);`
@@ -2192,16 +3569,16 @@ Gets the current GraphNodePerspective
 ## [geo_get_current_camera](#geo_get_current_camera)
 
 ### Description
-Gets the current GraphNodeCamera
+Gets the current camera node being processed
 
 ### Lua Example
-`local GraphNodeCameraValue = geo_get_current_camera()`
+`local graphNodeCameraValue = geo_get_current_camera()`
 
 ### Parameters
 - None
 
 ### Returns
-[GraphNodeCamera](structs.md#GraphNodeCamera)
+- [GraphNodeCamera](structs.md#GraphNodeCamera)
 
 ### C Prototype
 `struct GraphNodeCamera* geo_get_current_camera(void);`
@@ -2213,19 +3590,43 @@ Gets the current GraphNodeCamera
 ## [geo_get_current_held_object](#geo_get_current_held_object)
 
 ### Description
-Gets the current GraphNodeHeldObject
+Gets the current held object node being processed
 
 ### Lua Example
-`local GraphNodeHeldObjectValue = geo_get_current_held_object()`
+`local graphNodeHeldObjectValue = geo_get_current_held_object()`
 
 ### Parameters
 - None
 
 ### Returns
-[GraphNodeHeldObject](structs.md#GraphNodeHeldObject)
+- [GraphNodeHeldObject](structs.md#GraphNodeHeldObject)
 
 ### C Prototype
 `struct GraphNodeHeldObject* geo_get_current_held_object(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [geo_skip_interpolation](#geo_skip_interpolation)
+
+### Description
+Skips graph node interpolation for a frame
+
+### Lua Example
+`geo_skip_interpolation(node, obj)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| node | [GraphNode](structs.md#GraphNode) |
+| obj | [GraphNodeObject](structs.md#GraphNodeObject) |
+
+### Returns
+- None
+
+### C Prototype
+`void geo_skip_interpolation(struct GraphNode *node, struct GraphNodeObject *obj);`
 
 [:arrow_up_small:](#)
 
@@ -2297,7 +3698,7 @@ Gets the extended model ID for the `name` of a `GeoLayout`
 | name | `string` |
 
 ### Returns
-[enum ModelExtendedId](constants.md#enum-ModelExtendedId)
+- [enum ModelExtendedId](constants.md#enum-ModelExtendedId)
 
 ### C Prototype
 `enum ModelExtendedId smlua_model_util_get_id(const char* name);`
@@ -2315,10 +3716,11 @@ Gets the extended model ID for the `name` of a `GeoLayout`
 ## [spawn_sync_object](#spawn_sync_object)
 
 ### Description
-Spawns a synchronized object at `x`, `y`, and `z` as a child object of the local Mario with his rotation. You can change the fields of the object in `objSetupFunction`
+Spawns a synchronized object at `x`, `y`, and `z` as a child object of the local Mario with his rotation.
+You can change the fields of the object in `objSetupFunction`
 
 ### Lua Example
-`local ObjectValue = spawn_sync_object(behaviorId, modelId, x, y, z, objSetupFunction)`
+`local objectValue = spawn_sync_object(behaviorId, modelId, x, y, z, objSetupFunction)`
 
 ### Parameters
 | Field | Type |
@@ -2331,7 +3733,7 @@ Spawns a synchronized object at `x`, `y`, and `z` as a child object of the local
 | objSetupFunction | `Lua Function` () |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object* spawn_sync_object(enum BehaviorId behaviorId, enum ModelExtendedId modelId, f32 x, f32 y, f32 z, LuaFunction objSetupFunction);`
@@ -2343,10 +3745,11 @@ Spawns a synchronized object at `x`, `y`, and `z` as a child object of the local
 ## [spawn_non_sync_object](#spawn_non_sync_object)
 
 ### Description
-Spawns a non-synchronized object at `x`, `y`, and `z` as a child object of the local Mario with his rotation. You can change the fields of the object in `objSetupFunction`
+Spawns a non-synchronized object at `x`, `y`, and `z` as a child object of the local Mario with his rotation.
+You can change the fields of the object in `objSetupFunction`
 
 ### Lua Example
-`local ObjectValue = spawn_non_sync_object(behaviorId, modelId, x, y, z, objSetupFunction)`
+`local objectValue = spawn_non_sync_object(behaviorId, modelId, x, y, z, objSetupFunction)`
 
 ### Parameters
 | Field | Type |
@@ -2359,7 +3762,7 @@ Spawns a non-synchronized object at `x`, `y`, and `z` as a child object of the l
 | objSetupFunction | `Lua Function` () |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object* spawn_non_sync_object(enum BehaviorId behaviorId, enum ModelExtendedId modelId, f32 x, f32 y, f32 z, LuaFunction objSetupFunction);`
@@ -2430,7 +3833,7 @@ Returns an object's extended model id
 | o | [Object](structs.md#Object) |
 
 ### Returns
-[enum ModelExtendedId](constants.md#enum-ModelExtendedId)
+- [enum ModelExtendedId](constants.md#enum-ModelExtendedId)
 
 ### C Prototype
 `enum ModelExtendedId obj_get_model_id_extended(struct Object *o);`
@@ -2469,7 +3872,7 @@ Sets an object's model to `modelId`
 Gets a trajectory by `name`
 
 ### Lua Example
-`local PointerValue = get_trajectory(name)`
+`local pointerValue = get_trajectory(name)`
 
 ### Parameters
 | Field | Type |
@@ -2492,13 +3895,13 @@ Gets a trajectory by `name`
 When used in a geo function, retrieve the current processed object
 
 ### Lua Example
-`local ObjectValue = geo_get_current_object()`
+`local objectValue = geo_get_current_object()`
 
 ### Parameters
 - None
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *geo_get_current_object(void);`
@@ -2513,13 +3916,13 @@ When used in a geo function, retrieve the current processed object
 Gets the object currently being processed
 
 ### Lua Example
-`local ObjectValue = get_current_object()`
+`local objectValue = get_current_object()`
 
 ### Parameters
 - None
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *get_current_object(void);`
@@ -2534,13 +3937,13 @@ Gets the object currently being processed
 Gets the NPC object Mario is talking to
 
 ### Lua Example
-`local ObjectValue = get_dialog_object()`
+`local objectValue = get_dialog_object()`
 
 ### Parameters
 - None
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *get_dialog_object(void);`
@@ -2555,13 +3958,13 @@ Gets the NPC object Mario is talking to
 Gets the cutscene focus object
 
 ### Lua Example
-`local ObjectValue = get_cutscene_focus()`
+`local objectValue = get_cutscene_focus()`
 
 ### Parameters
 - None
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *get_cutscene_focus(void);`
@@ -2576,13 +3979,13 @@ Gets the cutscene focus object
 Gets the secondary camera focus object
 
 ### Lua Example
-`local ObjectValue = get_secondary_camera_focus()`
+`local objectValue = get_secondary_camera_focus()`
 
 ### Parameters
 - None
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *get_secondary_camera_focus(void);`
@@ -2643,7 +4046,7 @@ Sets the secondary camera focus object
 Gets the first object in an object list
 
 ### Lua Example
-`local ObjectValue = obj_get_first(objList)`
+`local objectValue = obj_get_first(objList)`
 
 ### Parameters
 | Field | Type |
@@ -2651,7 +4054,7 @@ Gets the first object in an object list
 | objList | [enum ObjectList](constants.md#enum-ObjectList) |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *obj_get_first(enum ObjectList objList);`
@@ -2666,7 +4069,7 @@ Gets the first object in an object list
 Gets the first object loaded with `behaviorId`
 
 ### Lua Example
-`local ObjectValue = obj_get_first_with_behavior_id(behaviorId)`
+`local objectValue = obj_get_first_with_behavior_id(behaviorId)`
 
 ### Parameters
 | Field | Type |
@@ -2674,7 +4077,7 @@ Gets the first object loaded with `behaviorId`
 | behaviorId | [enum BehaviorId](constants.md#enum-BehaviorId) |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *obj_get_first_with_behavior_id(enum BehaviorId behaviorId);`
@@ -2686,10 +4089,11 @@ Gets the first object loaded with `behaviorId`
 ## [obj_get_first_with_behavior_id_and_field_s32](#obj_get_first_with_behavior_id_and_field_s32)
 
 ### Description
-Gets the first object loaded with `behaviorId` and object signed 32-bit integer field (look in `object_fields.h` to get the index of a field)
+Gets the first object loaded with `behaviorId` and object signed 32-bit integer field
+(look in `object_fields.h` to get the index of a field)
 
 ### Lua Example
-`local ObjectValue = obj_get_first_with_behavior_id_and_field_s32(behaviorId, fieldIndex, value)`
+`local objectValue = obj_get_first_with_behavior_id_and_field_s32(behaviorId, fieldIndex, value)`
 
 ### Parameters
 | Field | Type |
@@ -2699,7 +4103,7 @@ Gets the first object loaded with `behaviorId` and object signed 32-bit integer 
 | value | `integer` |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *obj_get_first_with_behavior_id_and_field_s32(enum BehaviorId behaviorId, s32 fieldIndex, s32 value);`
@@ -2711,10 +4115,11 @@ Gets the first object loaded with `behaviorId` and object signed 32-bit integer 
 ## [obj_get_first_with_behavior_id_and_field_f32](#obj_get_first_with_behavior_id_and_field_f32)
 
 ### Description
-Gets the first object loaded with `behaviorId` and object float field (look in `object_fields.h` to get the index of a field)
+Gets the first object loaded with `behaviorId` and object float field
+(look in `object_fields.h` to get the index of a field)
 
 ### Lua Example
-`local ObjectValue = obj_get_first_with_behavior_id_and_field_f32(behaviorId, fieldIndex, value)`
+`local objectValue = obj_get_first_with_behavior_id_and_field_f32(behaviorId, fieldIndex, value)`
 
 ### Parameters
 | Field | Type |
@@ -2724,7 +4129,7 @@ Gets the first object loaded with `behaviorId` and object float field (look in `
 | value | `number` |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *obj_get_first_with_behavior_id_and_field_f32(enum BehaviorId behaviorId, s32 fieldIndex, f32 value);`
@@ -2739,7 +4144,7 @@ Gets the first object loaded with `behaviorId` and object float field (look in `
 Gets the next object in an object list
 
 ### Lua Example
-`local ObjectValue = obj_get_next(o)`
+`local objectValue = obj_get_next(o)`
 
 ### Parameters
 | Field | Type |
@@ -2747,7 +4152,7 @@ Gets the next object in an object list
 | o | [Object](structs.md#Object) |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *obj_get_next(struct Object *o);`
@@ -2762,7 +4167,7 @@ Gets the next object in an object list
 Gets the next object loaded with the same behavior ID
 
 ### Lua Example
-`local ObjectValue = obj_get_next_with_same_behavior_id(o)`
+`local objectValue = obj_get_next_with_same_behavior_id(o)`
 
 ### Parameters
 | Field | Type |
@@ -2770,7 +4175,7 @@ Gets the next object loaded with the same behavior ID
 | o | [Object](structs.md#Object) |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *obj_get_next_with_same_behavior_id(struct Object *o);`
@@ -2782,10 +4187,11 @@ Gets the next object loaded with the same behavior ID
 ## [obj_get_next_with_same_behavior_id_and_field_s32](#obj_get_next_with_same_behavior_id_and_field_s32)
 
 ### Description
-Gets the next object loaded with the same behavior ID and object signed 32-bit integer field (look in `object_fields.h` to get the index of a field)
+Gets the next object loaded with the same behavior ID and object signed 32-bit integer field
+(look in `object_fields.h` to get the index of a field)
 
 ### Lua Example
-`local ObjectValue = obj_get_next_with_same_behavior_id_and_field_s32(o, fieldIndex, value)`
+`local objectValue = obj_get_next_with_same_behavior_id_and_field_s32(o, fieldIndex, value)`
 
 ### Parameters
 | Field | Type |
@@ -2795,7 +4201,7 @@ Gets the next object loaded with the same behavior ID and object signed 32-bit i
 | value | `integer` |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *obj_get_next_with_same_behavior_id_and_field_s32(struct Object *o, s32 fieldIndex, s32 value);`
@@ -2807,10 +4213,11 @@ Gets the next object loaded with the same behavior ID and object signed 32-bit i
 ## [obj_get_next_with_same_behavior_id_and_field_f32](#obj_get_next_with_same_behavior_id_and_field_f32)
 
 ### Description
-Gets the next object loaded with the same behavior ID and object float field (look in `object_fields.h` to get the index of a field)
+Gets the next object loaded with the same behavior ID and object float field
+(look in `object_fields.h` to get the index of a field)
 
 ### Lua Example
-`local ObjectValue = obj_get_next_with_same_behavior_id_and_field_f32(o, fieldIndex, value)`
+`local objectValue = obj_get_next_with_same_behavior_id_and_field_f32(o, fieldIndex, value)`
 
 ### Parameters
 | Field | Type |
@@ -2820,7 +4227,7 @@ Gets the next object loaded with the same behavior ID and object float field (lo
 | value | `number` |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *obj_get_next_with_same_behavior_id_and_field_f32(struct Object *o, s32 fieldIndex, f32 value);`
@@ -2835,7 +4242,7 @@ Gets the next object loaded with the same behavior ID and object float field (lo
 Gets the nearest object with `behaviorId` to `o`
 
 ### Lua Example
-`local ObjectValue = obj_get_nearest_object_with_behavior_id(o, behaviorId)`
+`local objectValue = obj_get_nearest_object_with_behavior_id(o, behaviorId)`
 
 ### Parameters
 | Field | Type |
@@ -2844,7 +4251,7 @@ Gets the nearest object with `behaviorId` to `o`
 | behaviorId | [enum BehaviorId](constants.md#enum-BehaviorId) |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *obj_get_nearest_object_with_behavior_id(struct Object *o, enum BehaviorId behaviorId);`
@@ -2882,7 +4289,7 @@ Counts every object with `behaviorId`
 Gets the corresponding collided object to an index from `o`
 
 ### Lua Example
-`local ObjectValue = obj_get_collided_object(o, index)`
+`local objectValue = obj_get_collided_object(o, index)`
 
 ### Parameters
 | Field | Type |
@@ -2891,7 +4298,7 @@ Gets the corresponding collided object to an index from `o`
 | index | `integer` |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *obj_get_collided_object(struct Object *o, s16 index);`
@@ -2903,7 +4310,7 @@ Gets the corresponding collided object to an index from `o`
 ## [obj_get_field_u32](#obj_get_field_u32)
 
 ### Description
-Gets the unsigned 32-bit integer value from the field corresponding to `fieldIndex`
+Gets the unsigned 32-bit integer value of the object field corresponding to `fieldIndex`
 
 ### Lua Example
 `local integerValue = obj_get_field_u32(o, fieldIndex)`
@@ -2927,7 +4334,7 @@ Gets the unsigned 32-bit integer value from the field corresponding to `fieldInd
 ## [obj_get_field_s32](#obj_get_field_s32)
 
 ### Description
-Gets the signed 32-bit integer value from the field corresponding to `fieldIndex`
+Gets the signed 32-bit integer value of the object field corresponding to `fieldIndex`
 
 ### Lua Example
 `local integerValue = obj_get_field_s32(o, fieldIndex)`
@@ -2951,7 +4358,7 @@ Gets the signed 32-bit integer value from the field corresponding to `fieldIndex
 ## [obj_get_field_f32](#obj_get_field_f32)
 
 ### Description
-Sets the float value from the field corresponding to `fieldIndex`
+Gets the float value of the object field corresponding to `fieldIndex`
 
 ### Lua Example
 `local numberValue = obj_get_field_f32(o, fieldIndex)`
@@ -2975,7 +4382,7 @@ Sets the float value from the field corresponding to `fieldIndex`
 ## [obj_get_field_s16](#obj_get_field_s16)
 
 ### Description
-Gets the signed 32-bit integer value from the sub field corresponding to `fieldSubIndex` from the field corresponding to `fieldIndex`
+Gets the signed 16-bit integer value of the object field and sub field corresponding to `fieldSubIndex` and `fieldIndex`
 
 ### Lua Example
 `local integerValue = obj_get_field_s16(o, fieldIndex, fieldSubIndex)`
@@ -3000,7 +4407,7 @@ Gets the signed 32-bit integer value from the sub field corresponding to `fieldS
 ## [obj_set_field_u32](#obj_set_field_u32)
 
 ### Description
-Sets the unsigned 32-bit integer value from the field corresponding to `fieldIndex`
+Sets the unsigned 32-bit integer value of the object field corresponding to `fieldIndex`
 
 ### Lua Example
 `obj_set_field_u32(o, fieldIndex, value)`
@@ -3025,7 +4432,7 @@ Sets the unsigned 32-bit integer value from the field corresponding to `fieldInd
 ## [obj_set_field_s32](#obj_set_field_s32)
 
 ### Description
-Sets the signed 32-bit integer value from the field corresponding to `fieldIndex`
+Sets the signed 32-bit integer value of the object field corresponding to `fieldIndex`
 
 ### Lua Example
 `obj_set_field_s32(o, fieldIndex, value)`
@@ -3050,7 +4457,7 @@ Sets the signed 32-bit integer value from the field corresponding to `fieldIndex
 ## [obj_set_field_f32](#obj_set_field_f32)
 
 ### Description
-Sets the float value from the field corresponding to `fieldIndex`
+Sets the float value of the object field corresponding to `fieldIndex`
 
 ### Lua Example
 `obj_set_field_f32(o, fieldIndex, value)`
@@ -3075,7 +4482,7 @@ Sets the float value from the field corresponding to `fieldIndex`
 ## [obj_set_field_s16](#obj_set_field_s16)
 
 ### Description
-Sets the signed 32-bit integer value from the sub field corresponding to `fieldSubIndex` from the field corresponding to `fieldIndex`
+Sets the signed 16-bit integer value of the object field and sub field corresponding to `fieldSubIndex` and `fieldIndex`
 
 ### Lua Example
 `obj_set_field_s16(o, fieldIndex, fieldSubIndex, value)`
@@ -3104,7 +4511,7 @@ Sets the signed 32-bit integer value from the sub field corresponding to `fieldS
 Returns a temporary particle spawn info pointer with its model loaded in from `modelId`
 
 ### Lua Example
-`local SpawnParticlesInfoValue = obj_get_temp_spawn_particles_info(modelId)`
+`local spawnParticlesInfoValue = obj_get_temp_spawn_particles_info(modelId)`
 
 ### Parameters
 | Field | Type |
@@ -3112,7 +4519,7 @@ Returns a temporary particle spawn info pointer with its model loaded in from `m
 | modelId | [enum ModelExtendedId](constants.md#enum-ModelExtendedId) |
 
 ### Returns
-[SpawnParticlesInfo](structs.md#SpawnParticlesInfo)
+- [SpawnParticlesInfo](structs.md#SpawnParticlesInfo)
 
 ### C Prototype
 `struct SpawnParticlesInfo* obj_get_temp_spawn_particles_info(enum ModelExtendedId modelId);`
@@ -3127,7 +4534,7 @@ Returns a temporary particle spawn info pointer with its model loaded in from `m
 Returns a temporary water droplet params pointer with its model and behavior loaded in from `modelId` and `behaviorId`
 
 ### Lua Example
-`local WaterDropletParamsValue = obj_get_temp_water_droplet_params(modelId, behaviorId)`
+`local waterDropletParamsValue = obj_get_temp_water_droplet_params(modelId, behaviorId)`
 
 ### Parameters
 | Field | Type |
@@ -3136,7 +4543,7 @@ Returns a temporary water droplet params pointer with its model and behavior loa
 | behaviorId | [enum BehaviorId](constants.md#enum-BehaviorId) |
 
 ### Returns
-[WaterDropletParams](structs.md#WaterDropletParams)
+- [WaterDropletParams](structs.md#WaterDropletParams)
 
 ### C Prototype
 `struct WaterDropletParams* obj_get_temp_water_droplet_params(enum ModelExtendedId modelId, enum BehaviorId behaviorId);`
@@ -3151,13 +4558,13 @@ Returns a temporary water droplet params pointer with its model and behavior loa
 Returns a temporary object hitbox pointer
 
 ### Lua Example
-`local ObjectHitboxValue = get_temp_object_hitbox()`
+`local objectHitboxValue = get_temp_object_hitbox()`
 
 ### Parameters
 - None
 
 ### Returns
-[ObjectHitbox](structs.md#ObjectHitbox)
+- [ObjectHitbox](structs.md#ObjectHitbox)
 
 ### C Prototype
 `struct ObjectHitbox* get_temp_object_hitbox(void);`
@@ -3506,6 +4913,52 @@ Sets the parameters of one of the two whirlpools (0-indexed) in an area
 
 <br />
 
+## [obj_skip_interpolation](#obj_skip_interpolation)
+
+### Description
+Skips object interpolation for a frame
+
+### Lua Example
+`obj_skip_interpolation(o)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| o | [Object](structs.md#Object) |
+
+### Returns
+- None
+
+### C Prototype
+`void obj_skip_interpolation(struct Object *o);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [obj_anim_skip_interpolation](#obj_anim_skip_interpolation)
+
+### Description
+Skips animation interpolation for a frame
+
+### Lua Example
+`obj_anim_skip_interpolation(o)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| o | [Object](structs.md#Object) |
+
+### Returns
+- None
+
+### C Prototype
+`void obj_anim_skip_interpolation(struct Object *o);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ---
 # functions from smlua_text_utils.h
 
@@ -3539,7 +4992,7 @@ Resets every modified dialog back to vanilla
 Gets the DialogEntry struct for the given `dialogId`
 
 ### Lua Example
-`local DialogEntryValue = smlua_text_utils_dialog_get(dialogId)`
+`local dialogEntryValue = smlua_text_utils_dialog_get(dialogId)`
 
 ### Parameters
 | Field | Type |
@@ -3547,7 +5000,7 @@ Gets the DialogEntry struct for the given `dialogId`
 | dialogId | [enum DialogId](constants.md#enum-DialogId) |
 
 ### Returns
-[DialogEntry](structs.md#DialogEntry)
+- [DialogEntry](structs.md#DialogEntry)
 
 ### C Prototype
 `struct DialogEntry* smlua_text_utils_dialog_get(enum DialogId dialogId);`
@@ -4531,7 +5984,8 @@ Plays a sound if the current object is visible and queues rumble for specific so
 ## [create_sound_spawner](#create_sound_spawner)
 
 ### Description
-Create a sound spawner for objects that need a sound play once. (Breakable walls, King Bobomb exploding, etc)
+Create a sound spawner for objects that need a sound play once.
+(Breakable walls, King Bobomb exploding, etc)
 
 ### Lua Example
 `create_sound_spawner(soundMagic)`
@@ -4554,7 +6008,9 @@ Create a sound spawner for objects that need a sound play once. (Breakable walls
 ## [calc_dist_to_volume_range_1](#calc_dist_to_volume_range_1)
 
 ### Description
-Unused vanilla function, calculates a volume based on `distance`. If `distance` is less than 500 then 127, if `distance` is greater than 1500 then 0, if `distance` is between 500 and 1500 then it ranges linearly from 60 to 124. What an even more strange and confusing function
+Unused vanilla function, calculates a volume based on `distance`.
+If `distance` is less than 500 then 127, if `distance` is greater than 1500 then 0, if `distance` is between 500 and 1500 then it ranges linearly from 60 to 124.
+What an even more strange and confusing function
 
 ### Lua Example
 `local integerValue = calc_dist_to_volume_range_1(distance)`
@@ -4577,7 +6033,9 @@ Unused vanilla function, calculates a volume based on `distance`. If `distance` 
 ## [calc_dist_to_volume_range_2](#calc_dist_to_volume_range_2)
 
 ### Description
-Unused vanilla function, calculates a volume based on `distance`. If `distance` is less than 1300 then 127, if `distance` is greater than 2300 then 0, if `distance` is between 1300 and 2300 then it ranges linearly from 60 to 127. What a strange and confusing function
+Unused vanilla function, calculates a volume based on `distance`.
+If `distance` is less than 1300 then 127, if `distance` is greater than 2300 then 0, if `distance` is between 1300 and 2300 then it ranges linearly from 60 to 127.
+What a strange and confusing function
 
 ### Lua Example
 `local integerValue = calc_dist_to_volume_range_2(distance)`
@@ -4606,7 +6064,8 @@ Unused vanilla function, calculates a volume based on `distance`. If `distance` 
 ## [find_wall_collisions](#find_wall_collisions)
 
 ### Description
-Detects wall collisions at a given position and adjusts the position based on the walls found. Returns the number of wall collisions detected
+Detects wall collisions at a given position and adjusts the position based on the walls found.
+Returns the number of wall collisions detected
 
 ### Lua Example
 `local integerValue = find_wall_collisions(colData)`
@@ -4626,10 +6085,38 @@ Detects wall collisions at a given position and adjusts the position based on th
 
 <br />
 
+## [find_ceil](#find_ceil)
+
+### Description
+Finds the height of the highest ceiling above a given position (x, y, z) and return the corresponding ceil surface.
+If no ceiling is found, returns the default height limit of `gLevelValues.cellHeightLimit`(20000 by default)
+
+### Lua Example
+`local numberValue, pceil = find_ceil(posX, posY, posZ)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| posX | `number` |
+| posY | `number` |
+| posZ | `number` |
+
+### Returns
+- `number`
+- [Surface](structs.md#Surface)
+
+### C Prototype
+`f32 find_ceil(f32 posX, f32 posY, f32 posZ, RET struct Surface **pceil);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [find_ceil_height](#find_ceil_height)
 
 ### Description
-Finds the height of the highest ceiling above a given position (x, y, z). If no ceiling is found, returns the default height limit of `gLevelValues.cellHeightLimit`(20000 by default)
+Finds the height of the highest ceiling above a given position (x, y, z).
+If no ceiling is found, returns the default height limit of `gLevelValues.cellHeightLimit`(20000 by default)
 
 ### Lua Example
 `local numberValue = find_ceil_height(x, y, z)`
@@ -4654,7 +6141,8 @@ Finds the height of the highest ceiling above a given position (x, y, z). If no 
 ## [find_floor_height](#find_floor_height)
 
 ### Description
-Finds the height of the highest floor below a given position (x, y, z). If no floor is found, returns the default floor height of `gLevelValues.floorLowerLimit`(-11000 by default)
+Finds the height of the highest floor below a given position (x, y, z).
+If no floor is found, returns the default floor height of `gLevelValues.floorLowerLimit`(-11000 by default)
 
 ### Lua Example
 `local numberValue = find_floor_height(x, y, z)`
@@ -4676,10 +6164,38 @@ Finds the height of the highest floor below a given position (x, y, z). If no fl
 
 <br />
 
+## [find_floor](#find_floor)
+
+### Description
+Finds the height of the highest floor below a given position (x, y, z) and return the corresponding floor surface.
+If no floor is found, returns the default floor height of `gLevelValues.floorLowerLimit`(-11000 by default)
+
+### Lua Example
+`local numberValue, pfloor = find_floor(xPos, yPos, zPos)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| xPos | `number` |
+| yPos | `number` |
+| zPos | `number` |
+
+### Returns
+- `number`
+- [Surface](structs.md#Surface)
+
+### C Prototype
+`f32 find_floor(f32 xPos, f32 yPos, f32 zPos, RET struct Surface **pfloor);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [find_water_level](#find_water_level)
 
 ### Description
-Finds the height of water at a given position (x, z), if the position is within a water region. If no water is found, returns the default height of `gLevelValues.floorLowerLimit`(-11000 by default)
+Finds the height of water at a given position (x, z), if the position is within a water region.
+If no water is found, returns the default height of `gLevelValues.floorLowerLimit`(-11000 by default)
 
 ### Lua Example
 `local numberValue = find_water_level(x, z)`
@@ -4703,7 +6219,8 @@ Finds the height of water at a given position (x, z), if the position is within 
 ## [find_poison_gas_level](#find_poison_gas_level)
 
 ### Description
-Finds the height of the poison gas at a given position (x, z), if the position is within a gas region. If no gas is found, returns the default height of `gLevelValues.floorLowerLimit`(-11000 by default)
+Finds the height of the poison gas at a given position (x, z), if the position is within a gas region.
+If no gas is found, returns the default height of `gLevelValues.floorLowerLimit`(-11000 by default)
 
 ### Lua Example
 `local numberValue = find_poison_gas_level(x, z)`
@@ -4768,7 +6285,7 @@ Gets the closest point of the triangle to `src` and returns it in `out`.
 - None
 
 ### C Prototype
-`void closest_point_to_triangle(struct Surface* surf, Vec3f src, OUT Vec3f out);`
+`void closest_point_to_triangle(struct Surface* surf, Vec3f src, VEC_OUT Vec3f out);`
 
 [:arrow_up_small:](#)
 
@@ -4783,7 +6300,8 @@ Gets the closest point of the triangle to `src` and returns it in `out`.
 ## [load_object_collision_model](#load_object_collision_model)
 
 ### Description
-Loads the object's collision data into dynamic collision. You must run this every frame in your object's behavior loop for it to have collision
+Loads the object's collision data into dynamic collision.
+You must run this every frame in your object's behavior loop for it to have collision
 
 ### Lua Example
 `load_object_collision_model()`
@@ -4804,16 +6322,17 @@ Loads the object's collision data into dynamic collision. You must run this ever
 ## [load_static_object_collision](#load_static_object_collision)
 
 ### Description
-Loads the object's collision data into static collision. You may run this only once to capture the object's collision at that frame.
+Loads the object's collision data into static collision.
+You may run this only once to capture the object's collision at that frame.
 
 ### Lua Example
-`local StaticObjectCollisionValue = load_static_object_collision()`
+`local staticObjectCollisionValue = load_static_object_collision()`
 
 ### Parameters
 - None
 
 ### Returns
-[StaticObjectCollision](structs.md#StaticObjectCollision)
+- [StaticObjectCollision](structs.md#StaticObjectCollision)
 
 ### C Prototype
 `struct StaticObjectCollision *load_static_object_collision();`
@@ -4852,7 +6371,7 @@ Toggles a collection of static object surfaces
 Gets a surface corresponding to `index` from the static object collision
 
 ### Lua Example
-`local SurfaceValue = get_static_object_surface(col, index)`
+`local surfaceValue = get_static_object_surface(col, index)`
 
 ### Parameters
 | Field | Type |
@@ -4861,10 +6380,33 @@ Gets a surface corresponding to `index` from the static object collision
 | index | `integer` |
 
 ### Returns
-[Surface](structs.md#Surface)
+- [Surface](structs.md#Surface)
 
 ### C Prototype
 `struct Surface *get_static_object_surface(struct StaticObjectCollision *col, u32 index);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [remove_static_object_collision](#remove_static_object_collision)
+
+### Description
+Removes all surfaces belonging to a static object collision and reclaims the SOC metadata
+
+### Lua Example
+`remove_static_object_collision(col)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| col | [StaticObjectCollision](structs.md#StaticObjectCollision) |
+
+### Returns
+- None
+
+### C Prototype
+`void remove_static_object_collision(struct StaticObjectCollision *col);`
 
 [:arrow_up_small:](#)
 
@@ -4876,7 +6418,7 @@ Gets a surface corresponding to `index` from the static object collision
 Gets a surface corresponding to `index` from the surface pool buffer
 
 ### Lua Example
-`local SurfaceValue = obj_get_surface_from_index(o, index)`
+`local surfaceValue = obj_get_surface_from_index(o, index)`
 
 ### Parameters
 | Field | Type |
@@ -4885,7 +6427,7 @@ Gets a surface corresponding to `index` from the surface pool buffer
 | index | `integer` |
 
 ### Returns
-[Surface](structs.md#Surface)
+- [Surface](structs.md#Surface)
 
 ### C Prototype
 `struct Surface *obj_get_surface_from_index(struct Object *o, u32 index);`
@@ -4929,7 +6471,7 @@ Checks if a surface has force
 Retrieves an object from a sync ID
 
 ### Lua Example
-`local ObjectValue = sync_object_get_object(syncId)`
+`local objectValue = sync_object_get_object(syncId)`
 
 ### Parameters
 | Field | Type |
@@ -4937,7 +6479,7 @@ Retrieves an object from a sync ID
 | syncId | `integer` |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object* sync_object_get_object(u32 syncId);`

@@ -136,6 +136,7 @@ void dorrie_act_raise_head(void) {
 
         for (s32 i = 0; i < MAX_PLAYERS; i++) {
             if (!is_player_active(&gMarioStates[i])) { continue; }
+            if (gMarioStates[i].marioObj == NULL) { continue; }
             if (gMarioStates[i].marioObj->platform != o) { continue; }
             s32 dist = dist_between_objects(o, gMarioStates[0].marioObj);
             if (dist <= 780.0f) { continue; }
@@ -167,12 +168,12 @@ void bhv_dorrie_update(void) {
         struct SyncObject* so = sync_object_init(o, 4000.0f);
         if (so) {
             so->ignore_if_true = bhv_dorrie_ignore_if_true;
-            sync_object_init_field(o, &o->oDorrieOffsetY);
-            sync_object_init_field(o, &o->oDorrieVelY);
-            sync_object_init_field(o, &o->oDorrieYawVel);
-            sync_object_init_field(o, &o->oDorrieLiftingMario);
-            sync_object_init_field(o, &o->oDorrieNeckAngle);
-            sync_object_init_field(o, &o->oAngleVelYaw);
+            sync_object_init_field(o, o->oDorrieOffsetY);
+            sync_object_init_field(o, o->oDorrieVelY);
+            sync_object_init_field(o, o->oDorrieYawVel);
+            sync_object_init_field(o, o->oDorrieLiftingMario);
+            sync_object_init_field(o, o->oDorrieNeckAngle);
+            sync_object_init_field(o, o->oAngleVelYaw);
         }
     }
 

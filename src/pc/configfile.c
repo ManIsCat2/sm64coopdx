@@ -75,7 +75,7 @@ char configSaveNames[4][MAX_SAVE_NAME_STRING] = {
 };
 
 // Video/audio stuff
-ConfigWindow configWindow       = {
+ConfigWindow configWindow = {
     .x = WAPI_WIN_CENTERPOS,
     .y = WAPI_WIN_CENTERPOS,
     .w = DESIRED_SCREEN_WIDTH,
@@ -95,13 +95,14 @@ ConfigWindow configWindow       = {
 ConfigStick configStick = { 0 };
 
 // display settings
+enum GraphicsBackend configGraphicsBackend        = GAPI_GL;
 unsigned int configFiltering                      = 2; // 0 = Nearest, 1 = Bilinear, 2 = Trilinear
 bool         configShowFPS                        = false;
 bool         configShowPing                       = false;
 enum RefreshRateMode configFramerateMode          = RRM_AUTO;
 unsigned int configFrameLimit                     = 60;
 unsigned int configInterpolationMode              = 1;
-unsigned int configDrawDistance                   = 4;
+unsigned int configDrawDistance                   = 6;
 // sound settings
 unsigned int configMasterVolume                   = 80; // 0 - MAX_VOLUME
 unsigned int configMusicVolume                    = MAX_VOLUME;
@@ -109,6 +110,7 @@ unsigned int configSfxVolume                      = MAX_VOLUME;
 unsigned int configEnvVolume                      = MAX_VOLUME;
 bool         configFadeoutDistantSounds           = false;
 bool         configMuteFocusLoss                  = false;
+unsigned int configSoundOutput                    = 0; // 0 = Stereo, 1 = Mono, 2 = Headset
 // control binds
 #ifdef TOUCH_CONTROLS
 unsigned int configKeyA[MAX_BINDS]          = { 0x0026,   0x1000,     VK_INVALID };
@@ -151,16 +153,25 @@ unsigned int configStickDeadzone                  = 16;
 unsigned int configRumbleStrength                 = 50;
 unsigned int configGamepadNumber                  = 0;
 bool         configBackgroundGamepad              = true;
+bool         configExtendedReports                = false;
 bool         configDisableGamepads                = false;
 bool         configUseStandardKeyBindingsChat     = false;
 bool         configSmoothScrolling                = false;
 // free camera settings
+#ifdef __ANDROID__
+bool         configEnableFreeCamera               = true;
+#else
 bool         configEnableFreeCamera               = false;
+#endif
 bool         configFreeCameraAnalog               = false;
 bool         configFreeCameraLCentering           = false;
 bool         configFreeCameraDPadBehavior         = false;
 bool         configFreeCameraHasCollision         = true;
+#ifdef __ANDROID__
+bool         configFreeCameraMouse                = true;
+#else
 bool         configFreeCameraMouse                = false;
+#endif
 bool         configFreeCameraTouch                = true;
 unsigned int configFreeCameraXSens                = 50;
 unsigned int configFreeCameraYSens                = 50;
@@ -171,9 +182,9 @@ unsigned int configFreeCameraDegrade              = 50; // 0 - 100%
 unsigned int configEnableRomhackCamera            = 0; // 0 for automatic, 1 for force on, 2 for force off
 bool         configRomhackCameraBowserFights      = false;
 bool         configRomhackCameraHasCollision      = true;
-bool         configRomhackCameraHasCentering      = false;
+bool         configRomhackCameraSwitchable      = false;
 bool         configRomhackCameraDPadBehavior      = false;
-bool         configRomhackCameraSlowFall          = true;
+bool         configRomhackCameraFollowing          = true;
 
 // common camera settings
 bool         configCameraInvertX                  = false;
@@ -238,6 +249,7 @@ unsigned int configDjuiScale                      = 0;
 #endif
 // other
 unsigned int configRulesVersion                   = 0;
+bool         configHideSocketWarning              = false;
 bool         configCompressOnStartup              = false;
 bool         configSkipPackGeneration             = false;
 #ifdef TOUCH_CONTROLS
@@ -261,6 +273,7 @@ static const struct ConfigOption options[] = {
     {.name = "vsync",                          .type = CONFIG_TYPE_BOOL, .boolValue = &configWindow.vsync},
     {.name = "msaa",                           .type = CONFIG_TYPE_UINT, .uintValue = &configWindow.msaa},
     // display settings
+    {.name = "graphics_backend",               .type = CONFIG_TYPE_UINT, .uintValue = &configGraphicsBackend},
     {.name = "texture_filtering",              .type = CONFIG_TYPE_UINT, .uintValue = &configFiltering},
     {.name = "show_fps",                       .type = CONFIG_TYPE_BOOL, .boolValue = &configShowFPS},
     {.name = "show_ping",                      .type = CONFIG_TYPE_BOOL, .boolValue = &configShowPing},
@@ -277,6 +290,7 @@ static const struct ConfigOption options[] = {
 #ifndef __ANDROID__
     {.name = "mute_focus_loss",                .type = CONFIG_TYPE_BOOL, .boolValue = &configMuteFocusLoss},
 #endif
+    {.name = "sound_output",                   .type = CONFIG_TYPE_UINT, .uintValue = &configSoundOutput},
     // control binds
     {.name = "key_a",                          .type = CONFIG_TYPE_BIND, .uintValue = configKeyA},
     {.name = "key_b",                          .type = CONFIG_TYPE_BIND, .uintValue = configKeyB},
@@ -308,6 +322,7 @@ static const struct ConfigOption options[] = {
     {.name = "rumble_strength",                .type = CONFIG_TYPE_UINT, .uintValue = &configRumbleStrength},
     {.name = "gamepad_number",                 .type = CONFIG_TYPE_UINT, .uintValue = &configGamepadNumber},
     {.name = "background_gamepad",             .type = CONFIG_TYPE_UINT, .boolValue = &configBackgroundGamepad},
+    {.name = "extended_reports",               .type = CONFIG_TYPE_BOOL, .boolValue = &configExtendedReports},
 #ifndef HANDHELD
     {.name = "disable_gamepads",               .type = CONFIG_TYPE_BOOL, .boolValue = &configDisableGamepads},
 #endif
@@ -338,9 +353,9 @@ static const struct ConfigOption options[] = {
     {.name = "romhackcam_enable",              .type = CONFIG_TYPE_UINT, .uintValue = &configEnableRomhackCamera},
     {.name = "romhackcam_bowser",              .type = CONFIG_TYPE_BOOL, .boolValue = &configRomhackCameraBowserFights},
     {.name = "romhackcam_collision",           .type = CONFIG_TYPE_BOOL, .boolValue = &configRomhackCameraHasCollision},
-    {.name = "romhackcam_centering",           .type = CONFIG_TYPE_BOOL, .boolValue = &configRomhackCameraHasCentering},
+    {.name = "romhackcam_switchable",          .type = CONFIG_TYPE_BOOL, .boolValue = &configRomhackCameraSwitchable},
     {.name = "romhackcam_dpad",                .type = CONFIG_TYPE_BOOL, .boolValue = &configRomhackCameraDPadBehavior},
-    {.name = "romhackcam_slowfall",            .type = CONFIG_TYPE_BOOL, .boolValue = &configRomhackCameraSlowFall},
+    {.name = "romhackcam_following",           .type = CONFIG_TYPE_BOOL, .boolValue = &configRomhackCameraFollowing},
     // common camera settings
     {.name = "bettercam_invertx",              .type = CONFIG_TYPE_BOOL, .boolValue = &configCameraInvertX},
     {.name = "bettercam_inverty",              .type = CONFIG_TYPE_BOOL, .boolValue = &configCameraInvertY},
@@ -433,6 +448,7 @@ static const struct ConfigOption options[] = {
     {.name = "djui_scale",                     .type = CONFIG_TYPE_UINT,   .uintValue   = &configDjuiScale},
     // other
     {.name = "rules_version",                  .type = CONFIG_TYPE_UINT,   .uintValue   = &configRulesVersion},
+    {.name = "hide_socket_warning",            .type = CONFIG_TYPE_BOOL,   .boolValue   = &configHideSocketWarning},
     {.name = "compress_on_startup",            .type = CONFIG_TYPE_BOOL,   .boolValue   = &configCompressOnStartup},
     {.name = "skip_pack_generation",           .type = CONFIG_TYPE_BOOL,   .boolValue   = &configSkipPackGeneration},
 };
@@ -806,15 +822,14 @@ static void configfile_load_internal(const char *filename, bool* error) {
                             break;
 #ifdef TOUCH_CONTROLS
                         case CONFIG_TYPE_TOUCH:
+                            if (numTokens < 9) break;
                             sscanf(tokens[1], "%04x", &option->touchValues->rawX);
                             sscanf(tokens[2], "%04x", &option->touchValues->rawY);
                             sscanf(tokens[3], "%4f", &option->touchValues->size);
-
                             if (strcmp(tokens[4], "true") == 0)
                                 option->touchValues->hidden = true;
                             else
                                 option->touchValues->hidden = false;
-
                             sscanf(tokens[5], "%2hhx", &option->touchValues->r);
                             sscanf(tokens[6], "%2hhx", &option->touchValues->g);
                             sscanf(tokens[7], "%2hhx", &option->touchValues->b);
@@ -863,6 +878,8 @@ NEXT_OPTION:
     }
 
     fs_close(file);
+
+    if (configGraphicsBackend < GAPI_GL || configGraphicsBackend > GAPI_MAX) { configGraphicsBackend = GAPI_GL; }
 
     if (configFramerateMode < 0 || configFramerateMode > RRM_MAX) { configFramerateMode = 0; }
     if (configFrameLimit < 30)   { configFrameLimit = 30; }

@@ -148,7 +148,7 @@ static bool ns_socket_initialize(enum NetworkType networkType, UNUSED bool recon
         int reuse = 1;
         if (setsockopt(sCurSocket, SOL_SOCKET, SO_REUSEADDR, (const char*)&reuse, sizeof(reuse)) < 0) {
             LOG_ERROR("setsockopt(SO_REUSEADDR) failed");
-        }        
+        }
 
 #ifdef SO_REUSEPORT
         if (setsockopt(sCurSocket, SOL_SOCKET, SO_REUSEPORT, (const char*)&reuse, sizeof(reuse)) < 0) {
@@ -157,9 +157,9 @@ static bool ns_socket_initialize(enum NetworkType networkType, UNUSED bool recon
 #endif
         // bind the socket to any address and the specified port.
         int rc = socket_bind(sCurSocket, port);
-        if (rc != NO_ERROR) { 
+        if (rc != NO_ERROR) {
             LOG_ERROR("bind returned an error.");
-            return false; 
+            return false;
         }
         LOG_INFO("bound to port %u", port);
     } else if (networkType == NT_CLIENT) {
@@ -201,7 +201,7 @@ static s64 ns_socket_get_id(UNUSED u8 localId) {
 static char* ns_socket_get_id_str(u8 localId) {
     if (localId == UNKNOWN_LOCAL_INDEX) { localId = 0; }
     static char id_str[INET6_ADDRSTRLEN] = { 0 };
-    snprintf(id_str, INET6_ADDRSTRLEN, "%s", inet_ntop(AF_INET6, &sAddr[localId].sin6_addr, id_str, sizeof(id_str)));
+    inet_ntop(AF_INET6, &sAddr[localId].sin6_addr, id_str, sizeof(id_str));
     return id_str;
 }
 

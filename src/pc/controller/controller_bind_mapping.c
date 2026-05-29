@@ -1,18 +1,9 @@
 #include <stdio.h>
-#ifdef HAVE_SDL2
 #include <SDL2/SDL.h>
-#else
-#ifdef HAVE_SDL
-
-#include <SDL/SDL.h>
-#endif
-#endif
 
 #include "controller_bind_mapping.h"
 #include "controller_api.h"
 #include "controller_sdl.h"
-
-#if defined(CAPI_SDL1) || defined(CAPI_SDL2)
 
 static int inverted_scancode_table[512];
 static SDL_Scancode bind_to_sdl_scancode[512] = { 0 };
@@ -106,11 +97,17 @@ const char* translate_bind_to_name(int bind) {
     // mouse
     if (bind >= VK_BASE_SDL_MOUSE) {
         int mouse_button = (bind - VK_BASE_SDL_MOUSE);
-        if (mouse_button == 1) { return "L Mouse"; }
-        if (mouse_button == 2) { return "M Mouse"; }
-        if (mouse_button == 3) { return "R Mouse"; }
-        snprintf(name, 8, "Mouse %d", bind - VK_BASE_SDL_MOUSE);
-        return name;
+        switch (mouse_button) {
+            case 1: return "L Mouse";
+            case 2: return "M Mouse";
+            case 3: return "R Mouse";
+            case 6: return "Scroll Up";
+            case 7: return "Scroll Down";
+            default: {
+                snprintf(name, 11, "Mouse %d", mouse_button);
+                return name;
+            }
+        }
     }
 
     // gamepad
@@ -144,7 +141,6 @@ const char* translate_bind_to_name(int bind) {
     SDL_Scancode sc = bind_to_sdl_scancode[bind];
     if (sc == 0) { return name; }
 
-#ifdef HAVE_SDL2
     const char* sc_name = SDL_GetScancodeName(sc);
     SDL_Keycode kc = SDL_GetKeyFromScancode(sc);
     if (kc != 0) {
@@ -159,7 +155,6 @@ const char* translate_bind_to_name(int bind) {
     if (space == NULL) { return sc_name; }
 
     snprintf(name, 10, "%c%s", sc_name[0], (space + 1));
-#endif
+
     return name;
 }
-#endif

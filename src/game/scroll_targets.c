@@ -13,19 +13,17 @@ struct ScrollTarget *get_scroll_targets(u32 id, u16 size, u16 offset) {
     if (scroll) {
 
         // If we need to, realloc the block of vertices
-        if ((!scroll->hasOffset && offset > 0) || size < scroll->size) {
-            if (scroll->hasOffset) { return NULL; }
+        if (!scroll->hasOffset && (offset > 0 || size < scroll->size)) {
             if (size > scroll->size) { size = scroll->size; } // Don't use an invalid size
-            if (size + offset >= scroll->size) { return NULL; } // If the offset is invalid, Abort.
-            scroll->hasOffset = true;
-            Vtx* *newVtx = calloc(size, sizeof(Vtx*));
+            if (offset > 0 && size + offset >= scroll->size) { return NULL; } // If the offset is invalid, Abort.
+            Vtx* *newVtx = malloc(size * sizeof(Vtx*));
             if (!newVtx) { return NULL; }
-            for (u32 i = 0; i < size; i++) {
-                newVtx[i] = scroll->vertices[i + offset];
-            }
+            memcpy(newVtx, scroll->vertices + offset, size * sizeof(Vtx*));
             free(scroll->vertices);
             scroll->vertices = newVtx;
             scroll->size = size;
+            scroll->capacity = size;
+            scroll->hasOffset = true;
         }
 
         return scroll;
@@ -51,11 +49,19 @@ struct ScrollTarget* find_or_create_scroll_targets(u32 id, bool hasOffset) {
     }
 
     if (scroll == NULL) {
-        scroll = calloc(1, sizeof(struct ScrollTarget));
+        scroll = malloc(sizeof(struct ScrollTarget));
         scroll->id = id;
         scroll->size = 0;
+        scroll->capacity = 0;
         scroll->vertices = NULL;
         scroll->hasOffset = hasOffset;
+        scroll->hasInterpInit = false;
+        scroll->needInterp = false;
+        scroll->interpF32 = NULL;
+        scroll->prevF32 = NULL;
+        scroll->interpS16 = NULL;
+        scroll->prevS16 = NULL;
+        scroll->bhv = 0;
         hmap_put(sScrollTargets, id, scroll);
     }
 
@@ -71,22 +77,24 @@ struct ScrollTarget* find_or_create_scroll_targets(u32 id, bool hasOffset) {
 void add_vtx_scroll_target(u32 id, Vtx *vtx, u32 size, bool hasOffset) {
     struct ScrollTarget *scroll = find_or_create_scroll_targets(id, hasOffset);
     if (!scroll) { return; }
-    u32 oldSize = sizeof(Vtx*) * scroll->size;
-    u32 newSize = oldSize + (sizeof(Vtx*) * size);
 
-    Vtx* *newArray = realloc(scroll->vertices, newSize);
-
-    if (!newArray) {
-        newArray = calloc(1, newSize);
-        memcpy(newArray, scroll->vertices, oldSize);
-        free(scroll->vertices);
+    u32 neededSize = scroll->size + size;
+    if (neededSize > scroll->capacity) {
+        u32 newCapacity = scroll->capacity == 0 ? 16 : scroll->capacity;
+        while (newCapacity < neededSize) {
+            newCapacity *= 2;
+        }
+        Vtx* *newArray = realloc(scroll->vertices, sizeof(Vtx*) * newCapacity);
+        if (!newArray) { return; }
+        scroll->vertices = newArray;
+        scroll->capacity = newCapacity;
     }
 
-    scroll->vertices = newArray;
-
+    Vtx** dest = &scroll->vertices[scroll->size];
     for (u32 i = 0; i < size; ++i) {
-        scroll->vertices[scroll->size++] = &vtx[i];
+        dest[i] = &vtx[i];
     }
+    scroll->size += size;
 }
 
 /*
@@ -133,13 +141,13 @@ void patch_scroll_targets_interpolated(f32 delta) {
             Vtx* *verts = scroll->vertices;
             if (scroll->bhv < SCROLL_UV_X) {
                 u8 bhvIndex = MIN(scroll->bhv, 2);
-                for (u16 k = 0; k < scroll->size; k++) {
+                for (u32 k = 0; k < scroll->size; k++) {
                     f32 diff = wrap_f32(scroll->interpF32[k] - scroll->prevF32[k]);
                     verts[k]->n.ob[bhvIndex] = wrap_f32(scroll->prevF32[k] + diff * delta);
                 }
             } else {
                 u8 bhvIndex = MIN(scroll->bhv-SCROLL_UV_X, 1);
-                for (u16 k = 0; k < scroll->size; k++) {
+                for (u32 k = 0; k < scroll->size; k++) {
                     s32 diff = wrap_s32(scroll->interpS16[k] - scroll->prevS16[k]);
                     verts[k]->n.tc[bhvIndex] = wrap_s32(scroll->prevS16[k] + diff * delta);
                 }

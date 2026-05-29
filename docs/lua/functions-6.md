@@ -13,20 +13,24 @@
 
 ## [clear_move_flag](#clear_move_flag)
 
+### Description
+Clears the `flag` from the `bitSet`
+
 ### Lua Example
-`local integerValue = clear_move_flag(bitSet, flag)`
+`local integerValue, bitSet = clear_move_flag(bitSet, flag)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
-| bitSet | `Pointer` <`integer`> |
+| bitSet | `integer` |
 | flag | `integer` |
 
 ### Returns
 - `integer`
+- `integer`
 
 ### C Prototype
-`s32 clear_move_flag(u32 *bitSet, s32 flag);`
+`s32 clear_move_flag(INOUT u32 *bitSet, s32 flag);`
 
 [:arrow_up_small:](#)
 
@@ -92,7 +96,7 @@ Overrides the current room Mario is in. Set to -1 to reset override
 - None
 
 ### C Prototype
-`void obj_apply_scale_to_matrix(struct Object *obj, OUT Mat4 dst, Mat4 src);`
+`void obj_apply_scale_to_matrix(struct Object *obj, VEC_OUT Mat4 dst, Mat4 src);`
 
 [:arrow_up_small:](#)
 
@@ -114,7 +118,7 @@ Overrides the current room Mario is in. Set to -1 to reset override
 - None
 
 ### C Prototype
-`void create_transformation_from_matrices(OUT Mat4 a0, Mat4 a1, Mat4 a2);`
+`void create_transformation_from_matrices(VEC_OUT Mat4 a0, Mat4 a1, Mat4 a2);`
 
 [:arrow_up_small:](#)
 
@@ -230,20 +234,21 @@ Overrides the current room Mario is in. Set to -1 to reset override
 ## [approach_f32_signed](#approach_f32_signed)
 
 ### Lua Example
-`local integerValue = approach_f32_signed(value, target, increment)`
+`local integerValue, value = approach_f32_signed(value, target, increment)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
-| value | `Pointer` <`number`> |
+| value | `number` |
 | target | `number` |
 | increment | `number` |
 
 ### Returns
 - `integer`
+- `number`
 
 ### C Prototype
-`s32 approach_f32_signed(f32 *value, f32 target, f32 increment);`
+`s32 approach_f32_signed(INOUT f32 *value, f32 target, f32 increment);`
 
 [:arrow_up_small:](#)
 
@@ -588,7 +593,7 @@ Overrides the current room Mario is in. Set to -1 to reset override
 ## [spawn_water_droplet](#spawn_water_droplet)
 
 ### Lua Example
-`local ObjectValue = spawn_water_droplet(parent, params)`
+`local objectValue = spawn_water_droplet(parent, params)`
 
 ### Parameters
 | Field | Type |
@@ -597,7 +602,7 @@ Overrides the current room Mario is in. Set to -1 to reset override
 | params | [WaterDropletParams](structs.md#WaterDropletParams) |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *spawn_water_droplet(struct Object *parent, struct WaterDropletParams *params);`
@@ -772,7 +777,12 @@ Overrides the current room Mario is in. Set to -1 to reset override
 ## [linear_mtxf_mul_vec3f](#linear_mtxf_mul_vec3f)
 
 ### Description
-Multiplies a vector by a matrix of the form: `| ? ? ? 0 |` `| ? ? ? 0 |` `| ? ? ? 0 |` `| 0 0 0 1 |` i.e. a matrix representing a linear transformation over 3 space
+Multiplies a vector by a matrix of the form:
+`| ? ? ? 0 |`
+`| ? ? ? 0 |`
+`| ? ? ? 0 |`
+`| 0 0 0 1 |`
+i.e. a matrix representing a linear transformation over 3 space
 
 ### Lua Example
 `linear_mtxf_mul_vec3f(m, dst, v)`
@@ -788,7 +798,7 @@ Multiplies a vector by a matrix of the form: `| ? ? ? 0 |` `| ? ? ? 0 |` `| ? ? 
 - None
 
 ### C Prototype
-`void linear_mtxf_mul_vec3f(Mat4 m, OUT Vec3f dst, Vec3f v);`
+`void linear_mtxf_mul_vec3f(Mat4 m, VEC_OUT Vec3f dst, Vec3f v);`
 
 [:arrow_up_small:](#)
 
@@ -797,7 +807,12 @@ Multiplies a vector by a matrix of the form: `| ? ? ? 0 |` `| ? ? ? 0 |` `| ? ? 
 ## [linear_mtxf_transpose_mul_vec3f](#linear_mtxf_transpose_mul_vec3f)
 
 ### Description
-Multiplies a vector by the transpose of a matrix of the form: `| ? ? ? 0 |` `| ? ? ? 0 |` `| ? ? ? 0 |` `| 0 0 0 1 |` i.e. a matrix representing a linear transformation over 3 space
+Multiplies a vector by the transpose of a matrix of the form:
+`| ? ? ? 0 |`
+`| ? ? ? 0 |`
+`| ? ? ? 0 |`
+`| 0 0 0 1 |`
+i.e. a matrix representing a linear transformation over 3 space
 
 ### Lua Example
 `linear_mtxf_transpose_mul_vec3f(m, dst, v)`
@@ -813,7 +828,7 @@ Multiplies a vector by the transpose of a matrix of the form: `| ? ? ? 0 |` `| ?
 - None
 
 ### C Prototype
-`void linear_mtxf_transpose_mul_vec3f(Mat4 m, OUT Vec3f dst, Vec3f v);`
+`void linear_mtxf_transpose_mul_vec3f(Mat4 m, VEC_OUT Vec3f dst, Vec3f v);`
 
 [:arrow_up_small:](#)
 
@@ -1243,7 +1258,7 @@ Multiplies a vector by the transpose of a matrix of the form: `| ? ? ? 0 |` `| ?
 ## [cur_obj_nearest_object_with_behavior](#cur_obj_nearest_object_with_behavior)
 
 ### Lua Example
-`local ObjectValue = cur_obj_nearest_object_with_behavior(behavior)`
+`local objectValue = cur_obj_nearest_object_with_behavior(behavior)`
 
 ### Parameters
 | Field | Type |
@@ -1251,7 +1266,7 @@ Multiplies a vector by the transpose of a matrix of the form: `| ? ? ? 0 |` `| ?
 | behavior | `Pointer` <`BehaviorScript`> |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *cur_obj_nearest_object_with_behavior(const BehaviorScript *behavior);`
@@ -1283,13 +1298,13 @@ Multiplies a vector by the transpose of a matrix of the form: `| ? ? ? 0 |` `| ?
 ## [cur_obj_find_nearest_pole](#cur_obj_find_nearest_pole)
 
 ### Lua Example
-`local ObjectValue = cur_obj_find_nearest_pole()`
+`local objectValue = cur_obj_find_nearest_pole()`
 
 ### Parameters
 - None
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object* cur_obj_find_nearest_pole(void);`
@@ -1301,19 +1316,19 @@ Multiplies a vector by the transpose of a matrix of the form: `| ? ? ? 0 |` `| ?
 ## [cur_obj_find_nearest_object_with_behavior](#cur_obj_find_nearest_object_with_behavior)
 
 ### Lua Example
-`local ObjectValue = cur_obj_find_nearest_object_with_behavior(behavior, dist)`
+`local objectValue, dist = cur_obj_find_nearest_object_with_behavior(behavior)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
 | behavior | `Pointer` <`BehaviorScript`> |
-| dist | `Pointer` <`number`> |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
+- `number`
 
 ### C Prototype
-`struct Object *cur_obj_find_nearest_object_with_behavior(const BehaviorScript *behavior, f32 *dist);`
+`struct Object *cur_obj_find_nearest_object_with_behavior(const BehaviorScript *behavior, RET f32 *dist);`
 
 [:arrow_up_small:](#)
 
@@ -1343,13 +1358,13 @@ Multiplies a vector by the transpose of a matrix of the form: `| ? ? ? 0 |` `| ?
 ## [find_unimportant_object](#find_unimportant_object)
 
 ### Lua Example
-`local ObjectValue = find_unimportant_object()`
+`local objectValue = find_unimportant_object()`
 
 ### Parameters
 - None
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *find_unimportant_object(void);`
@@ -1399,7 +1414,7 @@ Multiplies a vector by the transpose of a matrix of the form: `| ? ? ? 0 |` `| ?
 ## [find_object_with_behavior](#find_object_with_behavior)
 
 ### Lua Example
-`local ObjectValue = find_object_with_behavior(behavior)`
+`local objectValue = find_object_with_behavior(behavior)`
 
 ### Parameters
 | Field | Type |
@@ -1407,7 +1422,7 @@ Multiplies a vector by the transpose of a matrix of the form: `| ? ? ? 0 |` `| ?
 | behavior | `Pointer` <`BehaviorScript`> |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *find_object_with_behavior(const BehaviorScript *behavior);`
@@ -1419,7 +1434,7 @@ Multiplies a vector by the transpose of a matrix of the form: `| ? ? ? 0 |` `| ?
 ## [cur_obj_find_nearby_held_actor](#cur_obj_find_nearby_held_actor)
 
 ### Lua Example
-`local ObjectValue = cur_obj_find_nearby_held_actor(behavior, maxDist)`
+`local objectValue = cur_obj_find_nearby_held_actor(behavior, maxDist)`
 
 ### Parameters
 | Field | Type |
@@ -1428,7 +1443,7 @@ Multiplies a vector by the transpose of a matrix of the form: `| ? ? ? 0 |` `| ?
 | maxDist | `number` |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *cur_obj_find_nearby_held_actor(const BehaviorScript *behavior, f32 maxDist);`
@@ -1605,26 +1620,6 @@ Multiplies a vector by the transpose of a matrix of the form: `| ? ? ? 0 |` `| ?
 
 ### C Prototype
 `s32 cur_obj_check_anim_frame_in_range(s32 startFrame, s32 rangeLength);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [cur_obj_check_frame_prior_current_frame](#cur_obj_check_frame_prior_current_frame)
-
-### Lua Example
-`local integerValue = cur_obj_check_frame_prior_current_frame(a0)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| a0 | `Pointer` <`integer`> |
-
-### Returns
-- `integer`
-
-### C Prototype
-`s32 cur_obj_check_frame_prior_current_frame(s16 *a0);`
 
 [:arrow_up_small:](#)
 
@@ -1931,13 +1926,13 @@ Marks an object to be unloaded at the end of the frame
 ## [cur_obj_update_floor_height_and_get_floor](#cur_obj_update_floor_height_and_get_floor)
 
 ### Lua Example
-`local SurfaceValue = cur_obj_update_floor_height_and_get_floor()`
+`local surfaceValue = cur_obj_update_floor_height_and_get_floor()`
 
 ### Parameters
 - None
 
 ### Returns
-[Surface](structs.md#Surface)
+- [Surface](structs.md#Surface)
 
 ### C Prototype
 `struct Surface *cur_obj_update_floor_height_and_get_floor(void);`
@@ -1949,19 +1944,19 @@ Marks an object to be unloaded at the end of the frame
 ## [apply_drag_to_value](#apply_drag_to_value)
 
 ### Lua Example
-`apply_drag_to_value(value, dragStrength)`
+`local value = apply_drag_to_value(value, dragStrength)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
-| value | `Pointer` <`number`> |
+| value | `number` |
 | dragStrength | `number` |
 
 ### Returns
-- None
+- `number`
 
 ### C Prototype
-`void apply_drag_to_value(f32 *value, f32 dragStrength);`
+`void apply_drag_to_value(INOUT f32 *value, f32 dragStrength);`
 
 [:arrow_up_small:](#)
 
@@ -2571,12 +2566,12 @@ Marks an object to be unloaded at the end of the frame
 ## [obj_set_hitbox_radius_and_height](#obj_set_hitbox_radius_and_height)
 
 ### Lua Example
-`obj_set_hitbox_radius_and_height(o, radius, height)`
+`obj_set_hitbox_radius_and_height(obj, radius, height)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
-| o | [Object](structs.md#Object) |
+| obj | [Object](structs.md#Object) |
 | radius | `number` |
 | height | `number` |
 
@@ -2584,7 +2579,7 @@ Marks an object to be unloaded at the end of the frame
 - None
 
 ### C Prototype
-`void obj_set_hitbox_radius_and_height(struct Object *o, f32 radius, f32 height);`
+`void obj_set_hitbox_radius_and_height(struct Object *obj, f32 radius, f32 height);`
 
 [:arrow_up_small:](#)
 
@@ -2593,12 +2588,12 @@ Marks an object to be unloaded at the end of the frame
 ## [obj_set_hurtbox_radius_and_height](#obj_set_hurtbox_radius_and_height)
 
 ### Lua Example
-`obj_set_hurtbox_radius_and_height(o, radius, height)`
+`obj_set_hurtbox_radius_and_height(obj, radius, height)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
-| o | [Object](structs.md#Object) |
+| obj | [Object](structs.md#Object) |
 | radius | `number` |
 | height | `number` |
 
@@ -2606,7 +2601,7 @@ Marks an object to be unloaded at the end of the frame
 - None
 
 ### C Prototype
-`void obj_set_hurtbox_radius_and_height(struct Object *o, f32 radius, f32 height);`
+`void obj_set_hurtbox_radius_and_height(struct Object *obj, f32 radius, f32 height);`
 
 [:arrow_up_small:](#)
 
@@ -3730,7 +3725,7 @@ Transforms the vector at `localTranslateIndex` into the object's local coordinat
 ## [spawn_star_with_no_lvl_exit](#spawn_star_with_no_lvl_exit)
 
 ### Lua Example
-`local ObjectValue = spawn_star_with_no_lvl_exit(sp20, sp24)`
+`local objectValue = spawn_star_with_no_lvl_exit(sp20, sp24)`
 
 ### Parameters
 | Field | Type |
@@ -3739,7 +3734,7 @@ Transforms the vector at `localTranslateIndex` into the object's local coordinat
 | sp24 | `integer` |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *spawn_star_with_no_lvl_exit(s32 sp20, s32 sp24);`
@@ -4803,7 +4798,8 @@ Gets the level number's corresponding course number
 ## [touch_coin_score_age](#touch_coin_score_age)
 
 ### Description
-Marks the coin score for a specific course as the newest among all save files. Adjusts the age of other scores to reflect the update. Useful for leaderboard tracking or displaying recent progress
+Marks the coin score for a specific course as the newest among all save files. Adjusts the age of other scores to reflect the update.
+Useful for leaderboard tracking or displaying recent progress
 
 ### Lua Example
 `touch_coin_score_age(fileIndex, courseIndex)`
@@ -4827,7 +4823,8 @@ Marks the coin score for a specific course as the newest among all save files. A
 ## [save_file_do_save](#save_file_do_save)
 
 ### Description
-Saves the current state of the game into a specified save file. Includes data verification and backup management. Useful for maintaining game progress during play or when saving manually
+Saves the current state of the game into a specified save file. Includes data verification and backup management.
+Useful for maintaining game progress during play or when saving manually
 
 ### Lua Example
 `save_file_do_save(fileIndex, forceSave)`
@@ -4851,7 +4848,8 @@ Saves the current state of the game into a specified save file. Includes data ve
 ## [save_file_erase](#save_file_erase)
 
 ### Description
-Erases all data in a specified save file, including backup slots. Marks the save file as modified and performs a save to apply the changes. Useful for resetting a save file to its default state
+Erases all data in a specified save file, including backup slots. Marks the save file as modified and performs a save to apply the changes.
+Useful for resetting a save file to its default state
 
 ### Lua Example
 `save_file_erase(fileIndex)`
@@ -4895,7 +4893,8 @@ Erases the backup data for the current save file without affecting the primary s
 ## [save_file_reload](#save_file_reload)
 
 ### Description
-Reloads the save file data into memory, optionally resetting all save files. Marks the save file as modified. Useful for reloading state after data corruption or during development debugging
+Reloads the save file data into memory, optionally resetting all save files. Marks the save file as modified.
+Useful for reloading state after data corruption or during development debugging
 
 ### Lua Example
 `save_file_reload(load_all)`
@@ -4918,7 +4917,8 @@ Reloads the save file data into memory, optionally resetting all save files. Mar
 ## [save_file_get_max_coin_score](#save_file_get_max_coin_score)
 
 ### Description
-Determines the maximum coin score for a course across all save files. Returns the score along with the file index of the save containing it. Useful for leaderboard-style comparisons and overall progress tracking
+Determines the maximum coin score for a course across all save files. Returns the score along with the file index of the save containing it.
+Useful for leaderboard-style comparisons and overall progress tracking
 
 ### Lua Example
 `local integerValue = save_file_get_max_coin_score(courseIndex)`
@@ -4941,7 +4941,8 @@ Determines the maximum coin score for a course across all save files. Returns th
 ## [save_file_get_course_star_count](#save_file_get_course_star_count)
 
 ### Description
-Calculates the total number of stars collected in a specific course for a given save file. Useful for determining completion status of individual levels
+Calculates the total number of stars collected in a specific course for a given save file.
+Useful for determining completion status of individual levels
 
 ### Lua Example
 `local integerValue = save_file_get_course_star_count(fileIndex, courseIndex)`
@@ -4965,7 +4966,8 @@ Calculates the total number of stars collected in a specific course for a given 
 ## [save_file_get_total_star_count](#save_file_get_total_star_count)
 
 ### Description
-Calculates the total number of stars collected across multiple courses within a specified range. Useful for determining the overall progress toward game completion
+Calculates the total number of stars collected across multiple courses within a specified range.
+Useful for determining the overall progress toward game completion
 
 ### Lua Example
 `local integerValue = save_file_get_total_star_count(fileIndex, minCourse, maxCourse)`
@@ -4990,7 +4992,8 @@ Calculates the total number of stars collected across multiple courses within a 
 ## [save_file_set_flags](#save_file_set_flags)
 
 ### Description
-Adds new flags to the save file's flag bitmask. Useful for updating progress or triggering new gameplay features
+Adds new flags to the save file's flag bitmask.
+Useful for updating progress or triggering new gameplay features
 
 ### Lua Example
 `save_file_set_flags(flags)`
@@ -5013,7 +5016,8 @@ Adds new flags to the save file's flag bitmask. Useful for updating progress or 
 ## [save_file_clear_flags](#save_file_clear_flags)
 
 ### Description
-Clears specific flags in the current save file. The flags are specified as a bitmask in the `flags` parameter. Ensures that the save file remains valid after clearing. Useful for removing specific game states, such as collected items or completed objectives, without resetting the entire save
+Clears specific flags in the current save file. The flags are specified as a bitmask in the `flags` parameter. Ensures that the save file remains valid after clearing.
+Useful for removing specific game states, such as collected items or completed objectives, without resetting the entire save
 
 ### Lua Example
 `save_file_clear_flags(flags)`
@@ -5036,7 +5040,8 @@ Clears specific flags in the current save file. The flags are specified as a bit
 ## [save_file_get_flags](#save_file_get_flags)
 
 ### Description
-Retrieves the bitmask of flags representing the current state of the save file. Flags indicate collected items, completed objectives, and other game states. Useful for checking specific game progress details
+Retrieves the bitmask of flags representing the current state of the save file. Flags indicate collected items, completed objectives, and other game states.
+Useful for checking specific game progress details
 
 ### Lua Example
 `local integerValue = save_file_get_flags()`
@@ -5057,7 +5062,8 @@ Retrieves the bitmask of flags representing the current state of the save file. 
 ## [save_file_get_star_flags](#save_file_get_star_flags)
 
 ### Description
-Retrieves the bitmask of stars collected in a specific course or castle secret stars (-1). Useful for evaluating level progress and completion
+Retrieves the bitmask of stars collected in a specific course or castle secret stars (-1).
+Useful for evaluating level progress and completion
 
 ### Lua Example
 `local integerValue = save_file_get_star_flags(fileIndex, courseIndex)`
@@ -5081,7 +5087,8 @@ Retrieves the bitmask of stars collected in a specific course or castle secret s
 ## [save_file_set_star_flags](#save_file_set_star_flags)
 
 ### Description
-Adds specific star flags to the save file, indicating collected stars for a course or castle secret stars. Updates the save file flags as necessary. Useful for recording progress after star collection
+Adds specific star flags to the save file, indicating collected stars for a course or castle secret stars. Updates the save file flags as necessary.
+Useful for recording progress after star collection
 
 ### Lua Example
 `save_file_set_star_flags(fileIndex, courseIndex, starFlags)`
@@ -5106,7 +5113,8 @@ Adds specific star flags to the save file, indicating collected stars for a cour
 ## [save_file_remove_star_flags](#save_file_remove_star_flags)
 
 ### Description
-Removes specific star flags from the save file. This modifies the bitmask representing collected stars for a course or castle secret stars. Useful for undoing progress or debugging collected stars
+Removes specific star flags from the save file. This modifies the bitmask representing collected stars for a course or castle secret stars.
+Useful for undoing progress or debugging collected stars
 
 ### Lua Example
 `save_file_remove_star_flags(fileIndex, courseIndex, starFlagsToRemove)`
@@ -5131,7 +5139,8 @@ Removes specific star flags from the save file. This modifies the bitmask repres
 ## [save_file_get_course_coin_score](#save_file_get_course_coin_score)
 
 ### Description
-Returns the highest coin score for a specified course in the save file. Performs checks to ensure the coin score is valid. Useful for tracking player achievements and high scores
+Returns the highest coin score for a specified course in the save file. Performs checks to ensure the coin score is valid.
+Useful for tracking player achievements and high scores
 
 ### Lua Example
 `local integerValue = save_file_get_course_coin_score(fileIndex, courseIndex)`
@@ -5155,7 +5164,8 @@ Returns the highest coin score for a specified course in the save file. Performs
 ## [save_file_set_course_coin_score](#save_file_set_course_coin_score)
 
 ### Description
-Updates the coin score for a specific course in the save file. The new score is provided in the `coinScore` parameter. Useful for manually setting achievements such as high coin counts in individual levels
+Updates the coin score for a specific course in the save file. The new score is provided in the `coinScore` parameter.
+Useful for manually setting achievements such as high coin counts in individual levels
 
 ### Lua Example
 `save_file_set_course_coin_score(fileIndex, courseIndex, coinScore)`
@@ -5180,7 +5190,8 @@ Updates the coin score for a specific course in the save file. The new score is 
 ## [save_file_is_cannon_unlocked](#save_file_is_cannon_unlocked)
 
 ### Description
-Checks whether the cannon in the specified course is unlocked. Returns true if the cannon is unlocked, otherwise false. Useful for tracking course-specific progress and enabling shortcuts
+Checks whether the cannon in the specified course is unlocked. Returns true if the cannon is unlocked, otherwise false.
+Useful for tracking course-specific progress and enabling shortcuts
 
 ### Lua Example
 `local integerValue = save_file_is_cannon_unlocked(fileIndex, courseIndex)`
@@ -5225,7 +5236,8 @@ Unlocks the cannon in the current course
 ## [save_file_get_cap_pos](#save_file_get_cap_pos)
 
 ### Description
-Retrieves the current position of Mario's cap, if it is on the ground in the current level and area. The position is stored in the provided `capPos` parameter. Useful for tracking the cap's location after it has been dropped or lost
+Retrieves the current position of Mario's cap, if it is on the ground in the current level and area. The position is stored in the provided `capPos` parameter.
+Useful for tracking the cap's location after it has been dropped or lost
 
 ### Lua Example
 `local integerValue = save_file_get_cap_pos(capPos)`
@@ -5239,7 +5251,7 @@ Retrieves the current position of Mario's cap, if it is on the ground in the cur
 - `integer`
 
 ### C Prototype
-`s32 save_file_get_cap_pos(OUT Vec3s capPos);`
+`s32 save_file_get_cap_pos(VEC_OUT Vec3s capPos);`
 
 [:arrow_up_small:](#)
 
@@ -5248,7 +5260,8 @@ Retrieves the current position of Mario's cap, if it is on the ground in the cur
 ## [save_file_get_sound_mode](#save_file_get_sound_mode)
 
 ### Description
-Returns the current sound mode (e.g., stereo, mono) stored in the save file. Useful for checking the audio output preferences when loading a save
+Returns the current sound mode (e.g., stereo, mono) stored in the save file.
+Useful for checking the audio output preferences when loading a save
 
 ### Lua Example
 `local integerValue = save_file_get_sound_mode()`
@@ -5494,7 +5507,7 @@ Gets the mute volume scale of `player`
 Gets a vanilla mario Animation with `index`
 
 ### Lua Example
-`local AnimationValue = get_mario_vanilla_animation(index)`
+`local animationValue = get_mario_vanilla_animation(index)`
 
 ### Parameters
 | Field | Type |
@@ -5502,7 +5515,7 @@ Gets a vanilla mario Animation with `index`
 | index | `integer` |
 
 ### Returns
-[Animation](structs.md#Animation)
+- [Animation](structs.md#Animation)
 
 ### C Prototype
 `struct Animation *get_mario_vanilla_animation(u16 index);`
@@ -5611,13 +5624,34 @@ Replaces the sequence corresponding to `sequenceId` with one called `m64Name`.m6
 
 <br />
 
+## [smlua_audio_utils_allocate_sequence](#smlua_audio_utils_allocate_sequence)
+
+### Description
+Allocates a new sequence ID
+
+### Lua Example
+`local integerValue = smlua_audio_utils_allocate_sequence()`
+
+### Parameters
+- None
+
+### Returns
+- `integer`
+
+### C Prototype
+`u8 smlua_audio_utils_allocate_sequence(void);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [audio_stream_load](#audio_stream_load)
 
 ### Description
 Loads an `audio` stream by `filename` (with extension)
 
 ### Lua Example
-`local ModAudioValue = audio_stream_load(filename)`
+`local modAudioValue = audio_stream_load(filename)`
 
 ### Parameters
 | Field | Type |
@@ -5625,7 +5659,7 @@ Loads an `audio` stream by `filename` (with extension)
 | filename | `string` |
 
 ### Returns
-[ModAudio](structs.md#ModAudio)
+- [ModAudio](structs.md#ModAudio)
 
 ### C Prototype
 `struct ModAudio* audio_stream_load(const char* filename);`
@@ -5941,13 +5975,60 @@ Sets the volume of an `audio` stream
 
 <br />
 
+## [audio_stream_get_volume_channel](#audio_stream_get_volume_channel)
+
+### Description
+Gets the volume channel of an `audio` stream
+
+### Lua Example
+`local integerValue = audio_stream_get_volume_channel(audio)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| audio | [ModAudio](structs.md#ModAudio) |
+
+### Returns
+- `integer`
+
+### C Prototype
+`u8 audio_stream_get_volume_channel(struct ModAudio *audio);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [audio_stream_set_volume_channel](#audio_stream_set_volume_channel)
+
+### Description
+Sets the volume channel of an `audio` stream
+
+### Lua Example
+`audio_stream_set_volume_channel(audio, channel)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| audio | [ModAudio](structs.md#ModAudio) |
+| channel | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void audio_stream_set_volume_channel(struct ModAudio *audio, u8 channel);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [audio_sample_load](#audio_sample_load)
 
 ### Description
 Loads an `audio` sample
 
 ### Lua Example
-`local ModAudioValue = audio_sample_load(filename)`
+`local modAudioValue = audio_sample_load(filename)`
 
 ### Parameters
 | Field | Type |
@@ -5955,7 +6036,7 @@ Loads an `audio` sample
 | filename | `string` |
 
 ### Returns
-[ModAudio](structs.md#ModAudio)
+- [ModAudio](structs.md#ModAudio)
 
 ### C Prototype
 `struct ModAudio* audio_sample_load(const char* filename);`
@@ -6171,13 +6252,13 @@ Sets the romhack camera override status
 
 <br />
 
-## [camera_romhack_allow_centering](#camera_romhack_allow_centering)
+## [camera_romhack_allow_switchable](#camera_romhack_allow_switchable)
 
 ### Description
-Sets if the romhack camera should allow centering, triggered with the L button
+Sets if the romhack camera should allow water/flying switching, triggered with the L button
 
 ### Lua Example
-`camera_romhack_allow_centering(allow)`
+`camera_romhack_allow_switchable(allow)`
 
 ### Parameters
 | Field | Type |
@@ -6188,7 +6269,7 @@ Sets if the romhack camera should allow centering, triggered with the L button
 - None
 
 ### C Prototype
-`void camera_romhack_allow_centering(u8 allow);`
+`void camera_romhack_allow_switchable(u8 allow);`
 
 [:arrow_up_small:](#)
 
@@ -6240,13 +6321,14 @@ Sets if the romhack camera should allow D-Pad movement
 
 <br />
 
-## [rom_hack_cam_set_collisions](#rom_hack_cam_set_collisions)
+## [camera_romhack_set_collisions](#camera_romhack_set_collisions)
 
 ### Description
-Toggles collision settings for the ROM hack camera. This enables or disables specific collision behaviors in modded levels
+Toggles collision settings for the ROM hack camera.
+This enables or disables specific collision behaviors in modded levels
 
 ### Lua Example
-`rom_hack_cam_set_collisions(enable)`
+`camera_romhack_set_collisions(enable)`
 
 ### Parameters
 | Field | Type |
@@ -6257,7 +6339,7 @@ Toggles collision settings for the ROM hack camera. This enables or disables spe
 - None
 
 ### C Prototype
-`void rom_hack_cam_set_collisions(u8 enable);`
+`void camera_romhack_set_collisions(u8 enable);`
 
 [:arrow_up_small:](#)
 
@@ -6451,7 +6533,7 @@ Gets the current romhack camera override status
 - None
 
 ### Returns
-[enum RomhackCameraOverride](constants.md#enum-RomhackCameraOverride)
+- [enum RomhackCameraOverride](constants.md#enum-RomhackCameraOverride)
 
 ### C Prototype
 `enum RomhackCameraOverride camera_get_romhack_override(void);`
@@ -6460,13 +6542,13 @@ Gets the current romhack camera override status
 
 <br />
 
-## [camera_romhack_get_allow_centering](#camera_romhack_get_allow_centering)
+## [camera_romhack_get_allow_switchable](#camera_romhack_get_allow_switchable)
 
 ### Description
-Gets if the romhack camera should allow centering
+Gets if the romhack camera should allow water/flying switching
 
 ### Lua Example
-`local integerValue = camera_romhack_get_allow_centering()`
+`local integerValue = camera_romhack_get_allow_switchable()`
 
 ### Parameters
 - None
@@ -6475,7 +6557,7 @@ Gets if the romhack camera should allow centering
 - `integer`
 
 ### C Prototype
-`u8 camera_romhack_get_allow_centering(void);`
+`u8 camera_romhack_get_allow_switchable(void);`
 
 [:arrow_up_small:](#)
 
@@ -7172,7 +7254,7 @@ Sets if the camera should account for surfaces
 Finds a potential floor at the given `x`, `y`, and `z` values
 
 ### Lua Example
-`local SurfaceValue = collision_find_floor(x, y, z)`
+`local surfaceValue = collision_find_floor(x, y, z)`
 
 ### Parameters
 | Field | Type |
@@ -7182,7 +7264,7 @@ Finds a potential floor at the given `x`, `y`, and `z` values
 | z | `number` |
 
 ### Returns
-[Surface](structs.md#Surface)
+- [Surface](structs.md#Surface)
 
 ### C Prototype
 `struct Surface* collision_find_floor(f32 x, f32 y, f32 z);`
@@ -7197,7 +7279,7 @@ Finds a potential floor at the given `x`, `y`, and `z` values
 Finds a potential ceiling at the given `x`, `y`, and `z` values
 
 ### Lua Example
-`local SurfaceValue = collision_find_ceil(x, y, z)`
+`local surfaceValue = collision_find_ceil(x, y, z)`
 
 ### Parameters
 | Field | Type |
@@ -7207,7 +7289,7 @@ Finds a potential ceiling at the given `x`, `y`, and `z` values
 | z | `number` |
 
 ### Returns
-[Surface](structs.md#Surface)
+- [Surface](structs.md#Surface)
 
 ### C Prototype
 `struct Surface* collision_find_ceil(f32 x, f32 y, f32 z);`
@@ -7222,13 +7304,13 @@ Finds a potential ceiling at the given `x`, `y`, and `z` values
 Gets the generated water floor surface used when riding a shell
 
 ### Lua Example
-`local SurfaceValue = get_water_surface_pseudo_floor()`
+`local surfaceValue = get_water_surface_pseudo_floor()`
 
 ### Parameters
 - None
 
 ### Returns
-[Surface](structs.md#Surface)
+- [Surface](structs.md#Surface)
 
 ### C Prototype
 `struct Surface* get_water_surface_pseudo_floor(void);`
@@ -7243,7 +7325,7 @@ Gets the generated water floor surface used when riding a shell
 Gets the `Collision` with `name`
 
 ### Lua Example
-`local PointerValue = smlua_collision_util_get(name)`
+`local pointerValue = smlua_collision_util_get(name)`
 
 ### Parameters
 | Field | Type |
@@ -7266,13 +7348,13 @@ Gets the `Collision` with `name`
 Returns a temporary wall collision data pointer
 
 ### Lua Example
-`local WallCollisionDataValue = collision_get_temp_wall_collision_data()`
+`local wallCollisionDataValue = collision_get_temp_wall_collision_data()`
 
 ### Parameters
 - None
 
 ### Returns
-[WallCollisionData](structs.md#WallCollisionData)
+- [WallCollisionData](structs.md#WallCollisionData)
 
 ### C Prototype
 `struct WallCollisionData* collision_get_temp_wall_collision_data(void);`
@@ -7287,7 +7369,7 @@ Returns a temporary wall collision data pointer
 Gets the surface corresponding to `index` from `wcd`
 
 ### Lua Example
-`local SurfaceValue = get_surface_from_wcd_index(wcd, index)`
+`local surfaceValue = get_surface_from_wcd_index(wcd, index)`
 
 ### Parameters
 | Field | Type |
@@ -7296,7 +7378,7 @@ Gets the surface corresponding to `index` from `wcd`
 | index | `integer` |
 
 ### Returns
-[Surface](structs.md#Surface)
+- [Surface](structs.md#Surface)
 
 ### C Prototype
 `struct Surface* get_surface_from_wcd_index(struct WallCollisionData* wcd, s8 index);`
@@ -7311,7 +7393,7 @@ Gets the surface corresponding to `index` from `wcd`
 Gets the current level terrain collision
 
 ### Lua Example
-`local PointerValue = smlua_collision_util_get_current_terrain_collision()`
+`local pointerValue = smlua_collision_util_get_current_terrain_collision()`
 
 ### Parameters
 - None
@@ -7332,7 +7414,7 @@ Gets the current level terrain collision
 Gets the `level` terrain collision from `area`
 
 ### Lua Example
-`local PointerValue = smlua_collision_util_get_level_collision(level, area)`
+`local pointerValue = smlua_collision_util_get_level_collision(level, area)`
 
 ### Parameters
 | Field | Type |
@@ -7368,6 +7450,86 @@ Gets a table of the surface types from `data`
 
 ### C Prototype
 `void smlua_collision_util_find_surface_types(Collision* data);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [smlua_collision_add_surface](#smlua_collision_add_surface)
+
+### Description
+Allocates a new collision surface with the given vertices, computes the surface normal and other fields, and inserts it into the spatial partition.
+Returns the new surface, or `nil` if the triangle is degenerate (zero area).
+Set `dynamic` to `true` for surfaces that are cleared each frame, or `false` for persistent static surfaces
+
+### Lua Example
+`local surfaceValue = smlua_collision_add_surface(dynamic, surfaceType, vertex1, vertex2, vertex3)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dynamic | `boolean` |
+| surfaceType | `integer` |
+| vertex1 | [Vec3s](structs.md#Vec3s) |
+| vertex2 | [Vec3s](structs.md#Vec3s) |
+| vertex3 | [Vec3s](structs.md#Vec3s) |
+
+### Returns
+- [Surface](structs.md#Surface)
+
+### C Prototype
+`struct Surface* smlua_collision_add_surface(bool dynamic, s16 surfaceType, Vec3s vertex1, Vec3s vertex2, Vec3s vertex3);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [smlua_collision_move_surface](#smlua_collision_move_surface)
+
+### Description
+Moves an existing collision surface to new vertex positions.
+Recalculates the surface normal, origin offset, and Y bounds, removes the surface from its old spatial partition cells, and re-adds it to the correct cells.
+The previous vertices are preserved for interpolation
+
+### Lua Example
+`smlua_collision_move_surface(surface, vertex1, vertex2, vertex3)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| surface | [Surface](structs.md#Surface) |
+| vertex1 | [Vec3s](structs.md#Vec3s) |
+| vertex2 | [Vec3s](structs.md#Vec3s) |
+| vertex3 | [Vec3s](structs.md#Vec3s) |
+
+### Returns
+- None
+
+### C Prototype
+`void smlua_collision_move_surface(struct Surface *surface, Vec3s vertex1, Vec3s vertex2, Vec3s vertex3);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [smlua_collision_delete_surface](#smlua_collision_delete_surface)
+
+### Description
+Fully deletes a collision surface: removes it from the spatial partitions and frees its pool slot.
+
+### Lua Example
+`smlua_collision_delete_surface(surface)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| surface | [Surface](structs.md#Surface) |
+
+### Returns
+- None
+
+### C Prototype
+`void smlua_collision_delete_surface(struct Surface *surface);`
 
 [:arrow_up_small:](#)
 
@@ -7447,1010 +7609,6 @@ Checks if the surface is a painting warp
 
 <br />
 
-
----
-# functions from smlua_gfx_utils.h
-
-<br />
-
-
-## [set_override_fov](#set_override_fov)
-
-### Description
-Sets the override FOV
-
-### Lua Example
-`set_override_fov(fov)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| fov | `number` |
-
-### Returns
-- None
-
-### C Prototype
-`void set_override_fov(f32 fov);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [set_override_near](#set_override_near)
-
-### Description
-Sets the override near plane
-
-### Lua Example
-`set_override_near(near)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| near | `number` |
-
-### Returns
-- None
-
-### C Prototype
-`void set_override_near(f32 near);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [set_override_far](#set_override_far)
-
-### Description
-Sets the override far plane
-
-### Lua Example
-`set_override_far(far)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| far | `number` |
-
-### Returns
-- None
-
-### C Prototype
-`void set_override_far(f32 far);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [get_lighting_dir](#get_lighting_dir)
-
-### Description
-Gets a value of the global lighting direction
-
-### Lua Example
-`local numberValue = get_lighting_dir(index)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| index | `integer` |
-
-### Returns
-- `number`
-
-### C Prototype
-`f32 get_lighting_dir(u8 index);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [set_lighting_dir](#set_lighting_dir)
-
-### Description
-Sets a value of the global lighting direction
-
-### Lua Example
-`set_lighting_dir(index, value)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| index | `integer` |
-| value | `number` |
-
-### Returns
-- None
-
-### C Prototype
-`void set_lighting_dir(u8 index, f32 value);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [get_lighting_color](#get_lighting_color)
-
-### Description
-Gets a value of the global lighting color
-
-### Lua Example
-`local integerValue = get_lighting_color(index)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| index | `integer` |
-
-### Returns
-- `integer`
-
-### C Prototype
-`u8 get_lighting_color(u8 index);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [get_lighting_color_ambient](#get_lighting_color_ambient)
-
-### Description
-Gets a value of the global ambient lighting color
-
-### Lua Example
-`local integerValue = get_lighting_color_ambient(index)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| index | `integer` |
-
-### Returns
-- `integer`
-
-### C Prototype
-`u8 get_lighting_color_ambient(u8 index);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [set_lighting_color](#set_lighting_color)
-
-### Description
-Sets a value of the global lighting color
-
-### Lua Example
-`set_lighting_color(index, value)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| index | `integer` |
-| value | `integer` |
-
-### Returns
-- None
-
-### C Prototype
-`void set_lighting_color(u8 index, u8 value);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [set_lighting_color_ambient](#set_lighting_color_ambient)
-
-### Description
-Sets a value of the global lighting color (run this after `set_lighting_color` for the ambient color to not be overriden)
-
-### Lua Example
-`set_lighting_color_ambient(index, value)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| index | `integer` |
-| value | `integer` |
-
-### Returns
-- None
-
-### C Prototype
-`void set_lighting_color_ambient(u8 index, u8 value);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [get_vertex_color](#get_vertex_color)
-
-### Description
-Gets a value of the global vertex shading color
-
-### Lua Example
-`local integerValue = get_vertex_color(index)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| index | `integer` |
-
-### Returns
-- `integer`
-
-### C Prototype
-`u8 get_vertex_color(u8 index);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [set_vertex_color](#set_vertex_color)
-
-### Description
-Sets a value of the global vertex shading color
-
-### Lua Example
-`set_vertex_color(index, value)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| index | `integer` |
-| value | `integer` |
-
-### Returns
-- None
-
-### C Prototype
-`void set_vertex_color(u8 index, u8 value);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [get_fog_color](#get_fog_color)
-
-### Description
-Gets a value of the global fog color
-
-### Lua Example
-`local integerValue = get_fog_color(index)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| index | `integer` |
-
-### Returns
-- `integer`
-
-### C Prototype
-`u8 get_fog_color(u8 index);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [set_fog_color](#set_fog_color)
-
-### Description
-Sets a value of the global fog color
-
-### Lua Example
-`set_fog_color(index, value)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| index | `integer` |
-| value | `integer` |
-
-### Returns
-- None
-
-### C Prototype
-`void set_fog_color(u8 index, u8 value);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [get_fog_intensity](#get_fog_intensity)
-
-### Description
-Gets the intensity of the fog
-
-### Lua Example
-`local numberValue = get_fog_intensity()`
-
-### Parameters
-- None
-
-### Returns
-- `number`
-
-### C Prototype
-`f32 get_fog_intensity(void);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [set_fog_intensity](#set_fog_intensity)
-
-### Description
-Sets the intensity of the fog (this value scales very quickly, 1.0 to 1.1 is a desirable range)
-
-### Lua Example
-`set_fog_intensity(intensity)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| intensity | `number` |
-
-### Returns
-- None
-
-### C Prototype
-`void set_fog_intensity(f32 intensity);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [get_skybox](#get_skybox)
-
-### Description
-Gets the current skybox
-
-### Lua Example
-`local integerValue = get_skybox()`
-
-### Parameters
-- None
-
-### Returns
-- `integer`
-
-### C Prototype
-`s8 get_skybox(void);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [set_override_skybox](#set_override_skybox)
-
-### Description
-Sets the override skybox
-
-### Lua Example
-`set_override_skybox(background)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| background | `integer` |
-
-### Returns
-- None
-
-### C Prototype
-`void set_override_skybox(s8 background);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [get_skybox_color](#get_skybox_color)
-
-### Description
-Gets a value of the global skybox color
-
-### Lua Example
-`local integerValue = get_skybox_color(index)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| index | `integer` |
-
-### Returns
-- `integer`
-
-### C Prototype
-`u8 get_skybox_color(u8 index);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [set_skybox_color](#set_skybox_color)
-
-### Description
-Sets a value of the global skybox color
-
-### Lua Example
-`set_skybox_color(index, value)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| index | `integer` |
-| value | `integer` |
-
-### Returns
-- None
-
-### C Prototype
-`void set_skybox_color(u8 index, u8 value);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_parse](#gfx_parse)
-
-### Description
-Traverses a display list. Takes a Lua function as a parameter, which is called back for each command in the display list with the parameters `cmd` (display list pointer), and `op`
-
-### Lua Example
-`gfx_parse(cmd, func)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| cmd | `Pointer` <`Gfx`> |
-| func | `Lua Function` () |
-
-### Returns
-- None
-
-### C Prototype
-`void gfx_parse(Gfx *cmd, LuaFunction func);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_get_op](#gfx_get_op)
-
-### Description
-Gets the op of the display list command
-
-### Lua Example
-`local integerValue = gfx_get_op(cmd)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| cmd | `Pointer` <`Gfx`> |
-
-### Returns
-- `integer`
-
-### C Prototype
-`u32 gfx_get_op(Gfx *cmd);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_get_display_list](#gfx_get_display_list)
-
-### Description
-Gets the display list from a display list command if it has the op `G_DL`
-
-### Lua Example
-`local PointerValue = gfx_get_display_list(cmd)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| cmd | `Pointer` <`Gfx`> |
-
-### Returns
-- `Pointer` <`Gfx`>
-
-### C Prototype
-`Gfx *gfx_get_display_list(Gfx *cmd);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_get_vertex_buffer](#gfx_get_vertex_buffer)
-
-### Description
-Gets the vertex buffer from a display list command if it has the op `G_VTX`
-
-### Lua Example
-`local PointerValue = gfx_get_vertex_buffer(cmd)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| cmd | `Pointer` <`Gfx`> |
-
-### Returns
-- `Pointer` <`Vtx`>
-
-### C Prototype
-`Vtx *gfx_get_vertex_buffer(Gfx *cmd);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_get_vertex_count](#gfx_get_vertex_count)
-
-### Description
-Gets the number of vertices from a display list command if it has the op `G_VTX`
-
-### Lua Example
-`local integerValue = gfx_get_vertex_count(cmd)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| cmd | `Pointer` <`Gfx`> |
-
-### Returns
-- `integer`
-
-### C Prototype
-`u16 gfx_get_vertex_count(Gfx *cmd);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_get_texture](#gfx_get_texture)
-
-### Description
-Gets the texture from a display list command if it has an image related op
-
-### Lua Example
-`local PointerValue = gfx_get_texture(cmd)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| cmd | `Pointer` <`Gfx`> |
-
-### Returns
-- `Pointer` <`Texture`>
-
-### C Prototype
-`Texture *gfx_get_texture(Gfx *cmd);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_get_name](#gfx_get_name)
-
-### Description
-Gets the name of a display list
-
-### Lua Example
-`local stringValue = gfx_get_name(gfx)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| gfx | `Pointer` <`Gfx`> |
-
-### Returns
-- `string`
-
-### C Prototype
-`const char *gfx_get_name(Gfx *gfx);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_get_length](#gfx_get_length)
-
-### Description
-Gets the max length of a display list
-
-### Lua Example
-`local integerValue = gfx_get_length(gfx)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| gfx | `Pointer` <`Gfx`> |
-
-### Returns
-- `integer`
-
-### C Prototype
-`u32 gfx_get_length(Gfx *gfx);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_get_command](#gfx_get_command)
-
-### Description
-Gets a command of a display list at position `offset`
-
-### Lua Example
-`local PointerValue = gfx_get_command(gfx, offset)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| gfx | `Pointer` <`Gfx`> |
-| offset | `integer` |
-
-### Returns
-- `Pointer` <`Gfx`>
-
-### C Prototype
-`Gfx *gfx_get_command(Gfx *gfx, u32 offset);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_get_next_command](#gfx_get_next_command)
-
-### Description
-Gets the next command of a given display list pointer. Intended to use in a for loop
-
-### Lua Example
-`local PointerValue = gfx_get_next_command(gfx)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| gfx | `Pointer` <`Gfx`> |
-
-### Returns
-- `Pointer` <`Gfx`>
-
-### C Prototype
-`Gfx *gfx_get_next_command(Gfx *gfx);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_copy](#gfx_copy)
-
-### Description
-Copies `length` commands from display list `src` to display list `dest`
-
-### Lua Example
-`gfx_copy(dest, src, length)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | `Pointer` <`Gfx`> |
-| src | `Pointer` <`Gfx`> |
-| length | `integer` |
-
-### Returns
-- None
-
-### C Prototype
-`void gfx_copy(Gfx *dest, Gfx *src, u32 length);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_create](#gfx_create)
-
-### Description
-Creates a new named display list of `length` commands
-
-### Lua Example
-`local PointerValue = gfx_create(name, length)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| name | `string` |
-| length | `integer` |
-
-### Returns
-- `Pointer` <`Gfx`>
-
-### C Prototype
-`Gfx *gfx_create(const char *name, u32 length);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_resize](#gfx_resize)
-
-### Description
-Resizes a display list created by `gfx_create`
-
-### Lua Example
-`gfx_resize(gfx, newLength)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| gfx | `Pointer` <`Gfx`> |
-| newLength | `integer` |
-
-### Returns
-- None
-
-### C Prototype
-`void gfx_resize(Gfx *gfx, u32 newLength);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_delete](#gfx_delete)
-
-### Description
-Deletes a display list created by `gfx_create`
-
-### Lua Example
-`gfx_delete(gfx)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| gfx | `Pointer` <`Gfx`> |
-
-### Returns
-- None
-
-### C Prototype
-`void gfx_delete(Gfx *gfx);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [gfx_delete_all](#gfx_delete_all)
-
-### Description
-Deletes all display lists created by `gfx_create`
-
-### Lua Example
-`gfx_delete_all()`
-
-### Parameters
-- None
-
-### Returns
-- None
-
-### C Prototype
-`void gfx_delete_all();`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vtx_get_name](#vtx_get_name)
-
-### Description
-Gets the name of a vertex buffer
-
-### Lua Example
-`local stringValue = vtx_get_name(vtx)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| vtx | `Pointer` <`Vtx`> |
-
-### Returns
-- `string`
-
-### C Prototype
-`const char *vtx_get_name(Vtx *vtx);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vtx_get_count](#vtx_get_count)
-
-### Description
-Gets the max count of vertices of a vertex buffer
-
-### Lua Example
-`local integerValue = vtx_get_count(vtx)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| vtx | `Pointer` <`Vtx`> |
-
-### Returns
-- `integer`
-
-### C Prototype
-`u32 vtx_get_count(Vtx *vtx);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vtx_get_vertex](#vtx_get_vertex)
-
-### Description
-Gets a vertex of a vertex buffer at position `offset`
-
-### Lua Example
-`local PointerValue = vtx_get_vertex(vtx, offset)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| vtx | `Pointer` <`Vtx`> |
-| offset | `integer` |
-
-### Returns
-- `Pointer` <`Vtx`>
-
-### C Prototype
-`Vtx *vtx_get_vertex(Vtx *vtx, u32 offset);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vtx_get_next_vertex](#vtx_get_next_vertex)
-
-### Description
-Gets the next vertex of a given vertex pointer. Intended to use in a for loop
-
-### Lua Example
-`local PointerValue = vtx_get_next_vertex(vtx)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| vtx | `Pointer` <`Vtx`> |
-
-### Returns
-- `Pointer` <`Vtx`>
-
-### C Prototype
-`Vtx *vtx_get_next_vertex(Vtx *vtx);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vtx_copy](#vtx_copy)
-
-### Description
-Copies `count` vertices from vertex buffer `src` to vertex buffer `dest`
-
-### Lua Example
-`vtx_copy(dest, src, count)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | `Pointer` <`Vtx`> |
-| src | `Pointer` <`Vtx`> |
-| count | `integer` |
-
-### Returns
-- None
-
-### C Prototype
-`void vtx_copy(Vtx *dest, Vtx *src, u32 count);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vtx_create](#vtx_create)
-
-### Description
-Creates a new named vertex buffer of `count` vertices
-
-### Lua Example
-`local PointerValue = vtx_create(name, count)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| name | `string` |
-| count | `integer` |
-
-### Returns
-- `Pointer` <`Vtx`>
-
-### C Prototype
-`Vtx *vtx_create(const char *name, u32 count);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vtx_resize](#vtx_resize)
-
-### Description
-Resizes a vertex buffer created by `vtx_create`
-
-### Lua Example
-`vtx_resize(vtx, newCount)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| vtx | `Pointer` <`Vtx`> |
-| newCount | `integer` |
-
-### Returns
-- None
-
-### C Prototype
-`void vtx_resize(Vtx *vtx, u32 newCount);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vtx_delete](#vtx_delete)
-
-### Description
-Deletes a vertex buffer created by `vtx_create`
-
-### Lua Example
-`vtx_delete(vtx)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| vtx | `Pointer` <`Vtx`> |
-
-### Returns
-- None
-
-### C Prototype
-`void vtx_delete(Vtx *vtx);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vtx_delete_all](#vtx_delete_all)
-
-### Description
-Deletes all vertex buffers created by `vtx_create`
-
-### Lua Example
-`vtx_delete_all()`
-
-### Parameters
-- None
-
-### Returns
-- None
-
-### C Prototype
-`void vtx_delete_all();`
-
-[:arrow_up_small:](#)
-
-<br />
 ---
 
 [< prev](functions-5.md) | [1](functions.md) | [2](functions-2.md) | [3](functions-3.md) | [4](functions-4.md) | [5](functions-5.md) | 6 | [7](functions-7.md) | [next >](functions-7.md)]

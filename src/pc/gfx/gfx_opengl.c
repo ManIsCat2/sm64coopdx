@@ -1,5 +1,3 @@
-#ifdef RAPI_GL
-
 #include <stdint.h>
 #include <stdbool.h>
 
@@ -21,19 +19,12 @@
 
 #define GL_GLEXT_PROTOTYPES 1
 
-#ifdef WAPI_SDL2
-# include <SDL2/SDL.h>
-# ifdef USE_GLES
-#  include <SDL2/SDL_opengles2.h>
-#  include <GLES3/gl3.h>
-# else
-#  include <SDL2/SDL_opengl.h>
-# endif
-#elif defined(WAPI_SDL1)
-# include <SDL/SDL.h>
-# ifndef GLEW_STATIC
-#  include <SDL/SDL_opengl.h>
-# endif
+#include <SDL2/SDL.h>
+#ifdef USE_GLES
+#include <SDL2/SDL_opengles2.h>
+#include <GLES3/gl3.h>
+#else
+#include <SDL2/SDL_opengl.h>
 #endif
 
 #include "../platform.h"
@@ -51,11 +42,12 @@ struct ShaderProgram {
     bool used_textures[2];
     uint8_t num_floats;
     GLint attrib_locations[7];
-    GLint uniform_locations[7];
+    GLint uniform_locations[9];
     uint8_t attrib_sizes[7];
     uint8_t num_attribs;
     bool used_noise;
     bool used_lightmap;
+    bool world_geometry;
 };
 
 struct GLTexture {
@@ -98,7 +90,12 @@ static void gfx_opengl_vertex_array_set_attribs(struct ShaderProgram *prg) {
 static inline void gfx_opengl_set_shader_uniforms(struct ShaderProgram *prg) {
     if (prg->used_noise) { glUniform1f(prg->uniform_locations[4], (float)frame_count); }
     if (prg->used_lightmap) { glUniform3f(prg->uniform_locations[5], gVertexColor[0] / 255.0f, gVertexColor[1] / 255.0f, gVertexColor[2] / 255.0f); }
-    glUniform1i(prg->uniform_locations[6], configFiltering);
+    if (prg->world_geometry) {
+        glUniform1iv(prg->uniform_locations[6], SHADER_FLAG_MAX, gShaderFlags);
+        glUniform1fv(prg->uniform_locations[7], SHADER_FLAG_MAX, gShaderFlagValues);
+    }
+
+    glUniform1i(prg->uniform_locations[8], configFiltering);
 }
 
 static inline void gfx_opengl_set_texture_uniforms(struct ShaderProgram *prg, const int tile) {
@@ -164,12 +161,12 @@ static const char *shader_item_to_str(uint32_t item, bool with_alpha, bool only_
                 return with_alpha ? "texVal0" : "texVal0.rgb";
             case SHADER_TEXEL0A:
                 return hint_single_element ? "texVal0.a" :
-                    (with_alpha ? "vec4(texelVal0.a, texelVal0.a, texelVal0.a, texelVal0.a)" : "vec3(texelVal0.a, texelVal0.a, texelVal0.a)");
+                    (with_alpha ? "vec4(texVal0.a, texVal0.a, texVal0.a, texVal0.a)" : "vec3(texVal0.a, texVal0.a, texVal0.a)");
             case SHADER_TEXEL1:
                 return with_alpha ? "texVal1" : "texVal1.rgb";
             case SHADER_TEXEL1A:
                 return hint_single_element ? "texVal1.a" :
-                    (with_alpha ? "vec4(texelVal1.a, texelVal1.a, texelVal1.a, texelVal1.a)" : "vec3(texelVal1.a, texelVal1.a, texelVal1.a)");
+                    (with_alpha ? "vec4(texVal1.a, texVal1.a, texVal1.a, texVal1.a)" : "vec3(texVal1.a, texVal1.a, texVal1.a)");
             case SHADER_COMBINED:
                 return with_alpha ? "texel" : "texel.rgb";
             case SHADER_COMBINEDA:
@@ -265,14 +262,16 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
     bool opt_texture_edge = cc->cm.texture_edge;
     bool opt_2cycle = cc->cm.use_2cycle;
     bool opt_light_map = cc->cm.light_map;
+    bool world_geometry = cc->cm.world_geometry;
+
 #ifdef USE_GLES
     bool opt_dither = false;
 #else
     bool opt_dither = cc->cm.use_dither;
 #endif
 
-    char vs_buf[1024];
-    char fs_buf[2048];
+    char vs_buf[8192];
+    char fs_buf[8192];
     size_t vs_len = 0;
     size_t fs_len = 0;
     size_t num_floats = 4;
@@ -284,10 +283,12 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
     append_line(vs_buf, &vs_len, "#version 120");
 #endif
     append_line(vs_buf, &vs_len, ATTR " vec4 aVtxPos;");
-    if (ccf.used_textures[0] || ccf.used_textures[1]) {
-        append_line(vs_buf, &vs_len, ATTR " vec2 aTexCoord;");
-        append_line(vs_buf, &vs_len, VARYING_VS " vec2 vTexCoord;");
-        num_floats += 2;
+    for (int t = 0; t < 2; t++) {
+        if (ccf.used_textures[t]) {
+            vs_len += sprintf(vs_buf + vs_len, ATTR " vec2 aTexCoord%d;\n", t);
+            vs_len += sprintf(vs_buf + vs_len, VARYING_VS " vec2 vTexCoord%d;\n", t);
+            num_floats += 2;
+        }
     }
     if (opt_fog) {
         append_line(vs_buf, &vs_len, ATTR " vec4 aFog;");
@@ -305,8 +306,10 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
         num_floats += opt_alpha ? 4 : 3;
     }
     append_line(vs_buf, &vs_len, "void main() {");
-    if (ccf.used_textures[0] || ccf.used_textures[1]) {
-        append_line(vs_buf, &vs_len, "vTexCoord = aTexCoord;");
+    for (int t = 0; t < 2; t++) {
+        if (ccf.used_textures[t]) {
+            vs_len += sprintf(vs_buf + vs_len, "vTexCoord%d = aTexCoord%d;\n", t, t);
+        }
     }
     if (opt_fog) {
         append_line(vs_buf, &vs_len, "vFog = aFog;");
@@ -332,8 +335,10 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
     append_line(fs_buf, &fs_len, "out vec4 fragColor;");
 #endif
 
-    if (ccf.used_textures[0] || ccf.used_textures[1]) {
-        append_line(fs_buf, &fs_len, VARYING_FS " vec2 vTexCoord;");
+    for (int t = 0; t < 2; t++) {
+        if (ccf.used_textures[t]) {
+            fs_len += sprintf(fs_buf + fs_len, VARYING_FS " vec2 vTexCoord%d;\n", t);
+        }
     }
     if (opt_fog) {
         append_line(fs_buf, &fs_len, VARYING_FS " vec4 vFog;");
@@ -344,18 +349,19 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
     for (int i = 0; i < ccf.num_inputs; i++) {
         fs_len += sprintf(fs_buf + fs_len, VARYING_FS " vec%d vInput%d;\n", opt_alpha ? 4 : 3, i + 1);
     }
-    if (ccf.used_textures[0]) {
-        append_line(fs_buf, &fs_len, "uniform sampler2D uTex0;");
-        append_line(fs_buf, &fs_len, "uniform vec2 uTex0Size;");
-        append_line(fs_buf, &fs_len, "uniform bool uTex0Filter;");
-    }
-    if (ccf.used_textures[1]) {
-        append_line(fs_buf, &fs_len, "uniform sampler2D uTex1;");
-        append_line(fs_buf, &fs_len, "uniform vec2 uTex1Size;");
-        append_line(fs_buf, &fs_len, "uniform bool uTex1Filter;");
+
+    for (int t = 0; t < 2; t++) {
+        if (ccf.used_textures[t]) {
+            fs_len += sprintf(fs_buf + fs_len, "uniform sampler2D uTex%d;\n", t);
+            fs_len += sprintf(fs_buf + fs_len, "uniform vec2 uTex%dSize;\n", t);
+            fs_len += sprintf(fs_buf + fs_len, "uniform bool uTex%dFilter;\n", t);
+        }
     }
 
-    // 3-point texture filtering macro
+    // 3 point texture filtering
+    // Original author: ArthurCarvalho
+    // Modified GLSL implementation by twinaphex, mupen64plus-libretro project.
+
 #ifdef USE_GLES
         append_line(fs_buf, &fs_len, "#define TEX_OFFSET(off) texture(tex, texCoord - (off)/texSize)");
 #else
@@ -385,9 +391,59 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
         append_line(fs_buf, &fs_len, "}");
     }
 
+    if (world_geometry) {
+        append_line(fs_buf, &fs_len, "float dither4x4(vec2 position, float brightness) {");
+        append_line(fs_buf, &fs_len, "    int x = int(mod(position.x, 4.0));");
+        append_line(fs_buf, &fs_len, "    int y = int(mod(position.y, 4.0));");
+        append_line(fs_buf, &fs_len, "    int index = x + y * 4;");
+        append_line(fs_buf, &fs_len, "    float limit = 0.0;");
+        append_line(fs_buf, &fs_len, "    if (x < 8) {");
+        append_line(fs_buf, &fs_len, "        if (index == 0) limit = 0.0625;");
+        append_line(fs_buf, &fs_len, "        if (index == 1) limit = 0.5625;");
+        append_line(fs_buf, &fs_len, "        if (index == 2) limit = 0.1875;");
+        append_line(fs_buf, &fs_len, "        if (index == 3) limit = 0.6875;");
+        append_line(fs_buf, &fs_len, "        if (index == 4) limit = 0.8125;");
+        append_line(fs_buf, &fs_len, "        if (index == 5) limit = 0.3125;");
+        append_line(fs_buf, &fs_len, "        if (index == 6) limit = 0.9375;");
+        append_line(fs_buf, &fs_len, "        if (index == 7) limit = 0.4375;");
+        append_line(fs_buf, &fs_len, "        if (index == 8) limit = 0.25;");
+        append_line(fs_buf, &fs_len, "        if (index == 9) limit = 0.75;");
+        append_line(fs_buf, &fs_len, "        if (index == 10) limit = 0.125;");
+        append_line(fs_buf, &fs_len, "        if (index == 11) limit = 0.625;");
+        append_line(fs_buf, &fs_len, "        if (index == 12) limit = 1.0;");
+        append_line(fs_buf, &fs_len, "        if (index == 13) limit = 0.5;");
+        append_line(fs_buf, &fs_len, "        if (index == 14) limit = 0.875;");
+        append_line(fs_buf, &fs_len, "        if (index == 15) limit = 0.375;");
+        append_line(fs_buf, &fs_len, "    }");
+        append_line(fs_buf, &fs_len, "    return brightness < limit ? 0.0 : 1.0;");
+        append_line(fs_buf, &fs_len, "}");
+
+        append_line(fs_buf, &fs_len, "vec3 rgb2hsv(vec3 c) {");
+        append_line(fs_buf, &fs_len, "    vec4 K = vec4(0.0, -1.0/3.0, 2.0/3.0, -1.0);");
+        append_line(fs_buf, &fs_len, "    vec4 p = mix(vec4(c.bg, K.wz),");
+        append_line(fs_buf, &fs_len, "                 vec4(c.gb, K.xy),");
+        append_line(fs_buf, &fs_len, "                 step(c.b, c.g));");
+        append_line(fs_buf, &fs_len, "    vec4 q = mix(vec4(p.xyw, c.r),");
+        append_line(fs_buf, &fs_len, "                 vec4(c.r, p.yzx),");
+        append_line(fs_buf, &fs_len, "                 step(p.x, c.r));");
+        append_line(fs_buf, &fs_len, "    float d = q.x - min(q.w, q.y);");
+        append_line(fs_buf, &fs_len, "    float e = 1.0e-10;");
+        append_line(fs_buf, &fs_len, "    return vec3(");
+        append_line(fs_buf, &fs_len, "        abs(q.z + (q.w - q.y) / (6.0 * d + e)), // hue");
+        append_line(fs_buf, &fs_len, "        d / (q.x + e),                          // saturation");
+        append_line(fs_buf, &fs_len, "        q.x                                     // value");
+        append_line(fs_buf, &fs_len, "    );");
+        append_line(fs_buf, &fs_len, "}");
+        append_line(fs_buf, &fs_len, "");
+        append_line(fs_buf, &fs_len, "vec3 hsv2rgb(vec3 c) {");
+        append_line(fs_buf, &fs_len, "    vec3 p = abs(fract(c.xxx + vec3(0.0, 2.0/3.0, 1.0/3.0)) * 6.0 - 3.0);");
+        append_line(fs_buf, &fs_len, "    return c.z * mix(vec3(1.0), clamp(p - 1.0, 0.0, 1.0), c.y);");
+        append_line(fs_buf, &fs_len, "}");
+    }
 
     if ((opt_alpha && opt_dither) || ccf.do_noise) {
         append_line(fs_buf, &fs_len, "uniform float uFrameCount;");
+
         append_line(fs_buf, &fs_len, "float random(in vec3 value) {");
         append_line(fs_buf, &fs_len, "    float random = dot(sin(value), vec3(12.9898, 78.233, 37.719));");
         append_line(fs_buf, &fs_len, "    return fract(sin(random) * 143758.5453);");
@@ -398,7 +454,13 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
         append_line(fs_buf, &fs_len, "uniform vec3 uLightmapColor;");
     }
 
+    if (world_geometry) {
+        fs_len += sprintf(fs_buf + fs_len, "uniform int uShaderFlags[%d];\n", SHADER_FLAG_MAX);
+        fs_len += sprintf(fs_buf + fs_len, "uniform float uShaderFlagValues[%d];\n", SHADER_FLAG_MAX);
+    }
+
     append_line(fs_buf, &fs_len, "uniform int uFilter;");
+
     append_line(fs_buf, &fs_len, "void main() {");
 
     if ((opt_alpha && opt_dither) || ccf.do_noise) {
@@ -406,7 +468,7 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
     }
 
     if (ccf.used_textures[0]) {
-        append_line(fs_buf, &fs_len, "vec4 texVal0 = sampleTex(uTex0, vTexCoord, uTex0Size, uTex0Filter, uFilter);");
+        append_line(fs_buf, &fs_len, "vec4 texVal0 = sampleTex(uTex0, vTexCoord0, uTex0Size, uTex0Filter, uFilter);");
     }
     if (ccf.used_textures[1]) {
         if (opt_light_map) {
@@ -414,7 +476,7 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
             append_line(fs_buf, &fs_len, "texVal0.rgb *= uLightmapColor.rgb;");
             append_line(fs_buf, &fs_len, "texVal1.rgb = texVal1.rgb * texVal1.rgb + texVal1.rgb;");
         } else {
-            append_line(fs_buf, &fs_len, "vec4 texVal1 = sampleTex(uTex1, vTexCoord, uTex1Size, uTex1Filter, uFilter);");
+            append_line(fs_buf, &fs_len, "vec4 texVal1 = sampleTex(uTex1, vTexCoord1, uTex1Size, uTex1Filter, uFilter);");
         }
     }
 
@@ -442,6 +504,63 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
     }
 
     // TODO discard if alpha is 0?
+
+    if (world_geometry) {
+        // hue
+        append_line(fs_buf, &fs_len, "if (uShaderFlags[0] == 1) {");
+        append_line(fs_buf, &fs_len, "vec3 hsv = rgb2hsv(texel.rgb);");
+        append_line(fs_buf, &fs_len, "hsv.x = fract(hsv.x + uShaderFlagValues[0]);");
+        append_line(fs_buf, &fs_len, "vec3 finalColor = hsv2rgb(hsv);");
+        append_line(fs_buf, &fs_len, "texel.rgb = finalColor;");
+        append_line(fs_buf, &fs_len, "}");
+
+        // saturation
+        append_line(fs_buf, &fs_len, "if (uShaderFlags[1] == 1) {");
+        append_line(fs_buf, &fs_len, "const vec3 w = vec3(0.2125, 0.7154, 0.0721);");
+        append_line(fs_buf, &fs_len, "vec3 intensity = vec3(dot(texel.rgb, w));");
+        append_line(fs_buf, &fs_len, "texel.rgb = mix(intensity, texel.rgb, uShaderFlagValues[1]);");
+        append_line(fs_buf, &fs_len, "}");
+
+        // brightness
+        append_line(fs_buf, &fs_len, "if (uShaderFlags[2] == 1) {");
+        append_line(fs_buf, &fs_len, "texel.rgb *= uShaderFlagValues[2];");
+        append_line(fs_buf, &fs_len, "}");
+
+        // contrast
+        append_line(fs_buf, &fs_len, "if (uShaderFlags[3] == 1) {");
+        append_line(fs_buf, &fs_len, "texel.rgb = 0.5 + uShaderFlagValues[3] * (texel.rgb - 0.5);");
+        append_line(fs_buf, &fs_len, "}");
+
+        // exposure
+        append_line(fs_buf, &fs_len, "if (uShaderFlags[4] == 1) {");
+#ifdef USE_GLES
+        append_line(fs_buf, &fs_len, "texel.rgb = texel.rgb + (uShaderFlagValues[4] - 2.0) * texel.rgb + texel.rgb;");
+#else
+        append_line(fs_buf, &fs_len, "texel.rgb = texel.rgb + (uShaderFlagValues[4] - 2) * texel.rgb + texel.rgb;");
+#endif
+        append_line(fs_buf, &fs_len, "}");
+
+        // dithering
+        append_line(fs_buf, &fs_len, "if (uShaderFlags[5] == 1) {");
+        append_line(fs_buf, &fs_len, "texel.rgb *= dither4x4(gl_FragCoord.xy, dot(texel.rgb, vec3(0.299, 0.587, 0.114)));");
+        append_line(fs_buf, &fs_len, "}");
+
+        // posterization
+        append_line(fs_buf, &fs_len, "if (uShaderFlags[6] == 1) {");
+#ifdef USE_GLES
+        append_line(fs_buf, &fs_len, "float levels = max(1.0, uShaderFlagValues[6]);");
+#else
+        append_line(fs_buf, &fs_len, "int levels = int(max(1.0, uShaderFlagValues[6]));");
+#endif
+        append_line(fs_buf, &fs_len, "texel.rgb = floor(texel.rgb * levels) / levels;");
+        append_line(fs_buf, &fs_len, "}");
+
+        // scan lines
+        append_line(fs_buf, &fs_len, "if (uShaderFlags[7] == 1) {");
+        append_line(fs_buf, &fs_len, "float scan = sin(gl_FragCoord.y * 1.5) * 0.04;");
+        append_line(fs_buf, &fs_len, "texel.rgb -= scan * uShaderFlagValues[7];");
+        append_line(fs_buf, &fs_len, "}");
+    }
 
     if (opt_fog) {
         if (opt_alpha) {
@@ -495,7 +614,11 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
         fprintf(stderr, "Vertex shader compilation failed\n");
         glGetShaderInfoLog(vertex_shader, max_length, &max_length, &error_log[0]);
         fprintf(stderr, "%s\n", &error_log[0]);
+#ifdef __ANDROID__
+        sys_fatal(error_log);
+#else
         sys_fatal("vertex shader compilation failed (see terminal)");
+#endif
     }
 
     GLuint fragment_shader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -509,7 +632,11 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
         fprintf(stderr, "Fragment shader compilation failed\n");
         glGetShaderInfoLog(fragment_shader, max_length, &max_length, &error_log[0]);
         fprintf(stderr, "%s\n", &error_log[0]);
+#ifdef __ANDROID__
+        sys_fatal(error_log);
+#else
         sys_fatal("fragment shader compilation failed (see terminal)");
+#endif
     }
 
     GLuint shader_program = glCreateProgram();
@@ -527,10 +654,14 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
     prg->attrib_sizes[cnt] = 4;
     ++cnt;
 
-    if (ccf.used_textures[0] || ccf.used_textures[1]) {
-        prg->attrib_locations[cnt] = glGetAttribLocation(shader_program, "aTexCoord");
-        prg->attrib_sizes[cnt] = 2;
-        ++cnt;
+    for (int t = 0; t < 2; t++) {
+        if (ccf.used_textures[t]) {
+            char name[16];
+            sprintf(name, "aTexCoord%d", t);
+            prg->attrib_locations[cnt] = glGetAttribLocation(shader_program, name);
+            prg->attrib_sizes[cnt] = 2;
+            ++cnt;
+        }
     }
 
     if (opt_fog) {
@@ -561,19 +692,18 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
     prg->num_floats = num_floats;
     prg->num_attribs = cnt;
 
-    gfx_opengl_load_shader(prg);
-
-    if (ccf.used_textures[0]) {
-        GLint sampler_location = glGetUniformLocation(shader_program, "uTex0");
-        prg->uniform_locations[0] = glGetUniformLocation(shader_program, "uTex0Size");
-        prg->uniform_locations[1] = glGetUniformLocation(shader_program, "uTex0Filter");
-        glUniform1i(sampler_location, 0);
-    }
-    if (ccf.used_textures[1]) {
-        GLint sampler_location = glGetUniformLocation(shader_program, "uTex1");
-        prg->uniform_locations[2] = glGetUniformLocation(shader_program, "uTex1Size");
-        prg->uniform_locations[3] = glGetUniformLocation(shader_program, "uTex1Filter");
-        glUniform1i(sampler_location, 1);
+    glUseProgram(shader_program);
+    for (int t = 0; t < 2; t++) {
+        if (ccf.used_textures[t]) {
+            char name[16];
+            sprintf(name, "uTex%d", t);
+            GLint sampler_location = glGetUniformLocation(shader_program, name);
+            sprintf(name, "uTex%dSize", t);
+            prg->uniform_locations[t * 2] = glGetUniformLocation(shader_program, name);
+            sprintf(name, "uTex%dFilter", t);
+            prg->uniform_locations[t * 2 + 1] = glGetUniformLocation(shader_program, name);
+            glUniform1i(sampler_location, t);
+        }
     }
 
     if ((opt_alpha && opt_dither) || ccf.do_noise) {
@@ -590,7 +720,17 @@ static struct ShaderProgram *gfx_opengl_create_and_load_new_shader(struct ColorC
         prg->used_lightmap = false;
     }
 
-    prg->uniform_locations[6] = glGetUniformLocation(shader_program, "uFilter");
+    if (world_geometry) {
+        prg->uniform_locations[6] = glGetUniformLocation(shader_program, "uShaderFlags");
+        prg->uniform_locations[7] = glGetUniformLocation(shader_program, "uShaderFlagValues");
+        prg->world_geometry = true;
+    } else {
+        prg->world_geometry = false;
+    }
+
+    prg->uniform_locations[8] = glGetUniformLocation(shader_program, "uFilter");
+
+    gfx_opengl_load_shader(prg);
 
     return prg;
 }
@@ -624,11 +764,11 @@ static GLuint gfx_opengl_new_texture(void) {
 }
 
 static void gfx_opengl_select_texture(int tile, GLuint texture_id) {
-     opengl_tex[tile] = tex_cache + texture_id;
-     opengl_curtex = tile;
-     glActiveTexture(GL_TEXTURE0 + tile);
-     glBindTexture(GL_TEXTURE_2D, opengl_tex[tile]->gltex);
-     gfx_opengl_set_texture_uniforms(opengl_prg, tile);
+    opengl_tex[tile] = tex_cache + texture_id;
+    opengl_curtex = tile;
+    glActiveTexture(GL_TEXTURE0 + tile);
+    glBindTexture(GL_TEXTURE_2D, opengl_tex[tile]->gltex);
+    gfx_opengl_set_texture_uniforms(opengl_prg, tile);
 }
 
 static void gfx_opengl_upload_texture(const uint8_t *rgba32_buf, int width, int height) {
@@ -702,6 +842,13 @@ static void gfx_opengl_draw_triangles(float buf_vbo[], size_t buf_vbo_len, size_
     glDrawArrays(GL_TRIANGLES, 0, 3 * buf_vbo_num_tris);
 }
 
+static inline bool gl_version_is_supported(int major, int minor, bool is_es) {
+    if (is_es) {
+        return major >= 2;
+    }
+    return (major > 2) || (major == 2 && minor >= 1);
+}
+
 static inline bool gl_get_version(int *major, int *minor, bool *is_es) {
     const char *vstr = (const char *)glGetString(GL_VERSION);
     if (!vstr || !vstr[0]) return false;
@@ -732,21 +879,32 @@ static void gfx_opengl_init(void) {
     int vmajor = 0;
     int vminor = 0;
     bool is_es = false;
-    gl_get_version(&vmajor, &vminor, &is_es);
-    if (vmajor < 2 && vminor < 1 && !is_es)
+    if (!gl_get_version(&vmajor, &vminor, &is_es) || !gl_version_is_supported(vmajor, vminor, is_es)) {
         sys_fatal("OpenGL 2.1+ is required.\nReported version: %s%d.%d", is_es ? "ES" : "", vmajor, vminor);
+    }
 
     glGenBuffers(1, &opengl_vbo);
 
     glBindBuffer(GL_ARRAY_BUFFER, opengl_vbo);
 
-    if (vmajor >= 3) {
+    if (vmajor >= 3 && !is_es) {
         glGenVertexArrays(1, &opengl_vao);
         glBindVertexArray(opengl_vao);
     }
 
     glDepthFunc(GL_LEQUAL);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+}
+
+bool gfx_opengl_check_compatibility(void) {
+    // check GL version
+    int vmajor = 0;
+    int vminor = 0;
+    bool is_es = false;
+    if (!gl_get_version(&vmajor, &vminor, &is_es)) {
+        return false;
+    }
+    return gl_version_is_supported(vmajor, vminor, is_es);
 }
 
 static void gfx_opengl_on_resize(void) {
@@ -766,6 +924,10 @@ static void gfx_opengl_end_frame(void) {
 }
 
 static void gfx_opengl_finish_render(void) {
+}
+
+static const char* gfx_opengl_get_name(void) {
+    return "OpenGL";
 }
 
 static void gfx_opengl_shutdown(void) {
@@ -794,7 +956,6 @@ struct GfxRenderingAPI gfx_opengl_api = {
     gfx_opengl_start_frame,
     gfx_opengl_end_frame,
     gfx_opengl_finish_render,
+    gfx_opengl_get_name,
     gfx_opengl_shutdown
 };
-
-#endif // RAPI_GL

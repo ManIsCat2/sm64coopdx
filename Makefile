@@ -22,6 +22,11 @@ DEBUG ?= 0
 # Enable development/testing flags
 DEVELOPMENT ?= 0
 
+# Enable this if you want to use some very unsafe and potentially harmful code from the Lua standard libs
+# that is normally disabled to prevent catastrophic accidents.
+# Only enable this if you know exactly why you need it and will take measures to mitigate the risks.
+LUA_UNSAFE ?= 0
+
 # Build for the N64 (turn this off for ports)
 TARGET_N64 = 0
 
@@ -46,6 +51,8 @@ ENHANCE_LEVEL_TEXTURES ?= 1
 DISCORD_SDK ?= 1
 # Enable CoopNet SDK (used for CoopNet server hosting)
 COOPNET ?= 1
+# Enable Updater (used for automatic updates)
+UPDATER ?= 1
 # Enable docker build workarounds
 DOCKERBUILD ?= 0
 # Sets your optimization level for building.
@@ -57,8 +64,6 @@ DEBUG_INFO_LEVEL ?= 2
 PROFILE ?= 0
 # Enable address sanitizer
 ASAN ?= 0
-# Compile headless
-HEADLESS ?= 0
 # Enable Game ICON
 ICON ?= 1
 # Use .app (for macOS)
@@ -66,29 +71,13 @@ USE_APP ?= 1
 # Enable touchscreen controls
 TOUCH_CONTROLS ?= 0
 # Minimum macOS Version
-# If our arch is arm, set to macOS 14
-ifeq ($(shell arch),arm64)
-  MIN_MACOS_VERSION ?= 14
-else
-  MIN_MACOS_VERSION ?= 10.15
-endif
+MIN_MACOS_VERSION ?= 11
 # Make some small adjustments for handheld devices
 HANDHELD ?= 0
 
 # Various workarounds for weird toolchains
 NO_BZERO_BCOPY ?= 0
 NO_LDIV ?= 0
-
-# Backend selection
-
-# Renderers: GL, GL_LEGACY, D3D11, DUMMY
-RENDER_API ?= GL
-# Window managers: SDL1, SDL2, DXGI (forced if RENDER_API is D3D11), DUMMY (forced if RENDER_API is DUMMY)
-WINDOW_API ?= SDL2
-# Audio backends: SDL1, SDL2, DUMMY
-AUDIO_API ?= SDL2
-# Controller backends (can have multiple, space separated): SDL2, SDL1
-CONTROLLER_API ?= SDL2
 
 # Automatic settings for PC port(s)
 
@@ -99,7 +88,7 @@ WINDOWS_AUTO_BUILDER ?= 0
 # Setup extra cflags
 EXTRA_CFLAGS ?=
 EXTRA_CPP_FLAGS ?=
-EXTRA_CFLAGS += -Wno-format-security -Wno-trigraphs
+EXTRA_CFLAGS += -Wno-format-security -Wno-trigraphs -Wno-missing-braces -Wno-missing-field-initializers
 
 dev:; @$(MAKE) DEVELOPMENT=1
 
@@ -157,9 +146,6 @@ endif
 
 ifeq ($(TARGET_ANDROID),1)
   RENDER_API := GL
-  WINDOW_API := SDL2
-  AUDIO_API := SDL2
-  CONTROLLER_API := SDL2
   TOUCH_CONTROLS := 1
   DISCORD_SDK := 0
   HANDHELD := 1
@@ -394,42 +380,7 @@ ifeq ($(TARGET_ANDROID),1) # Define Android to change SDL2 title & GLES hints
 endif
 
 ifeq ($(OSX_BUILD),1) # Modify GFX & SDL2 for OSX GL
-     DEFINES += OSX_BUILD=1
-endif
-
-# Check backends
-
-ifneq (,$(filter $(RENDER_API),D3D11))
-  ifneq ($(WINDOWS_BUILD),1)
-    $(error DirectX is only supported on Windows)
-  endif
-  ifneq ($(WINDOW_API),DXGI)
-    $(warning DirectX renderers require DXGI, forcing WINDOW_API value)
-    WINDOW_API := DXGI
-  endif
-else
-  ifeq ($(WINDOW_API),DXGI)
-    $(error DXGI can only be used with DirectX renderers)
-  endif
-  ifneq ($(WINDOW_API),DUMMY)
-    ifeq ($(RENDER_API),DUMMY)
-      $(warning Dummy renderer requires dummy window API, forcing WINDOW_API value)
-      WINDOW_API := DUMMY
-    endif
-  else
-    ifneq ($(RENDER_API),DUMMY)
-      $(warning Dummy window API requires dummy renderer, forcing RENDER_API value)
-      RENDER_API := DUMMY
-    endif
-  endif
-endif
-
-ifeq ($(HEADLESS),1)
-  $(info Compiling headless)
-  RENDER_API := DUMMY
-  WINDOW_API := DUMMY
-  AUDIO_API := DUMMY
-  CONTROLLER_API :=
+  DEFINES += OSX_BUILD=1
 endif
 
 # NON_MATCHING - whether to build a matching, identical copy of the ROM
@@ -774,7 +725,7 @@ else
   LD := $(CXX)
 endif
 
-AR        := $(CROSS)ar
+AR := $(CROSS)ar
 
 ifeq ($(TARGET_N64),1)
   TARGET_CFLAGS := -nostdinc -DTARGET_N64 -D_LANGUAGE_C
@@ -793,89 +744,53 @@ else
 endif
 
 ifeq ($(TARGET_ANDROID),1)
-  INCLUDE_DIRS += lib/sdl2/include include/android_execinfo
+  INCLUDE_DIRS += lib/sdl2/include include/android_execinfo $(JNI_H_INCLUDE)
 endif
 
-# Connfigure backend flags
+# Configure backend flags
 
-SDLCONFIG := $(CROSS)sdl2-config
+BACKEND_LDFLAGS :=
 
-BACKEND_CFLAGS := -DRAPI_$(RENDER_API)=1 -DWAPI_$(WINDOW_API)=1 -DAAPI_$(AUDIO_API)=1
-# can have multiple controller APIs
-BACKEND_CFLAGS += $(foreach capi,$(CONTROLLER_API),-DCAPI_$(capi)=1)
-BACKEND_LDFLAG0S :=
-
-SDL1_USED := 0
-SDL2_USED := 0
-
-# for now, it's either SDL+GL or DXGI+DirectX, so choose based on WAPI
-ifeq ($(WINDOW_API),DXGI)
+# D3D11 flags
+ifeq ($(WINDOWS_BUILD),1)
   DXBITS := `cat $(ENDIAN_BITWIDTH) | tr ' ' '\n' | tail -1`
   BACKEND_LDFLAGS += -ld3dcompiler -ldxgi -ldxguid
   BACKEND_LDFLAGS += -lsetupapi -ldinput8 -luser32 -lgdi32 -limm32 -lole32 -loleaut32 -lshell32 -lwinmm -lversion -luuid -static
-else ifeq ($(findstring SDL,$(WINDOW_API)),SDL)
-  ifeq ($(WINDOWS_BUILD),1)
-    BACKEND_LDFLAGS += -lglew32 -lglu32 -lopengl32
-  else ifeq ($(TARGET_ANDROID),1)
-    BACKEND_LDFLAGS += -lGLESv3 -llog
-  else ifeq ($(TARGET_RPI),1)
-    BACKEND_LDFLAGS += -lGLESv2
-  else ifeq ($(TARGET_RK3588),1)
-    BACKEND_LDFLAGS += -lGLESv2
-  else ifeq ($(OSX_BUILD),1)
-    BACKEND_LDFLAGS += -framework OpenGL `pkg-config --libs glew` -mmacosx-version-min=$(MIN_MACOS_VERSION)
-    EXTRA_CPP_FLAGS += -stdlib=libc++ -std=c++17 -mmacosx-version-min=$(MIN_MACOS_VERSION)
-  else
-    BACKEND_LDFLAGS += -lGL
-   endif
 endif
 
-ifeq ($(WINDOW_API),DUMMY)
-  ifeq ($(WINDOWS_BUILD),1)
-    BACKEND_LDFLAGS += -lole32 -luuid -lshlwapi
-  endif
-endif
-
-ifneq (,$(findstring SDL2,$(AUDIO_API)$(WINDOW_API)$(CONTROLLER_API)))
-  SDL2_USED := 1
-endif
-
-ifneq (,$(findstring SDL1,$(AUDIO_API)$(WINDOW_API)$(CONTROLLER_API)))
-  SDL1_USED := 1
-endif
-
-ifeq ($(SDL1_USED)$(SDL2_USED),11)
-  $(error Cannot link both SDL1 and SDL2 at the same time)
+# SDL2 Flags
+ifeq ($(WINDOWS_BUILD),1)
+  BACKEND_LDFLAGS += -lglew32 -lglu32 -lopengl32
+else ifeq ($(TARGET_ANDROID),1)
+  BACKEND_LDFLAGS += -lGLESv3 -llog
+else ifeq ($(TARGET_RPI),1)
+  BACKEND_LDFLAGS += -lGLESv2
+else ifeq ($(TARGET_RK3588),1)
+  BACKEND_LDFLAGS += -lGLESv2
+else ifeq ($(OSX_BUILD),1)
+  BACKEND_LDFLAGS += -framework OpenGL `pkg-config --libs glew` -mmacosx-version-min=$(MIN_MACOS_VERSION)
+  EXTRA_CPP_FLAGS += -stdlib=libc++ -std=c++17 -mmacosx-version-min=$(MIN_MACOS_VERSION)
+else
+  BACKEND_LDFLAGS += -lGL
 endif
 
 # SDL can be used by different systems, so we consolidate all of that shit into this
 
-ifeq ($(SDL2_USED),1)
-  SDLCONFIG := $(CROSS)sdl2-config
-  BACKEND_CFLAGS += -DHAVE_SDL2=1
-else ifeq ($(SDL1_USED),1)
-  SDLCONFIG := $(CROSS)sdl-config
-  BACKEND_CFLAGS += -DHAVE_SDL1=1
+SDLCONFIG := $(CROSS)sdl2-config
+BACKEND_CFLAGS += -DHAVE_SDL2=1
+
+ifeq ($(OSX_BUILD),1)
+  # on OSX at least the homebrew version of sdl-config gives include path as `.../include/SDL2` instead of `.../include`
+  OSX_PREFIX := $(shell $(SDLCONFIG) --prefix)
+  BACKEND_CFLAGS += -I$(OSX_PREFIX)/include $(shell $(SDLCONFIG) --cflags)
+else
+  BACKEND_CFLAGS += `$(SDLCONFIG) --cflags`
 endif
 
-ifneq ($(SDL1_USED)$(SDL2_USED),00)
-  ifeq ($(TARGET_ANDROID),1)
-    BACKEND_LDFLAGS += -lSDL2
-  else
-    ifeq ($(OSX_BUILD),1)
-      # on OSX at least the homebrew version of sdl-config gives include path as `.../include/SDL2` instead of `.../include`
-      OSX_PREFIX := $(shell $(SDLCONFIG) --prefix)
-      BACKEND_CFLAGS += -I$(OSX_PREFIX)/include $(shell $(SDLCONFIG) --cflags)
-    else
-      BACKEND_CFLAGS += `$(SDLCONFIG) --cflags`
-    endif
-
-    ifeq ($(WINDOWS_BUILD),1)
-      BACKEND_LDFLAGS += `$(SDLCONFIG) --static-libs` -lsetupapi -luser32 -limm32 -lole32 -loleaut32 -lshell32 -lshlwapi -lwinmm -lversion
-    else
-      BACKEND_LDFLAGS += `$(SDLCONFIG) --libs`
-    endif
-  endif
+ifeq ($(WINDOWS_BUILD),1)
+  BACKEND_LDFLAGS += `$(SDLCONFIG) --static-libs` -lsetupapi -luser32 -limm32 -lole32 -loleaut32 -lshell32 -lshlwapi -lwinmm -lversion
+else
+  BACKEND_LDFLAGS += `$(SDLCONFIG) --libs`
 endif
 
 C_DEFINES += $(foreach d,$(DEFINES),-D$(d))
@@ -1079,6 +994,22 @@ else
   endif
 endif
 
+# Updater
+UPDATER_EXEC :=
+ifeq ($(UPDATER),1)
+  ifeq ($(WINDOWS_BUILD),1)
+    UPDATER_EXEC += ./updater/win64/coopdx_updater.exe
+  else ifeq ($(OSX_BUILD),1)
+    ifeq ($(shell uname -m),arm64)
+      UPDATER_EXEC += ./updater/mac_arm/coopdx_updater
+    else
+      UPDATER_EXEC += ./updater/mac_intel/coopdx_updater
+    endif
+  else ifeq ($(TARGET_RPI),0)
+    UPDATER_EXEC += ./updater/linux/coopdx_updater
+  endif
+endif
+
 IS_DEV_OR_DEBUG := $(or $(filter 1,$(DEVELOPMENT)),$(filter 1,$(DEBUG)),0)
 ifeq ($(IS_DEV_OR_DEBUG),0)
   CFLAGS += -fno-ident -fno-common -ffile-prefix-map="$(PWD)"=. -D__DATE__="\"\"" -D__TIME__="\"\"" -Wno-builtin-macro-redefined
@@ -1129,13 +1060,12 @@ ifeq ($(DOCKERBUILD),1)
   CFLAGS += -DDOCKERBUILD
 endif
 
-ifeq ($(WINDOW_API),SDL2)
-  # Check for SDL2 touch controls
-  ifeq ($(TOUCH_CONTROLS),1)
-    CC_CHECK_CFLAGS += -DTOUCH_CONTROLS
-    CFLAGS += -DTOUCH_CONTROLS
-  endif
+# Check for SDL2 touch controls
+ifeq ($(TOUCH_CONTROLS),1)
+  CC_CHECK_CFLAGS += -DTOUCH_CONTROLS
+  CFLAGS += -DTOUCH_CONTROLS
 endif
+
 
 # Check for Discord SDK option
 ifeq ($(DISCORD_SDK),1)
@@ -1153,6 +1083,16 @@ endif
 ifeq ($(DEVELOPMENT),1)
   CC_CHECK_CFLAGS += -DDEVELOPMENT
   CFLAGS += -DDEVELOPMENT
+endif
+
+# Check for unsafe mode option
+ifeq ($(LUA_UNSAFE),1)
+  ifeq ($(DEVELOPMENT),1)
+    CC_CHECK_CFLAGS += -DLUA_UNSAFE
+    CFLAGS += -DLUA_UNSAFE
+  else
+    $(error LUA_UNSAFE cannot be enabled outside of development mode)
+  endif
 endif
 
 # Check for rpi option
@@ -1195,12 +1135,6 @@ endif
 ifeq ($(NO_LDIV),1)
   CC_CHECK_CFLAGS += -DNO_LDIV
   CFLAGS += -DNO_LDIV
-endif
-
-# Use OpenGL 1.3
-ifeq ($(LEGACY_GL),1)
-  CC_CHECK_CFLAGS += -DLEGACY_GL
-  CFLAGS += -DLEGACY_GL
 endif
 
 #==============================================================================#
@@ -1268,9 +1202,9 @@ MAPFILE = $(BUILD_DIR)/coop.map
 exemap: $(EXE)
 	@$(PRINT) "$(GREEN)Creating map file: $(BLUE)$(MAPFILE) $(NO_COL)\n"
 	$(V)$(OBJDUMP) -t $(EXE) > $(MAPFILE)
+ifeq ($(IS_DEV_OR_DEBUG),0)
 	@cp $(EXE) $(EXE).bak && cp $(MAPFILE) $(MAPFILE).bak
 	$(V)$(PYTHON) $(TOOLS_DIR)/clean_mapfile.py $(EXE) $(MAPFILE)
-ifeq ($(IS_DEV_OR_DEBUG),0)
 	$(V)$(OBJCOPY) -p --strip-unneeded $(EXE)
 endif
 all: exemap
@@ -1301,6 +1235,9 @@ $(BUILD_DIR)/$(DISCORD_SDK_LIBS):
 
 $(BUILD_DIR)/$(COOPNET_LIBS):
 	@$(CP) -f $(COOPNET_LIBS) $(BUILD_DIR)
+
+$(BUILD_DIR)/$(UPDATER_EXEC):
+	@$(CP) -f $(UPDATER_EXEC) $(BUILD_DIR)
 
 $(BUILD_DIR)/$(LANG_DIR):
 	@$(CP) -f -r $(LANG_DIR) $(BUILD_DIR)
@@ -1679,7 +1616,7 @@ else
 	apksigner sign --cert platform/android/certificate.pem --key platform/android/key.pk8 $@ >/dev/null 2>&1
   endif
 
-  $(EXE): $(O_FILES) $(MIO0_FILES:.mio0=.o) $(ULTRA_O_FILES) $(GODDARD_O_FILES) $(BUILD_DIR)/$(RPC_LIBS) $(BUILD_DIR)/$(DISCORD_SDK_LIBS) $(BUILD_DIR)/$(COOPNET_LIBS) $(BUILD_DIR)/$(LANG_DIR) $(BUILD_DIR)/$(MOD_DIR) $(BUILD_DIR)/$(PALETTES_DIR)
+  $(EXE): $(O_FILES) $(MIO0_FILES:.mio0=.o) $(ULTRA_O_FILES) $(GODDARD_O_FILES) $(BUILD_DIR)/$(RPC_LIBS) $(BUILD_DIR)/$(DISCORD_SDK_LIBS) $(BUILD_DIR)/$(COOPNET_LIBS) $(BUILD_DIR)/$(UPDATER_EXEC) $(BUILD_DIR)/$(LANG_DIR) $(BUILD_DIR)/$(MOD_DIR) $(BUILD_DIR)/$(PALETTES_DIR)
 	@$(PRINT) "$(GREEN)Linking executable: $(BLUE)$@ $(NO_COL)\n"
 	$(V)$(LD) $(PROF_FLAGS) -L $(BUILD_DIR) -o $@ $(O_FILES) $(ULTRA_O_FILES) $(GODDARD_O_FILES) $(LDFLAGS)
 endif
@@ -1689,15 +1626,15 @@ endif
 # with no prerequisites, .SECONDARY causes no intermediate target to be removed
 .SECONDARY:
 
+# Handle end of macOS compilation
 APP_DIR = ./sm64coopdx.app
 APP_CONTENTS_DIR = $(APP_DIR)/Contents
 APP_MACOS_DIR = $(APP_CONTENTS_DIR)/MacOS
 APP_RESOURCES_DIR = $(APP_CONTENTS_DIR)/Resources
 
-
 ifeq ($(OSX_BUILD),1)
-  GLEW_LIB := $(shell find $(BREW_PREFIX)/Cellar/glew | grep libGLEW.2.2.0 | sort -n | uniq)
-  SDL2_LIB := $(shell find $(BREW_PREFIX)/Cellar/sdl2 | grep libSDL2- | sort -n | uniq)
+  GLEW_LIB := $(shell find $(BREW_PREFIX)/lib/ | grep libGLEW.2.2.0 | sort -n | uniq)
+  SDL2_LIB := $(shell find $(BREW_PREFIX)/lib/ | grep libSDL2- | sort -n | uniq)
 endif
 
 all:
@@ -1717,16 +1654,23 @@ all:
 		cp build/us_pc/discord_game_sdk.dylib $(APP_MACOS_DIR); \
     cp build/us_pc/libdiscord_game_sdk.dylib $(APP_MACOS_DIR); \
     cp build/us_pc/libcoopnet.dylib $(APP_MACOS_DIR); \
-    cp build/us_pc/libjuice.1.2.2.dylib $(APP_MACOS_DIR); \
+    cp build/us_pc/coopdx_updater $(APP_MACOS_DIR); \
+    cp build/us_pc/libjuice.1.6.2.dylib $(APP_MACOS_DIR); \
     cp $(SDL2_LIB) $(APP_MACOS_DIR)/libSDL2.dylib; \
-    install_name_tool -change $(BREW_PREFIX)/opt/sdl2/lib/libSDL2-2.0.0.dylib @executable_path/libSDL2.dylib $(APP_MACOS_DIR)/sm64coopdx; > /dev/null 2>&1 \
-		install_name_tool -id @executable_path/libSDL2.dylib $(APP_MACOS_DIR)/libSDL2.dylib; > /dev/null 2>&1 \
+    install_name_tool -change $(BREW_PREFIX)/lib/libSDL2-2.0.0.dylib @executable_path/libSDL2.dylib $(APP_MACOS_DIR)/sm64coopdx > /dev/null 2>&1; \
+    install_name_tool -change $(BREW_PREFIX)/opt/sdl2/lib/libSDL2-2.0.0.dylib @executable_path/libSDL2.dylib $(APP_MACOS_DIR)/sm64coopdx > /dev/null 2>&1; \
+		install_name_tool -id @executable_path/libSDL2.dylib $(APP_MACOS_DIR)/libSDL2.dylib > /dev/null 2>&1; \
     codesign --force --deep --sign - $(APP_MACOS_DIR)/libSDL2.dylib; \
     cp $(GLEW_LIB) $(APP_MACOS_DIR)/libGLEW.dylib; \
-    install_name_tool -change $(BREW_PREFIX)/opt/glew/lib/libGLEW.2.2.dylib @executable_path/libGLEW.dylib $(APP_MACOS_DIR)/sm64coopdx; > /dev/null 2>&1 \
-		install_name_tool -id @executable_path/libGLEW.dylib $(APP_MACOS_DIR)/libGLEW.dylib; > /dev/null 2>&1 \
+    install_name_tool -change $(BREW_PREFIX)/lib/libGLEW.2.2.0.dylib @executable_path/libGLEW.dylib $(APP_MACOS_DIR)/sm64coopdx > /dev/null 2>&1; \
+    install_name_tool -change $(BREW_PREFIX)/opt/glew/lib/libGLEW.2.2.0.dylib @executable_path/libGLEW.dylib $(APP_MACOS_DIR)/sm64coopdx > /dev/null 2>&1; \
+		install_name_tool -id @executable_path/libGLEW.dylib $(APP_MACOS_DIR)/libGLEW.dylib > /dev/null 2>&1; \
     codesign --force --deep --sign - $(APP_MACOS_DIR)/libGLEW.dylib; \
-		cp res/icon.icns $(APP_RESOURCES_DIR)/icon.icns; \
+    mkdir res/build; \
+    xcrun actool res/icon.icon --compile res/build --app-icon icon --output-partial-info-plist res/build/Info.plist --minimum-deployment-target $(MIN_MACOS_VERSION) --platform macosx > /dev/null 2>&1; \
+    mv res/build/Assets.car $(APP_RESOURCES_DIR)/; \
+    cp res/icon.icns $(APP_RESOURCES_DIR)/; \
+    rm -rf res/build; \
 		echo "APPL????" > $(APP_CONTENTS_DIR)/PkgInfo; \
 		echo '<?xml version="1.0" encoding="UTF-8"?>' > $(APP_CONTENTS_DIR)/Info.plist; \
 		echo '<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">' >> $(APP_CONTENTS_DIR)/Info.plist; \
@@ -1737,7 +1681,7 @@ all:
 		echo '    <key>CFBundleIconFile</key>' >> $(APP_CONTENTS_DIR)/Info.plist; \
 		echo '    <string>icon</string>' >> $(APP_CONTENTS_DIR)/Info.plist; \
 		echo '    <key>CFBundleIconName</key>' >> $(APP_CONTENTS_DIR)/Info.plist; \
-		echo '    <string>AppIcon</string>' >> $(APP_CONTENTS_DIR)/Info.plist; \
+		echo '    <string>icon</string>' >> $(APP_CONTENTS_DIR)/Info.plist; \
 		echo '    <key>CFBundleDisplayName</key>' >> $(APP_CONTENTS_DIR)/Info.plist; \
 		echo '    <string>sm64coopdx</string>' >> $(APP_CONTENTS_DIR)/Info.plist; \
 		echo '    <!-- Add other keys and values here -->' >> $(APP_CONTENTS_DIR)/Info.plist; \

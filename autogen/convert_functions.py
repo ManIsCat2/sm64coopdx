@@ -80,6 +80,7 @@ in_files = [
     "src/audio/seqplayer.h",
     "src/engine/lighting_engine.h",
     "src/pc/network/sync_object.h",
+    "src/audio/load.h",
 ]
 
 override_allowed_functions = {
@@ -93,17 +94,18 @@ override_allowed_functions = {
     "src/game/object_list_processor.h":     [ "set_object_respawn_info_bits" ],
     "src/game/platform_displacement.h":     [ "apply_platform_displacement" ],
     "src/game/mario_misc.h":                [ "bhv_toad.*", "bhv_unlock_door.*", "geo_get_.*_state" ],
-    "src/game/level_update.h":              [ "level_trigger_warp", "get_painting_warp_node", "initiate_painting_warp", "warp_special", "lvl_set_current_level", "level_control_timer_running", "pressed_pause", "fade_into_special_warp", "get_instant_warp" ],
+    "src/game/level_update.h":              [ "level_trigger_warp", "get_painting_warp_node", "initiate_warp", "initiate_painting_warp", "warp_special", "lvl_set_current_level", "level_control_timer_running", "pressed_pause", "fade_into_special_warp", "get_instant_warp" ],
     "src/game/area.h":                      [ "get_mario_spawn_type", "area_get_warp_node", "area_get_any_warp_node", "play_transition" ],
     "src/engine/level_script.h":            [ "area_create_warp_node" ],
     "src/game/ingame_menu.h":               [ "set_min_dialog_width", "set_dialog_override_pos", "reset_dialog_override_pos", "set_dialog_override_color", "reset_dialog_override_color", "set_menu_mode", "create_dialog_box", "create_dialog_box_with_var", "create_dialog_inverted_box", "create_dialog_box_with_response", "reset_dialog_render_state", "set_dialog_box_state", "handle_special_dialog_text" ],
     "src/audio/seqplayer.h":                [ "sequence_player_set_tempo", "sequence_player_set_tempo_acc", "sequence_player_set_transposition", "sequence_player_get_tempo", "sequence_player_get_tempo_acc", "sequence_player_get_transposition", "sequence_player_get_volume", "sequence_player_get_fade_volume", "sequence_player_get_mute_volume_scale" ],
     "src/pc/network/sync_object.h":         [ "sync_object_is_initialized", "sync_object_is_owned_locally", "sync_object_get_object" ],
+    "src/audio/load.h":                     [ "set_sound_bank_override" ],
 }
 
 override_disallowed_functions = {
     "src/audio/external.h":                     [ " func_" ],
-    "src/engine/surface_load.h":                [ "load_area_terrain", "alloc_surface_pools", "clear_dynamic_surfaces", "get_area_terrain_size" ],
+    "src/engine/surface_load.h":                [ "load_area_terrain", "alloc_surface_pools", "clear_dynamic_surfaces", "get_area_terrain_size", "alloc_surface", "add_surface", "remove_surface_from_partition", "delete_surface", "swap_and_pop_surface_pool", "add_surface_without_hook" ],
     "src/engine/surface_collision.h":           [ " debug_", "f32_find_wall_collision" ],
     "src/game/mario_actions_airborne.c":        [ "^[us]32 act_.*" ],
     "src/game/mario_actions_automatic.c":       [ "^[us]32 act_.*" ],
@@ -116,18 +118,19 @@ override_disallowed_functions = {
     "src/game/mario.h":                         [ " init_mario" ],
     "src/pc/djui/djui_console.h":               [ " djui_console_create", "djui_console_message_create", "djui_console_message_dequeue" ],
     "src/pc/djui/djui_chat_message.h":          [ "create_from" ],
+    "src/pc/djui/djui_hud_utils.h":             [ "djui_hud_clear_interp_data", "djui_hud_print_text", "djui_hud_print_text_interpolated" ],
     "src/game/interaction.h":                   [ "process_interaction", "_handle_" ],
     "src/game/sound_init.h":                    [ "_loop_", "thread4_", "set_sound_mode" ],
     "src/pc/network/network_utils.h":           [ "network_get_player_text_color[^_]" ],
     "src/pc/network/network_player.h":          [ "_init", "_connected[^_]", "_shutdown", "_disconnected", "_update", "construct_player_popup", "network_player_name_valid" ],
-    "src/game/object_helpers.c":                [ "spawn_obj", "^bhv_", "abs[fi]", "^bit_shift", "_debug$", "^stub_", "_set_model", "cur_obj_set_direction_table", "cur_obj_progress_direction_table" ],
-    "src/game/obj_behaviors.c":                 [ "debug_", "turn_obj_away_from_surface" ],
+    "src/game/object_helpers.c":                [ "spawn_obj", "^bhv_", "geo_", "abs[fi]", "^bit_shift", "_debug$", "^stub_", "_set_model", "cur_obj_set_direction_table", "cur_obj_progress_direction_table" ],
+    "src/game/obj_behaviors.c":                 [ "debug_", "geo_", "turn_obj_away_from_surface"],
     "src/game/obj_behaviors_2.c":               [ "wiggler_jumped_on_attack_handler", "huge_goomba_weakly_attacked" ],
     "src/game/spawn_sound.h":                   [ "exec_anim_sound_state" ],
     "src/game/level_info.h":                    [ "_name_table", "convert_string_" ],
     "src/pc/lua/utils/smlua_obj_utils.h":       [ "spawn_object_remember_field" ],
-    "src/game/camera.h":                        [ "update_camera", "init_camera", "stub_camera", "^reset_camera", "move_point_along_spline", "romhack_camera_init_settings", "romhack_camera_reset_settings" ],
-    "src/game/behavior_actions.h":              [ "bhv_dust_smoke_loop", "bhv_init_room" ],
+    "src/game/camera.h":                        [ "geo_", "update_camera", "init_camera", "stub_camera", "^reset_camera", "move_point_along_spline", "romhack_camera_init_settings", "romhack_camera_reset_settings" ],
+    "src/game/behavior_actions.h":              [ "bhv_dust_smoke_loop", "bhv_init_room", "geo_" ],
     "src/pc/lua/utils/smlua_audio_utils.h":     [ "smlua_audio_utils_override", "audio_custom_shutdown", "smlua_audio_custom_deinit", "audio_sample_destroy_pending_copies", "audio_custom_update_volume" ],
     "src/pc/lua/utils/smlua_level_utils.h":     [ "smlua_level_util_reset" ],
     "src/pc/lua/utils/smlua_text_utils.h":      [ "smlua_text_utils_init", "smlua_text_utils_shutdown", "smlua_text_utils_dialog_get_unmodified"],
@@ -139,7 +142,7 @@ override_disallowed_functions = {
     "src/engine/behavior_script.h":             [ "stub_behavior_script_2", "cur_obj_update" ],
     "src/pc/mods/mod_storage.h":                [ "mod_storage_shutdown" ],
     "src/pc/mods/mod_fs.h":                     [ "mod_fs_read_file_from_uri", "mod_fs_shutdown" ],
-    "src/pc/utils/misc.h":                      [ "str_.*", "file_get_line", "delta_interpolate_(normal|rgba|mtx)", "detect_and_skip_mtx_interpolation", "precise_delay_f64" ],
+    "src/pc/utils/misc.h":                      [ "str_.*", "file_get_line", "delta_interpolate_(normal|rgba|mtx)", "detect_and_skip_mtx_interpolation", "precise_delay_f64", "can_update_game", "update_game", "open_url", "open_folder" ],
     "src/engine/lighting_engine.h":             [ "le_calculate_vertex_lighting", "le_clear", "le_shutdown" ],
 }
 
@@ -159,7 +162,9 @@ lua_function_params = {
 }
 
 parameter_keywords = [
-    "OUT",
+    "VEC_OUT",
+    "RET",
+    "INOUT",
     "OPTIONAL"
 ]
 
@@ -229,6 +234,8 @@ manual_index_documentation = """
    - [cast_graph_node](#cast_graph_node)
    - [get_uncolored_string](#get_uncolored_string)
    - [gfx_set_command](#gfx_set_command)
+   - [djui_hud_print_text](#djui_hud_print_text)
+   - [djui_hud_print_text_interpolated](#djui_hud_print_text_interpolated)
 
 <br />
 
@@ -722,6 +729,64 @@ N/A
 
 <br />
 
+## [djui_hud_print_text](#djui_hud_print_text)
+
+### Description
+Prints DJUI HUD text onto the screen
+
+### Lua Example
+`djui_hud_print_text(message, x, y, scaleX, scaleY)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| message | `string` |
+| x | `number` |
+| y | `number` |
+| scaleX | `number` |
+| scaleY | `number` |
+
+### Returns
+- None
+
+### C Prototype
+`void djui_hud_print_text(const char* message, f32 x, f32 y, f32 scaleX, f32 scaleY);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [djui_hud_print_text_interpolated](#djui_hud_print_text_interpolated)
+
+### Description
+Prints interpolated DJUI HUD text onto the screen
+
+### Lua Example
+`djui_hud_print_text_interpolated(message, prevX, prevY, prevScaleX, prevScaleY, x, y, scaleX, scaleY)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| message | `string` |
+| prevX | `number` |
+| prevY | `number` |
+| prevScaleX | `number` |
+| prevScaleY | `number` |
+| x | `number` |
+| y | `number` |
+| scaleX | `number` |
+| scaleY | `number` |
+
+### Returns
+- None
+
+### C Prototype
+`void djui_hud_print_text_interpolated(const char* message, f32 prevX, f32 prevY, f32 prevScaleX, f32 prevScaleY, f32 x, f32 y, f32 scaleX, f32 scaleY);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 """
 
 ############################################################################
@@ -823,7 +888,7 @@ def build_param(fid, param, i):
         lot = translate_type_to_lot(ptype)
         s = '  %s %s = (%s)smlua_to_cobject(L, %d, %s);' % (ptype, pid, ptype, i, lot)
 
-        if '???' in lot or "GRAPHNODE" in lot:
+        if '???' in lot:
             s = '//' + s + ' <--- UNIMPLEMENTED'
         else:
             s = '  ' + s
@@ -833,18 +898,45 @@ def build_param(fid, param, i):
 def build_param_after(param, i):
     ptype = param['type']
     pid = param['identifier']
-    is_output = 'OUT' in param
+    is_output = 'VEC_OUT' in param
 
     if ptype in VEC_TYPES and is_output:
         return (vec_type_after % (ptype.lower())).replace('$[IDENTIFIER]', str(pid)).replace('$[INDEX]', str(i))
     else:
         return ''
 
+def build_return_value(id, rtype):
+    rtype = alter_type(rtype)
+    lot = translate_type_to_lot(rtype)
+
+    lfunc = 'UNIMPLEMENTED -->'
+    if rtype in integer_types:
+        lfunc = 'lua_pushinteger'
+    elif rtype in number_types:
+        lfunc = 'lua_pushnumber'
+    elif rtype == 'bool':
+        lfunc = 'lua_pushboolean'
+    elif rtype == 'char*':
+        lfunc = 'lua_pushstring'
+    elif rtype == 'const char*':
+        lfunc = 'lua_pushstring'
+    elif rtype == 'ByteString':
+        lfunc = 'smlua_push_bytestring'
+    elif rtype == 'LuaTable':
+        lfunc = 'smlua_push_lua_table'
+    elif lot == 'LOT_POINTER':
+        lvt = translate_type_to_lvt(rtype)
+        return '    smlua_push_pointer(L, %s, (void*)%s, NULL);\n' % (lvt, id)
+    elif '???' not in lot and lot != 'LOT_NONE':
+        return '    smlua_push_object(L, %s, %s, NULL);\n' % (lot, id)
+
+    return '    %s(L, %s);\n' % (lfunc, id)
+
 def build_call(function):
     ftype = alter_type(function['type'])
     fid = function['identifier']
 
-    ccall = '%s(%s)' % (fid, ', '.join([x['identifier'] for x in function['params']]))
+    ccall = '%s(%s)' % (fid, ', '.join([('&' if ('RET' in x or 'INOUT' in x) else '') + x['identifier'] for x in function['params']]))
 
     if ftype == 'void':
         return '    %s;\n' % ccall
@@ -856,30 +948,21 @@ def build_call(function):
     if ftype in VECP_TYPES:
         return '    %s;\n' % ccall
 
-    flot = translate_type_to_lot(ftype)
+    return build_return_value(ccall, ftype)
 
-    lfunc = 'UNIMPLEMENTED -->'
-    if ftype in integer_types:
-        lfunc = 'lua_pushinteger'
-    elif ftype in number_types:
-        lfunc = 'lua_pushnumber'
-    elif ftype == 'bool':
-        lfunc = 'lua_pushboolean'
-    elif ftype == 'char*':
-        lfunc = 'lua_pushstring'
-    elif ftype == 'const char*':
-        lfunc = 'lua_pushstring'
-    elif ftype == 'ByteString':
-        lfunc = 'smlua_push_bytestring'
-    elif ftype == 'LuaTable':
-        lfunc = 'smlua_push_lua_table'
-    elif translate_type_to_lot(ftype) == 'LOT_POINTER':
-        lvt = translate_type_to_lvt(ftype)
-        return '    smlua_push_pointer(L, %s, (void*)%s, NULL);\n' % (lvt, ccall)
-    elif '???' not in flot and flot != 'LOT_NONE':
-        return '    smlua_push_object(L, %s, %s, NULL);\n' % (flot, ccall)
-
-    return '    %s(L, %s);\n' % (lfunc, ccall)
+def split_function_parameters_and_returns(function):
+    fparams = []
+    freturns = []
+    for param in function['params']:
+        deref_type = param['type'][:param['type'].rfind('*')].strip() # Remove pointer
+        if 'INOUT' in param:
+            fparams.append({ **{ k: v for k, v in param.items() if k != "type" }, "type": deref_type})
+            freturns.append({ **param, "rtype": deref_type })
+        elif 'RET' in param:
+            freturns.append({ **param, "rtype": deref_type })
+        else:
+            fparams.append(param)
+    return fparams, freturns
 
 def build_function(function, do_extern):
     s = ''
@@ -888,10 +971,9 @@ def build_function(function, do_extern):
     if fid in override_function_version_excludes:
         s += '#ifndef ' + override_function_version_excludes[fid] + '\n'
 
-    if len(function['params']) <= 0:
-        s += 'int smlua_func_%s(UNUSED lua_State* L) {\n' % function['identifier']
-    else:
-        s += 'int smlua_func_%s(lua_State* L) {\n' % function['identifier']
+    fparams, freturns = split_function_parameters_and_returns(function)
+
+    s += 'int smlua_func_%s(lua_State* L) {\n' % function['identifier']
 
     # make sure the bhv functions have a current object
     fname = function['filename']
@@ -899,8 +981,8 @@ def build_function(function, do_extern):
         if 'bhv_' in fid:
             s += '    if (!gCurrentObject) { return 0; }\n'
 
-    params_max = len(function['params'])
-    params_min = len([param for param in function['params'] if 'OPTIONAL' not in param])
+    params_max = len(fparams)
+    params_min = len([param for param in fparams if 'OPTIONAL' not in param])
     if params_min == params_max:
         s += """    if (L == NULL) { return 0; }\n
     int top = lua_gettop(L);
@@ -919,7 +1001,7 @@ def build_function(function, do_extern):
     is_interact_func = fid.startswith('interact_') and fname == 'interaction.h'
 
     i = 1
-    for param in function['params']:
+    for param in fparams:
         pid = param['identifier']
         if is_interact_func and pid == 'interactType':
             s += "    // interactType skipped so mods can't lie about what interaction it is\n"
@@ -927,7 +1009,7 @@ def build_function(function, do_extern):
             sparam = build_param(fid, param, i)
             param_var, param_value = sparam.split('=')
             param_type = param_var.replace(pid, '').strip()
-            s += '    %s = (%s) NULL;\n' % (param_var.strip(), param_type)
+            s += '    %s = (%s) %s;\n' % (param_var.strip(), param_type, "NULL" if '*' in param_type else "0")
             s += '    if (top >= %d) {\n' % (i)
             s += '        %s = %s\n' % (pid, param_value.strip())
             s += '        if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %%u for function \'%%s\'", %d, "%s"); return 0; }\n' % (i, fid)
@@ -938,14 +1020,25 @@ def build_function(function, do_extern):
         i += 1
     s += '\n'
 
+    if freturns:
+        for param in freturns:
+            if 'INOUT' not in param:
+                pid = param['identifier']
+                ptype = alter_type(param['rtype'])
+                s += '    %s %s;\n' % (ptype, pid)
+        s += '\n'
+
     if do_extern:
         s += '    extern %s\n' % function['line']
 
+    push_value = True
     if is_interact_func:
         # special case for interaction functions to call the hooks associated with interactions
         s += "    lua_pushinteger(L, process_interaction(m, " + fid.upper() + ", o, " + fid + "));\n"
     else:
-        s += build_call(function)
+        call_str = build_call(function)
+        push_value = "lua_push" in call_str
+        s += call_str
 
     i = 1
     for param in function['params']:
@@ -953,14 +1046,23 @@ def build_function(function, do_extern):
         i += 1
     s += '\n'
 
-    # To allow chaining vector functions calls, return the table corresponding to the `OUT` parameter
+    # To allow chaining vector functions calls, return the table corresponding to the `VEC_OUT` parameter
     if function['type'] in VECP_TYPES:
         for i, param in enumerate(function['params']):
-            if 'OUT' in param:
+            if 'VEC_OUT' in param:
                 s += '    lua_settop(L, %d);\n' % (i + 1)
                 break
 
-    s += '    return 1;\n}\n'
+    # Push extra return values
+    if freturns:
+        for param in freturns:
+            pid = param['identifier']
+            ptype = alter_type(param['rtype'])
+            s += build_return_value(pid, ptype)
+        s += '\n'
+
+    num_returns = max(1, push_value + len(freturns))
+    s += '    return %d;\n}\n' % num_returns
 
     if fid in override_function_version_excludes:
         s += '#endif\n'
@@ -971,7 +1073,7 @@ def build_function(function, do_extern):
     else:
         global total_functions
         total_functions += 1
-        if function['description'] != "":
+        if function['description'][0] != "":
             global total_doc_functions
             total_doc_functions += 1
         elif verbose:
@@ -1107,7 +1209,7 @@ def process_functions(fname, file_str, extracted_descriptions):
             rejects += line + '\n'
             continue
         line = line.strip()
-        description = extracted_descriptions.get(line, "")
+        description = extracted_descriptions.get(line, [""])
         fn = process_function(fname, line, description)
         if fn == None:
             continue
@@ -1249,26 +1351,38 @@ def doc_function(fname, function):
     fid = function['identifier']
     s = '\n## [%s](#%s)\n' % (fid, fid)
 
-    description = function.get('description', "")
+    description = function.get('description', [""])
 
     rtype, rlink = translate_type_to_lua(function['type'])
-    param_str = ', '.join([x['identifier'] for x in function['params']])
+    param_str = ', '.join([x['identifier'] for x in function['params'] if 'RET' not in x])
 
-    if description != "":
+    if description[0] != "":
         s += '\n### Description\n'
-        s +=  f'{description}\n'
+        for line in description:
+            s +=  f'{line}\n'
 
     s += "\n### Lua Example\n"
-    if rtype != None:
-        s += "`local %sValue = %s(%s)`\n" % (rtype.replace('`', '').split(' ')[0], fid, param_str)
+    rvalues = []
+    if rtype is not None:
+        rid = rtype.replace('`', '').split(' ')[0]
+        rid = rid[0].lower() + rid[1:]
+        rvalues.append((rid + 'Value', rtype, rlink))
+
+    fparams, freturns = split_function_parameters_and_returns(function)
+    for param in freturns:
+        ptype, plink = translate_type_to_lua(param['rtype'])
+        rvalues.append((param['identifier'], ptype, plink))
+
+    if rvalues:
+        s += "`local %s = %s(%s)`\n" % (", ".join([id for id, _, _ in rvalues]), fid, param_str)
     else:
         s += "`%s(%s)`\n" % (fid, param_str)
 
     s += '\n### Parameters\n'
-    if len(function['params']) > 0:
+    if len(fparams) > 0:
         s += '| Field | Type |\n'
         s += '| ----- | ---- |\n'
-        for param in function['params']:
+        for param in fparams:
             pid = param['identifier']
             ptype = param['type']
             ptype, plink = translate_type_to_lua(ptype)
@@ -1287,11 +1401,12 @@ def doc_function(fname, function):
         s += '- None\n'
 
     s += '\n### Returns\n'
-    if rtype != None:
-        if rlink:
-            s += '[%s](%s)\n' % (rtype, rlink)
-        else:
-            s += '- %s\n' % rtype
+    if len(rvalues) > 0:
+        for _, ptype, plink in rvalues:
+            if plink:
+                s += '- [%s](%s)\n' % (ptype, plink)
+            else:
+                s += '- %s\n' % ptype
     else:
         s += '- None\n'
 
@@ -1380,19 +1495,26 @@ def def_function(fname, function):
     if not doc_should_document(fname, fid):
         return ''
 
-    rtype, rlink = translate_type_to_lua(function['type'])
-    param_str = ', '.join([x['identifier'] for x in function['params']])
+    rtype, _ = translate_type_to_lua(function['type'])
+    param_str = ', '.join([x['identifier'] for x in function['params'] if 'RET' not in x])
 
-    if rtype == None:
-        rtype = 'nil'
+    rtypes = []
+    if rtype is not None:
+        rtypes.append((rtype, None))
 
-    if function['description'].startswith("[DEPRECATED"):
+    fparams, freturns = split_function_parameters_and_returns(function)
+    for param in freturns:
+        rtype, _ = translate_type_to_lua(param['rtype'])
+        rid = param['identifier']
+        rtypes.append((rtype, rid))
+
+    if function['description'][0].startswith("[DEPRECATED"):
         s += "--- @deprecated\n"
 
-    for param in function['params']:
+    for param in fparams:
         pid = param['identifier']
         ptype = param['type']
-        ptype, plink = translate_type_to_lua(ptype)
+        ptype, _ = translate_type_to_lua(ptype)
 
         ptype = translate_to_def(ptype)
         if ptype.startswith('Pointer_') and ptype not in def_pointers:
@@ -1400,14 +1522,17 @@ def def_function(fname, function):
 
         s += '--- @param %s%s %s\n' % (pid, ('?' if 'OPTIONAL' in param else ''), ptype)
 
-    rtype = translate_to_def(rtype)
-    if rtype.startswith('Pointer_') and rtype not in def_pointers:
-        def_pointers.append(rtype)
+    for rtype, rid in rtypes:
+        rtype = translate_to_def(rtype)
+        if rtype.startswith('Pointer_') and rtype not in def_pointers:
+            def_pointers.append(rtype)
 
-    if rtype != "nil":
-        s += '--- @return %s\n' % rtype
-    if function['description'] != "":
-        s += "--- %s\n" % (function['description'])
+        if rtype != "nil":
+            s += ('--- @return %s' % rtype) + (' %s' % rid if rid else '') + '\n'
+
+    if function['description'][0] != "":
+        for n, line in enumerate(function['description']):
+            s += "--- %s%s\n" % (line, "<br>" if n != len(function['description']) - 1 else "")
     s += "function %s(%s)\n    -- ...\nend\n\n" % (fid, param_str)
 
     return s

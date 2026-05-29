@@ -13,6 +13,7 @@ typedef Pair<String, u32> PointerData;
 static PointerData GetDataFromPointer(const void* aPtr, GfxData* aGfxData) {
     // Lights
     for (auto& _Node : aGfxData->mLights) {
+        if (!_Node->mData) { continue; }
         if (&_Node->mData->l[0] == aPtr) { // Light *, not Lights1 *
             return { _Node->mName, 1 };
         }
@@ -23,6 +24,7 @@ static PointerData GetDataFromPointer(const void* aPtr, GfxData* aGfxData) {
 
     // Light0s
     for (auto& _Node : aGfxData->mLight0s) {
+        if (!_Node->mData) { continue; }
         if (&_Node->mData->l[0] == aPtr) { // Light *, not Lights1 *
             return { _Node->mName, 1 };
         }
@@ -33,6 +35,7 @@ static PointerData GetDataFromPointer(const void* aPtr, GfxData* aGfxData) {
 
     // Light_ts
     for (auto& _Node : aGfxData->mLightTs) {
+        if (!_Node->mData) { continue; }
         if (&_Node->mData->col[0] == aPtr) {
             return { _Node->mName, 1 };
         }
@@ -46,6 +49,7 @@ static PointerData GetDataFromPointer(const void* aPtr, GfxData* aGfxData) {
 
     // Ambient_ts
     for (auto& _Node : aGfxData->mAmbientTs) {
+        if (!_Node->mData) { continue; }
         if (&_Node->mData->col[0] == aPtr) {
             return { _Node->mName, 1 };
         }
@@ -81,7 +85,7 @@ static PointerData GetDataFromPointer(const void* aPtr, GfxData* aGfxData) {
             return { _Node->mName, 0 };
         }
     }
-    
+
     // Collisions
     for (auto& _Node : aGfxData->mCollisions) {
         if (_Node->mData == aPtr) {
@@ -153,7 +157,7 @@ static PointerData GetDataFromPointer(const void* aPtr, GfxData* aGfxData) {
     if (builtinCol != NULL) {
         return { builtinCol, 0 };
     }
-    
+
     // Built-in Animations
     auto builtinAnim = DynOS_Builtin_Anim_GetFromData((const Animation *)aPtr);
     if (builtinAnim != NULL) {
@@ -192,7 +196,6 @@ static PointerData GetDataFromPointer(const void* aPtr, GfxData* aGfxData) {
 
     // Vertices
     String _VtxArrayName = "";
-    uintptr_t _VtxArrayStart = 0;
     for (auto& _Node : aGfxData->mVertices) {
         if (_Node->mData == aPtr) {
             return { _Node->mName, _Offset };
@@ -255,8 +258,9 @@ void DynOS_Pointer_Write(BinFile* aFile, const void* aPtr, GfxData* aGfxData, u8
 static void *GetPointerFromData(GfxData *aGfxData, const String &aPtrName, u32 aPtrData, u8* outFlags) {
 
     // Lights
-    for (auto& _Node : aGfxData->mLights) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mLights.Find(aPtrName);
+        if (_Node) {
             if (aPtrData == 1) {
                 return (void *) &_Node->mData->l[0];
             }
@@ -268,8 +272,9 @@ static void *GetPointerFromData(GfxData *aGfxData, const String &aPtrName, u32 a
     }
 
     // Light0s
-    for (auto& _Node : aGfxData->mLight0s) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mLight0s.Find(aPtrName);
+        if (_Node) {
             if (aPtrData == 1) {
                 return (void *) &_Node->mData->l[0];
             }
@@ -281,8 +286,9 @@ static void *GetPointerFromData(GfxData *aGfxData, const String &aPtrName, u32 a
     }
 
     // Light_ts
-    for (auto& _Node : aGfxData->mLightTs) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mLightTs.Find(aPtrName);
+        if (_Node) {
             if (aPtrData == 1) {
                 return (void *) &_Node->mData->col[0];
             }
@@ -297,8 +303,9 @@ static void *GetPointerFromData(GfxData *aGfxData, const String &aPtrName, u32 a
     }
 
     // Ambient_ts
-    for (auto& _Node : aGfxData->mAmbientTs) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mAmbientTs.Find(aPtrName);
+        if (_Node) {
             if (aPtrData == 1) {
                 return (void *) &_Node->mData->col[0];
             }
@@ -310,95 +317,108 @@ static void *GetPointerFromData(GfxData *aGfxData, const String &aPtrName, u32 a
     }
 
     // Textures
-    for (auto& _Node : aGfxData->mTextures) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mTextures.Find(aPtrName);
+        if (_Node) {
             return (void *) _Node;
         }
     }
 
     // Texture Lists
-    for (auto& _Node : aGfxData->mTextureLists) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mTextureLists.Find(aPtrName);
+        if (_Node) {
             return (void *) _Node;
         }
     }
 
     // Display lists
-    for (auto &_Node : aGfxData->mDisplayLists) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mDisplayLists.Find(aPtrName);
+        if (_Node) {
             *outFlags |= _Node->mFlags;
             return (void *) _Node->mData;
         }
     }
 
     // Geo layouts
-    for (auto &_Node : aGfxData->mGeoLayouts) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mGeoLayouts.Find(aPtrName);
+        if (_Node) {
             *outFlags |= _Node->mFlags;
             return (void *) _Node->mData;
         }
     }
 
     // Vertices
-    for (auto &_Node : aGfxData->mVertices) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mVertices.Find(aPtrName);
+        if (_Node) {
             *outFlags |= _Node->mFlags;
             return (void *) (_Node->mData + aPtrData);
         }
     }
 
     // Collisions
-    for (auto &_Node : aGfxData->mCollisions) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mCollisions.Find(aPtrName);
+        if (_Node) {
             return (void *) _Node->mData;
         }
     }
 
     // Level scripts
-    for (auto &_Node : aGfxData->mLevelScripts) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mLevelScripts.Find(aPtrName);
+        if (_Node) {
             return (void *) (_Node->mData + aPtrData);
         }
     }
-    
+
     // Behavior scripts
-    for (auto &_Node : aGfxData->mBehaviorScripts) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mBehaviorScripts.Find(aPtrName);
+        if (_Node) {
             return (void *) _Node->mData;
         }
     }
 
     // Macro objects
-    for (auto &_Node : aGfxData->mMacroObjects) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mMacroObjects.Find(aPtrName);
+        if (_Node) {
             return (void *) _Node->mData;
         }
     }
 
     // Trajectories
-    for (auto &_Node : aGfxData->mTrajectories) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mTrajectories.Find(aPtrName);
+        if (_Node) {
             return (void *) _Node->mData;
         }
     }
 
     // Movtexs
-    for (auto &_Node : aGfxData->mMovtexs) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mMovtexs.Find(aPtrName);
+        if (_Node) {
             return (void *) _Node->mData;
         }
     }
 
     // MovtexQCs
-    for (auto &_Node : aGfxData->mMovtexQCs) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mMovtexQCs.Find(aPtrName);
+        if (_Node) {
             return (void *) _Node->mData;
         }
     }
 
     // Rooms
-    for (auto &_Node : aGfxData->mRooms) {
-        if (_Node->mName == aPtrName) {
+    {
+        auto _Node = aGfxData->mRooms.Find(aPtrName);
+        if (_Node) {
             return (void *) _Node->mData;
         }
     }
@@ -432,7 +452,7 @@ static void *GetPointerFromData(GfxData *aGfxData, const String &aPtrName, u32 a
     if (builtinCol != NULL) {
         return (void*)builtinCol;
     }
-    
+
     // Built-in Animations
     auto builtinAnim = DynOS_Builtin_Anim_GetFromName(aPtrName.begin());
     if (builtinAnim != NULL) {
@@ -461,6 +481,10 @@ void *DynOS_Pointer_Load(BinFile *aFile, GfxData *aGfxData, u32 aValue, u8 aFunc
     // LUAV
     if (aValue == LUA_VAR_CODE) {
         String token; token.Read(aFile);
+        if (aGfxData->mModIndex == PACK_MOD_INDEX) {
+            sys_fatal("Invalid use of Lua function in DynOS pack: %s", token.begin());
+            return NULL;
+        }
         for (s32 i = 0; i < aGfxData->mLuaTokenList.Count(); i++) {
             if (token == aGfxData->mLuaTokenList[i]) {
                 return (void*)(uintptr_t)(i+1);

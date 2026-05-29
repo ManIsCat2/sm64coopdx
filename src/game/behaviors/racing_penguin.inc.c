@@ -56,27 +56,27 @@ void bhv_racing_penguin_init(void) {
         so->on_received_post   = bhv_racing_penguin_the_quick_on_received_post;
         so->on_sent_pre        = bhv_racing_penguin_the_quick_on_sent_pre;
         so->override_ownership = bhv_racing_penguin_the_quick_override_ownership;
-        sync_object_init_field(o, &penguinPathedStartWaypoint);
-        sync_object_init_field(o, &penguinPathedPrevWaypoint);
-        sync_object_init_field(o, &o->oPathedPrevWaypointFlags);
-        sync_object_init_field(o, &o->oPathedTargetPitch);
-        sync_object_init_field(o, &o->oPathedTargetYaw);
-        sync_object_init_field(o, &o->oPosX);
-        sync_object_init_field(o, &o->oPosY);
-        sync_object_init_field(o, &o->oPosZ);
-        sync_object_init_field(o, &o->oVelX);
-        sync_object_init_field(o, &o->oVelY);
-        sync_object_init_field(o, &o->oVelZ);
-        sync_object_init_field(o, &o->oAction);
-        sync_object_init_field(o, &o->oPrevAction);
-        sync_object_init_field(o, &o->oSubAction);
-        sync_object_init_field(o, &o->oTimer);
-        sync_object_init_field(o, &o->oForwardVel);
-        sync_object_init_field(o, &o->oMoveAngleYaw);
-        sync_object_init_field(o, &o->oRacingPenguinWeightedNewTargetSpeed);
-        sync_object_init_field(o, &o->oRacingPenguinMarioWon);
-        sync_object_init_field(o, &o->oRacingPenguinReachedBottom);
-        sync_object_init_field(o, &o->areaTimer);
+        sync_object_init_field(o, penguinPathedStartWaypoint);
+        sync_object_init_field(o, penguinPathedPrevWaypoint);
+        sync_object_init_field(o, o->oPathedPrevWaypointFlags);
+        sync_object_init_field(o, o->oPathedTargetPitch);
+        sync_object_init_field(o, o->oPathedTargetYaw);
+        sync_object_init_field(o, o->oPosX);
+        sync_object_init_field(o, o->oPosY);
+        sync_object_init_field(o, o->oPosZ);
+        sync_object_init_field(o, o->oVelX);
+        sync_object_init_field(o, o->oVelY);
+        sync_object_init_field(o, o->oVelZ);
+        sync_object_init_field(o, o->oAction);
+        sync_object_init_field(o, o->oPrevAction);
+        sync_object_init_field(o, o->oSubAction);
+        sync_object_init_field(o, o->oTimer);
+        sync_object_init_field(o, o->oForwardVel);
+        sync_object_init_field(o, o->oMoveAngleYaw);
+        sync_object_init_field(o, o->oRacingPenguinWeightedNewTargetSpeed);
+        sync_object_init_field(o, o->oRacingPenguinMarioWon);
+        sync_object_init_field(o, o->oRacingPenguinReachedBottom);
+        sync_object_init_field(o, o->areaTimer);
     }
     o->areaTimerType = AREA_TIMER_TYPE_MAXIMUM;
     o->areaTimer = 0;
@@ -96,7 +96,7 @@ static void racing_penguin_act_wait_for_mario(void) {
 u8 racing_penguin_act_show_init_text_continue_dialog(void) { return o->oAction == RACING_PENGUIN_ACT_SHOW_INIT_TEXT; }
 
 static void racing_penguin_act_show_init_text(void) {
-    if (!gMarioStates[0].visibleToEnemies) { return; }
+    if (!gMarioStates[0].visibleToObjects) { return; }
     if (!BHV_ARR_CHECK(sRacingPenguinData, o->oBehParams2ndByte, struct RacingPenguinData)) { return; }
     s32 response = obj_update_race_proposition_dialog(&gMarioStates[0], *sRacingPenguinData[o->oBehParams2ndByte].text, racing_penguin_act_show_init_text_continue_dialog);
 

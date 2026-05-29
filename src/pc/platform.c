@@ -56,8 +56,8 @@ const char *sys_file_extension(const char *fpath) {
 }
 
 const char *sys_file_name(const char *fpath) {
-    const char *sep1 = strrchr(fpath, '/');
-    const char *sep2 = strrchr(fpath, '\\');
+    const char *sep1 = strrchr(fpath, *PATH_SEPARATOR);
+    const char *sep2 = strrchr(fpath, *PATH_SEPARATOR_ALT);
     const char *sep = sep1 > sep2 ? sep1 : sep2;
     if (!sep) return fpath;
     return sep + 1;
@@ -292,9 +292,11 @@ static void sys_fatal_impl(const char *msg) {
     exit(1);
 }
 
-#elif defined(HAVE_SDL2)
+#else
 
-// we can just ask SDL for most of this shit if we have it
+#ifdef __ANDROID__
+#include <jni.h>
+#endif
 #include <SDL2/SDL.h>
 
 #include "platform.h"
@@ -316,6 +318,36 @@ const char *get_gamedir(void) {
     //Android 11 and up
     privileged_manage = SDL_AndroidRequestPermission("android.permission.MANAGE_EXTERNAL_STORAGE");
     return (privileged_write || privileged_manage) ? gamedir_privileged : gamedir_unprivileged;
+}
+
+static bool sFilePickerActive = false;
+
+void open_file_picker(void) {
+    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
+    jobject activity = (jobject)SDL_AndroidGetActivity();
+
+    jclass cls = (*env)->GetObjectClass(env, activity);
+    jmethodID method = (*env)->GetMethodID(env, cls, "openFilePicker", "()V");
+
+    (*env)->CallVoidMethod(env, activity, method);
+    sFilePickerActive = true;
+}
+
+bool is_file_picker_open(void) {
+    return sFilePickerActive;
+}
+
+#include "rom_checker.h"
+
+JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_nativeFilePicked(JNIEnv* env, jclass cls, jstring jpath) {
+    const char* path = (*env)->GetStringUTFChars(env, jpath, NULL);
+    rom_on_drop_file(path);
+    (*env)->ReleaseStringUTFChars(env, jpath, path);
+    sFilePickerActive = false;
+}
+
+JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_nativeFilePickerCancelled(JNIEnv* env, jclass cls) {
+    sFilePickerActive = false;
 }
 #endif
 
@@ -356,7 +388,7 @@ const char *sys_user_path(void) {
 
     // strip the trailing separator
     const unsigned int len = strlen(path);
-    if (path[len-1] == '/' || path[len-1] == '\\') { path[len-1] = 0; }
+    if (path[len-1] == *PATH_SEPARATOR || path[len-1] == *PATH_SEPARATOR_ALT) { path[len-1] = 0; }
 
     return path;
 }
@@ -434,24 +466,4 @@ static void sys_fatal_impl(const char *msg) {
     exit(1);
 }
 
-#else
-
-#ifndef WAPI_DUMMY
-#warning "You might want to implement these functions for your platform"
 #endif
-
-const char *sys_user_path(void) {
-    return ".";
-}
-
-const char *sys_exe_path(void) {
-    return ".";
-}
-
-static void sys_fatal_impl(const char *msg) {
-    fprintf(stderr, "FATAL ERROR:\n%s\n", msg);
-    fflush(stderr);
-    exit(1);
-}
-
-#endif // platform switch

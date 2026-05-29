@@ -12,8 +12,8 @@ void bhv_bbh_tilting_trap_platform_loop(void) {
 
     if (!sync_object_is_initialized(o->oSyncID)) {
         sync_object_init(o, 1000.0f);
-        sync_object_init_field(o, &o->oAngleVelPitch);
-        sync_object_init_field(o, &o->oFaceAnglePitch);
+        sync_object_init_field(o, o->oAngleVelPitch);
+        sync_object_init_field(o, o->oFaceAnglePitch);
     }
 
     f32 x = 0;
@@ -22,6 +22,7 @@ void bhv_bbh_tilting_trap_platform_loop(void) {
     u8 playersTouched = 0;
     for (s32 i = 0; i < MAX_PLAYERS; i++) {
         if (!is_player_active(&gMarioStates[i])) { continue; }
+        if (gMarioStates[i].marioObj == NULL) { continue; }
         if (gMarioStates[i].marioObj->platform == o) {
             x += gMarioStates[i].marioObj->oPosX;
             y += gMarioStates[i].marioObj->oPosY;

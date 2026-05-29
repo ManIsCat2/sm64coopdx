@@ -29,8 +29,8 @@ void bhv_seesaw_platform_init(void) {
     if (!sync_object_is_initialized(o->oSyncID)) {
         struct SyncObject *so = sync_object_init(o, 1000.0f);
         if (so) {
-            sync_object_init_field(o, &o->oSeesawPlatformPitchVel);
-            sync_object_init_field(o, &o->oFaceAnglePitch);
+            sync_object_init_field(o, o->oSeesawPlatformPitchVel);
+            sync_object_init_field(o, o->oFaceAnglePitch);
         }
     }
 }
@@ -51,6 +51,7 @@ void bhv_seesaw_platform_update(void) {
     u8 playersTouched = 0;
     for (s32 i = 0; i < MAX_PLAYERS; i++) {
         if (!is_player_active(&gMarioStates[i])) { continue; }
+        if (gMarioStates[i].marioObj == NULL) { continue; }
         if (gMarioStates[i].marioObj->platform == o) {
             x += gMarioStates[i].marioObj->oPosX;
             y += gMarioStates[i].marioObj->oPosY;

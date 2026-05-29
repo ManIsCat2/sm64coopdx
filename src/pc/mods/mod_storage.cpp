@@ -46,46 +46,6 @@ static void strdelete(char* string, const char* substr) {
     string[i] = '\0';
 }
 
-#ifdef __ANDROID__
-#define MAX_CACHED_KEYS MAX_KEYS
-
-typedef struct CachedKey {
-    char key[MAX_KEY_VALUE_LENGTH],
-         value[MAX_KEY_VALUE_LENGTH];
-} CachedKey;
-
-static CachedKey sCachedKeys[MAX_CACHED_KEYS];
-
-C_FIELD void key_cache_init(void) {
-    for (u32 i = 0; i < MAX_CACHED_KEYS; i++) {
-        snprintf(sCachedKeys[i].key, MAX_KEY_VALUE_LENGTH, "%s", "");
-        snprintf(sCachedKeys[i].value, MAX_KEY_VALUE_LENGTH, "%s", "");
-    }
-}
-
-char *key_cached(const char *key, const char *value) {
-    for (u32 i = 0; i < MAX_CACHED_KEYS; i++) {
-        if (strncmp(key, sCachedKeys[i].key, MAX_KEY_VALUE_LENGTH) == 0) {
-            if (value) {
-                snprintf(sCachedKeys[i].value, MAX_KEY_VALUE_LENGTH, "%s", value);
-            }
-            return sCachedKeys[i].value;
-        }
-    }
-    return NULL;
-}
-
-void cache_key(const char  *key, const char  *value) {
-    for (u32 i = 0; i < MAX_CACHED_KEYS; i++) {
-        if (strncmp("", sCachedKeys[i].key, MAX_KEY_VALUE_LENGTH) == 0) {
-            snprintf(sCachedKeys[i].key, MAX_KEY_VALUE_LENGTH, "%s", key);
-            snprintf(sCachedKeys[i].value, MAX_KEY_VALUE_LENGTH, "%s", value);
-            return;
-        }
-    }
-}
-#endif
-
 static bool char_valid(const char* buffer, bool isKey) {
     if (buffer[0] == '\0') { return false; }
 
@@ -112,12 +72,6 @@ static bool mod_storage_check_inputs(const char *key, const char *value, char *f
 
     // check active mod
     if (gLuaActiveMod == NULL) { return false; }
-
-#ifdef __ANDROID__
-    if (!key_cached(key, value)) {
-        cache_key(key, value);
-    }
-#endif
 
     // retrieve filename
     mod_storage_get_filename(filename);
@@ -163,51 +117,46 @@ static mINI::INIStructure &mod_storage_read_file(const char *filename) {
     return sModStorageFiles[filename];
 }
 
-C_FIELD const char* mod_storage_load(const char* key) {
+C_FIELD const char *mod_storage_load(const char* key, OPTIONAL const char* defaultValue) {
     char filename[SYS_MAX_PATH] = { 0 };
     if (!mod_storage_check_inputs(key, NULL, filename)) {
-        return NULL;
+        return defaultValue;
     }
-
-#ifdef __ANDROID__
-    char *cached_value = NULL;
-    cached_value = key_cached(key, NULL);
-    if (cached_value) {
-        return cached_value;
-    }
-#endif
 
     const mINI::INIStructure &ini = mod_storage_read_file(filename);
     std::string str = ini.get("storage").get(key);
-    if (str.empty()) { return NULL; }
+    if (str.empty()) { return defaultValue; }
 
     // Store string results in a temporary buffer
     // this assumes mod_storage_load will only ever be called by Lua
     static char value[MAX_KEY_VALUE_LENGTH];
     snprintf(value, MAX_KEY_VALUE_LENGTH, "%s", str.c_str());
-
-#ifdef __ANDROID__
-    cache_key(key, (char*)value);
-#endif
     return value;
 }
 
-C_FIELD f32 mod_storage_load_number(const char* key) {
-    const char* value = mod_storage_load(key);
-    if (value == NULL) { return 0; }
+C_FIELD lua_Integer mod_storage_load_integer(const char* key, OPTIONAL lua_Integer defaultValue) {
+    const char* value = mod_storage_load(key, NULL);
+    if (value == NULL) { return defaultValue; }
 
-    return std::strtof(value, nullptr);
+    return std::strtoll(value, NULL, 10);
 }
 
-C_FIELD bool mod_storage_load_bool(const char* key) {
-    const char* value = mod_storage_load(key);
-    if (value == NULL) { return false; }
+C_FIELD lua_Number mod_storage_load_number(const char* key, OPTIONAL lua_Number defaultValue) {
+    const char* value = mod_storage_load(key, NULL);
+    if (value == NULL) { return defaultValue; }
+
+    return std::strtod(value, NULL);
+}
+
+C_FIELD bool mod_storage_load_bool(const char* key, OPTIONAL bool defaultValue) {
+    const char* value = mod_storage_load(key, NULL);
+    if (value == NULL) { return defaultValue; }
 
     return !strcmp(value, "true");
 }
 
 C_FIELD bool mod_storage_exists(const char* key) {
-    return mod_storage_load(key) != NULL;
+    return mod_storage_load(key, NULL) != NULL;
 }
 
 C_FIELD LuaTable mod_storage_load_all(void) {
@@ -257,17 +206,14 @@ C_FIELD bool mod_storage_save(const char* key, const char* value) {
     return true;
 }
 
-C_FIELD bool mod_storage_save_number(const char* key, f32 value) {
-    // Store string results in a temporary buffer
-    // this assumes mod_storage_load will only ever be called by Lua
-    static char str[MAX_KEY_VALUE_LENGTH];
-    if (floor(value) == value) {
-        snprintf(str, MAX_KEY_VALUE_LENGTH, "%lld", (s64)value);
-    } else {
-        snprintf(str, MAX_KEY_VALUE_LENGTH, "%f", value);
-    }
+C_FIELD bool mod_storage_save_integer(const char* key, lua_Integer value) {
+    std::string valueStr = std::to_string(value);
+    return mod_storage_save(key, valueStr.c_str());
+}
 
-    return mod_storage_save(key, str);
+C_FIELD bool mod_storage_save_number(const char* key, lua_Number value) {
+    std::string valueStr = std::to_string(value);
+    return mod_storage_save(key, valueStr.c_str());
 }
 
 C_FIELD bool mod_storage_save_bool(const char* key, bool value) {

@@ -344,7 +344,7 @@ s32 act_top_of_pole(struct MarioState *m) {
 /* |description|
 Performs a single step of movement while Mario is hanging from a ceiling. It handles wall collisions and checks the floor and ceiling to determine if Mario remains hanging, leaves the ceiling, or hits it
 |descriptionEnd| */
-s32 perform_hanging_step(struct MarioState *m, OUT Vec3f nextPos) {
+s32 perform_hanging_step(struct MarioState *m, VEC_OUT Vec3f nextPos) {
     if (!m) { return 0; }
     UNUSED s32 unused;
     struct Surface *ceil;
@@ -1004,7 +1004,7 @@ static struct MarioState* nearest_antibubble_mario_state_to_object(struct Object
         struct MarioState* m = &gMarioStates[i];
         if (!m->marioObj) { continue; }
         if (m->marioObj == obj) { continue; }
-        if (!m->visibleToEnemies) { continue; }
+        if (!m->visibleToObjects) { continue; }
         if (!is_player_active(m)) { continue; }
 
         switch (m->action) {
@@ -1069,7 +1069,7 @@ s32 act_bubbled(struct MarioState* m) {
         u8 allInBubble = TRUE;
         for (s32 i = 0; i < MAX_PLAYERS; i++) {
             if (!is_player_active(&gMarioStates[i])) { continue; }
-            if (!gMarioStates[i].visibleToEnemies) { continue; }
+            if (!gMarioStates[i].visibleToObjects) { continue; }
             if (gMarioStates[i].action != ACT_BUBBLED && gMarioStates[i].health >= 0x100) {
                 allInBubble = FALSE;
                 break;
@@ -1219,9 +1219,9 @@ s32 mario_execute_automatic_action(struct MarioState *m) {
             case ACT_TORNADO_TWIRLING:       cancel = act_tornado_twirling(m);       break;
             case ACT_BUBBLED:                cancel = act_bubbled(m);                break;
             default:
-                LOG_ERROR("Attempted to execute unimplemented action '%04X'", m->action);
+                LOG_ERROR("Attempted to execute unimplemented action '%08X'", m->action);
                 set_mario_action(m, ACT_IDLE, 0);
-                return false;
+                return FALSE;
         }
         /* clang-format on */
     }

@@ -42,7 +42,8 @@ static s8 sLevelsWithRooms[] = { LEVEL_BBH, LEVEL_CASTLE, LEVEL_HMC, -1 };
 
 #define o gCurrentObject
 
-s32 clear_move_flag(u32 *bitSet, s32 flag) {
+/* |description|Clears the `flag` from the `bitSet`|descriptionEnd| */
+s32 clear_move_flag(INOUT u32 *bitSet, s32 flag) {
     if (*bitSet & flag) {
         *bitSet &= flag ^ 0xFFFFFFFF;
         return TRUE;
@@ -273,7 +274,7 @@ void obj_update_pos_from_parent_transformation(Mat4 a0, struct Object *a1) {
     a1->oPosZ = spC * a0[0][2] + sp8 * a0[1][2] + sp4 * a0[2][2] + a0[3][2];
 }
 
-void obj_apply_scale_to_matrix(struct Object *obj, OUT Mat4 dst, Mat4 src) {
+void obj_apply_scale_to_matrix(struct Object *obj, VEC_OUT Mat4 dst, Mat4 src) {
     if (obj == NULL) { return; }
     dst[0][0] = src[0][0] * obj->header.gfx.scale[0];
     dst[1][0] = src[1][0] * obj->header.gfx.scale[1];
@@ -296,7 +297,7 @@ void obj_apply_scale_to_matrix(struct Object *obj, OUT Mat4 dst, Mat4 src) {
     dst[3][3] = src[3][3];
 }
 
-void create_transformation_from_matrices(OUT Mat4 a0, Mat4 a1, Mat4 a2) {
+void create_transformation_from_matrices(VEC_OUT Mat4 a0, Mat4 a1, Mat4 a2) {
     f32 spC, sp8, sp4;
 
     spC = a2[3][0] * a2[0][0] + a2[3][1] * a2[0][1] + a2[3][2] * a2[0][2];
@@ -344,7 +345,8 @@ void obj_set_held_state(struct Object *obj, const BehaviorScript *heldBehavior) 
             obj->heldByPlayerIndex = 0;
         }
     } else {
-        obj->curBhvCommand = segmented_to_virtual(smlua_override_behavior(heldBehavior));
+        obj->initBhvCommand = smlua_get_behavior_command(heldBehavior);
+        obj->curBhvCommand = obj->initBhvCommand;
         obj->bhvStackIndex = 0;
     }
 }
@@ -384,7 +386,7 @@ void cur_obj_forward_vel_approach_upward(f32 target, f32 increment) {
     }
 }
 
-s32 approach_f32_signed(f32 *value, f32 target, f32 increment) {
+s32 approach_f32_signed(INOUT f32 *value, f32 target, f32 increment) {
     if (value == NULL) { return 0; }
     s32 reachedTarget = FALSE;
 
@@ -499,7 +501,7 @@ s16 obj_angle_to_point(struct Object *obj, f32 pointX, f32 pointZ) {
 }
 
 s16 obj_turn_toward_object(struct Object *obj, struct Object *target, s16 angleIndex, s16 turnAmount) {
-    if (obj == NULL || target == NULL || !o) { return 0; }
+    if (obj == NULL || target == NULL) { return 0; }
     f32 a, b, c, d;
     UNUSED s32 unused;
     s16 targetAngle = 0;
@@ -529,8 +531,8 @@ s16 obj_turn_toward_object(struct Object *obj, struct Object *target, s16 angleI
             break;
     }
 
-    startAngle = o->OBJECT_FIELD_U32(angleIndex);
-    o->OBJECT_FIELD_U32(angleIndex) = approach_s16_symmetric(startAngle, targetAngle, turnAmount);
+    startAngle = obj->OBJECT_FIELD_U32(angleIndex);
+    obj->OBJECT_FIELD_U32(angleIndex) = approach_s16_symmetric(startAngle, targetAngle, turnAmount);
     return targetAngle;
 }
 
@@ -825,7 +827,7 @@ Multiplies a vector by a matrix of the form:
 `| 0 0 0 1 |`
 i.e. a matrix representing a linear transformation over 3 space
 |descriptionEnd| */
-void linear_mtxf_mul_vec3f(Mat4 m, OUT Vec3f dst, Vec3f v) {
+void linear_mtxf_mul_vec3f(Mat4 m, VEC_OUT Vec3f dst, Vec3f v) {
     s32 i;
     for (i = 0; i < 3; i++) {
         dst[i] = m[0][i] * v[0] + m[1][i] * v[1] + m[2][i] * v[2];
@@ -840,7 +842,7 @@ Multiplies a vector by the transpose of a matrix of the form:
 `| 0 0 0 1 |`
 i.e. a matrix representing a linear transformation over 3 space
 |descriptionEnd| */
-void linear_mtxf_transpose_mul_vec3f(Mat4 m, OUT Vec3f dst, Vec3f v) {
+void linear_mtxf_transpose_mul_vec3f(Mat4 m, VEC_OUT Vec3f dst, Vec3f v) {
     s32 i;
     for (i = 0; i < 3; i++) {
         dst[i] = m[i][0] * v[0] + m[i][1] * v[1] + m[i][2] * v[2];
@@ -912,9 +914,8 @@ void cur_obj_init_animation_with_sound(s32 animIndex) {
 }
 
 void obj_init_animation_with_accel_and_sound(struct Object *obj, s32 animIndex, f32 accel) {
-    if (!o) { return; }
     if (obj != NULL) {
-        struct AnimationTable *animations = o->oAnimations;
+        struct AnimationTable *animations = obj->oAnimations;
         if (animations && (u32)animIndex < animations->count) {
             s32 animAccel = (s32)(accel * 65536.0f);
             geo_obj_init_animation_accel(&obj->header.gfx, animations->anims[animIndex], animAccel);
@@ -1079,7 +1080,7 @@ struct Object* cur_obj_find_nearest_pole(void) {
     return closestObj;
 }
 
-struct Object *cur_obj_find_nearest_object_with_behavior(const BehaviorScript *behavior, f32 *dist) {
+struct Object *cur_obj_find_nearest_object_with_behavior(const BehaviorScript *behavior, RET f32 *dist) {
     if (!behavior || !dist) { return NULL; }
 
     behavior = smlua_override_behavior(behavior);
@@ -1332,21 +1333,6 @@ s32 cur_obj_check_anim_frame_in_range(s32 startFrame, s32 rangeLength) {
     }
 }
 
-s32 cur_obj_check_frame_prior_current_frame(s16 *a0) {
-    if (!o) { return 0; }
-    s16 sp6 = o->header.gfx.animInfo.animFrame;
-
-    while (*a0 != -1) {
-        if (*a0 == sp6) {
-            return TRUE;
-        }
-
-        a0++;
-    }
-
-    return FALSE;
-}
-
 s32 mario_is_in_air_action(struct MarioState* m) {
     if (!m) { return 0; }
     if (m->action & ACT_FLAG_AIR) {
@@ -1519,7 +1505,7 @@ struct Surface *cur_obj_update_floor_height_and_get_floor(void) {
     return floor;
 }
 
-void apply_drag_to_value(f32 *value, f32 dragStrength) {
+void apply_drag_to_value(INOUT f32 *value, f32 dragStrength) {
     f32 decel;
 
     if (*value != 0) {
@@ -1728,9 +1714,6 @@ void cur_obj_move_y(f32 gravity, f32 bounciness, f32 buoyancy) {
     } else {
         o->oMoveFlags |= OBJ_MOVE_IN_AIR;
     }
-}
-
-static void stub_obj_helpers_1(void) {
 }
 
 void cur_obj_unused_resolve_wall_collisions(f32 offsetY, f32 radius) {
@@ -1970,18 +1953,18 @@ void cur_obj_set_billboard_if_vanilla_cam(void) {
     }
 }
 
-void obj_set_hitbox_radius_and_height(struct Object *o, f32 radius, f32 height) {
-    if (o == NULL) { return; }
+void obj_set_hitbox_radius_and_height(struct Object *obj, f32 radius, f32 height) {
+    if (obj == NULL) { return; }
 
-    o->hitboxRadius = radius;
-    o->hitboxHeight = height;
+    obj->hitboxRadius = radius;
+    obj->hitboxHeight = height;
 }
 
-void obj_set_hurtbox_radius_and_height(struct Object *o, f32 radius, f32 height) {
-    if (o == NULL) { return; }
+void obj_set_hurtbox_radius_and_height(struct Object *obj, f32 radius, f32 height) {
+    if (obj == NULL) { return; }
 
-    o->hurtboxRadius = radius;
-    o->hurtboxHeight = height;
+    obj->hurtboxRadius = radius;
+    obj->hurtboxHeight = height;
 }
 
 void cur_obj_set_hitbox_radius_and_height(f32 radius, f32 height) {
@@ -2722,9 +2705,6 @@ void bhv_dust_smoke_loop(void) {
     o->oSmokeTimer++;
 }
 
-static void stub_obj_helpers_2(void) {
-}
-
 s32 cur_obj_set_direction_table(s8 *a0) {
     if (!o) { return 0; }
     o->oToxBoxMovementPattern = a0;
@@ -2909,9 +2889,6 @@ s32 is_item_in_array(s8 item, s8 *array) {
     return FALSE;
 }
 
-static void stub_obj_helpers_5(void) {
-}
-
 void bhv_init_room(void) {
     if (!o) { return; }
     struct Surface *floor;
@@ -2941,19 +2918,27 @@ void bhv_init_room(void) {
 void cur_obj_enable_rendering_if_mario_in_room(void) {
     if (!o) { return; }
     if (o->oRoom == -1) { return; }
-    if (gMarioCurrentRoom == 0) { return; }
 
+    // COOP: if any active player character's room is 0, then either:
+    // 1) There are no rooms in the area
+    // 2) They are on an object surface with no explicit room
+    // In vanilla, a room of 0 stops the game from checking if the object shouldn't be rendered
+    // In coop, this needs to be respected to ensure the object remains active in areas with rooms
     u8 marioInRoom = FALSE;
 
+    // check if any player character can "see" the object's room
     for (s32 i = 0; i < MAX_PLAYERS; i++) {
-        if (gMarioStates[i].currentRoom != 0) {
+        if (is_player_active(&gMarioStates[i])) {
+            // TODO: separate rendering and activation
+            if (gMarioStates[i].currentRoom == 0) { return; }
             s16 currentRoom = gMarioStates[i].currentRoom;
-            if (currentRoom == o->oRoom) {
+            if (
+                currentRoom == o->oRoom
+                || gDoorAdjacentRooms[currentRoom][0] == o->oRoom
+                || gDoorAdjacentRooms[currentRoom][1] == o->oRoom
+            ) {
                 marioInRoom = TRUE;
-            } else if (gDoorAdjacentRooms[currentRoom][0] == o->oRoom) {
-                marioInRoom = TRUE;
-            } else if (gDoorAdjacentRooms[currentRoom][1] == o->oRoom) {
-                marioInRoom = TRUE;
+                break;
             }
         }
     }
@@ -3025,7 +3010,9 @@ void cur_obj_if_hit_wall_bounce_away(void) {
 s32 cur_obj_hide_if_mario_far_away_y(f32 distY) {
     if (!o) { return 0; }
     if (!gMarioStates[0].marioObj) { return FALSE; }
-    if (absf(o->oPosY - gMarioStates[0].marioObj->oPosY) < distY * draw_distance_scalar()) {
+    if (draw_distance_scalar_is_infinite() ||
+        absf(o->oPosY - gMarioStates[0].marioObj->oPosY) < distY * draw_distance_scalar()
+    ) {
         cur_obj_unhide();
         return FALSE;
     }
@@ -3097,7 +3084,7 @@ void clear_time_stop_flags(s32 flags) {
 
 s32 cur_obj_can_mario_activate_textbox(struct MarioState* m, f32 radius, f32 height, UNUSED s32 unused) {
     if (!o || !m) { return 0; }
-    if (!m->visibleToEnemies) { return FALSE; }
+    if (!m->visibleToObjects) { return FALSE; }
     if (o->oDistanceToMario < 1500.0f) {
         f32 latDistToMario = lateral_dist_between_objects(o, m->marioObj);
         UNUSED s16 angleFromMario = obj_angle_to_object(m->marioObj, o);
@@ -3215,7 +3202,7 @@ s32 cur_obj_update_dialog_with_cutscene(struct MarioState* m, s32 actionArg, s32
     s32 doneTurning = TRUE;
 
     if (m->playerIndex != 0) { return 0; }
-    if (!m->visibleToEnemies) { return FALSE; }
+    if (!m->visibleToObjects) { return FALSE; }
 
     switch (o->oDialogState) {
 #ifdef VERSION_JP

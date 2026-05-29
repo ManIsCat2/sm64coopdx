@@ -909,6 +909,13 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         return result;
     }
 
+    public void openFilePicker() {
+        Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT);
+        intent.addCategory(Intent.CATEGORY_OPENABLE);
+        intent.setType("*/*");
+        startActivityForResult(intent, 1001);
+    }
+
     // C functions we call
     public static native String nativeGetVersion();
     public static native int nativeSetupJNI();
@@ -919,6 +926,8 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
     public static native void nativePause();
     public static native void nativeResume();
     public static native void nativeFocusChanged(boolean hasFocus);
+    public static native void nativeFilePicked(String filepath);
+    public static native void nativeFilePickerCancelled();
     public static native void onNativeDropFile(String filename);
     public static native void nativeSetScreenResolution(int surfaceWidth, int surfaceHeight, int deviceWidth, int deviceHeight, float rate);
     public static native void onNativeResize();
@@ -1831,6 +1840,31 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
                 } else {
                     nativePermissionResult(requestCode, false);
                 }
+            }
+        }
+        if (requestCode == 1001) {
+            if (resultCode == RESULT_OK) {
+                Uri uri = data.getData();
+                try {
+                    InputStream is = getContentResolver().openInputStream(uri);
+
+                    File outFile = new File(getFilesDir(), "baserom.tmp");
+                    FileOutputStream os = new FileOutputStream(outFile);
+
+                    byte[] buffer = new byte[8192];
+                    int len;
+                    while ((len = is.read(buffer)) > 0) {
+                        os.write(buffer, 0, len);
+                    }
+                    is.close();
+                    os.close();
+                    nativeFilePicked(outFile.getAbsolutePath());
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+            } else {
+                nativeFilePickerCancelled();
             }
         }
     }

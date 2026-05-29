@@ -6,10 +6,10 @@ void bhv_sl_snowman_wind_loop(void) {
     if (!sync_object_is_initialized(o->oSyncID)) {
         struct SyncObject *so = sync_object_init(o, SYNC_DISTANCE_ONLY_EVENTS);
         if (so) {
-            sync_object_init_field(o, &o->oAction);
-            sync_object_init_field(o, &o->oPrevAction);
-            sync_object_init_field(o, &o->oTimer);
-            sync_object_init_field(o, &o->oSubAction);
+            sync_object_init_field(o, o->oAction);
+            sync_object_init_field(o, o->oPrevAction);
+            sync_object_init_field(o, o->oTimer);
+            sync_object_init_field(o, o->oSubAction);
         }
     }
 
@@ -19,28 +19,28 @@ void bhv_sl_snowman_wind_loop(void) {
 
     s16 marioAngleFromWindSource;
     Vec3f tempPos;
-    
+
     if (o->oTimer == 0)
         o->oSLSnowmanWindOriginalYaw = o->oMoveAngleYaw;
-    
+
     // Waiting for Mario to approach.
     if (o->oSubAction == SL_SNOWMAN_WIND_ACT_IDLE) {
         o->oDistanceToMario = 0;
-        
+
         // Check if Mario is within 1000 units of the center of the bridge, and ready to speak.
         vec3f_copy(tempPos, &o->oPosX);
         obj_set_pos(o, 1100, 3328, 1164); // Position is in the middle of the ice bridge
         if (cur_obj_can_mario_activate_textbox(&gMarioStates[0], 1000.0f, 30.0f, 0x7FFF))
             o->oSubAction++;
         vec3f_copy(&o->oPosX, tempPos);
-        
+
     // Mario has come close, begin dialog.
     } else if (o->oSubAction == SL_SNOWMAN_WIND_ACT_TALKING) {
-        if (gMarioStates[0].visibleToEnemies && cur_obj_update_dialog(&gMarioStates[0], 2, 2, gBehaviorValues.dialogs.SnowmanWindDialog, 0, bhv_sl_snowman_wind_loop_continue_dialog)) {
+        if (gMarioStates[0].visibleToObjects && cur_obj_update_dialog(&gMarioStates[0], 2, 2, gBehaviorValues.dialogs.SnowmanWindDialog, 0, bhv_sl_snowman_wind_loop_continue_dialog)) {
             o->oSubAction++;
             network_send_object(o);
         }
-        
+
     // Blowing, spawn wind particles (SL_SNOWMAN_WIND_ACT_BLOWING)
     } else if (distanceToPlayer < 1500.0f && player && absf(player->oPosY - o->oHomeY) < 500.0f) {
         // Point towards Mario, but only within 0x1500 angle units of the original angle.

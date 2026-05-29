@@ -200,7 +200,7 @@ s32 is_anim_past_frame(struct MarioState *m, s16 animFrame) {
  * Rotates the animation's translation into the global coordinate system
  * and returns the animation's flags.
  */
-s16 find_mario_anim_flags_and_translation(struct Object *obj, s32 yaw, OUT Vec3s translation) {
+s16 find_mario_anim_flags_and_translation(struct Object *obj, s32 yaw, VEC_OUT Vec3s translation) {
     if (!obj) { return 0; }
     f32 dx;
     f32 dz;
@@ -424,12 +424,12 @@ bool mario_can_bubble(struct MarioState* m) {
     if (!gServerSettings.bubbleDeath) { return false; }
     if (m->playerIndex != 0) { return false; }
     if (m->action == ACT_BUBBLED) { return false; }
-    if (!m->visibleToEnemies) { return false; }
+    if (!m->visibleToObjects) { return false; }
 
     u8 allInBubble = TRUE;
     for (s32 i = 1; i < MAX_PLAYERS; i++) {
         if (!is_player_active(&gMarioStates[i])) { continue; }
-        if (!gMarioStates[i].visibleToEnemies) { continue; }
+        if (!gMarioStates[i].visibleToObjects) { continue; }
         if (gMarioStates[i].action != ACT_BUBBLED && gMarioStates[i].health >= 0x100) {
             allInBubble = FALSE;
             break;
@@ -447,7 +447,7 @@ void mario_set_bubbled(struct MarioState* m) {
     gLocalBubbleCounter = 20;
 
     drop_and_set_mario_action(m, ACT_BUBBLED, 0);
-    if (m->numLives > -1) {
+    if (m->numLives > 0) {
         m->numLives--;
     }
     m->healCounter = 0;
@@ -620,7 +620,7 @@ u32 mario_get_terrain_sound_addend(struct MarioState *m) {
 /**
  * Collides with walls and returns the most recent wall.
  */
-struct Surface *resolve_and_return_wall_collisions(OUT Vec3f pos, f32 offset, f32 radius) {
+struct Surface *resolve_and_return_wall_collisions(VEC_OUT Vec3f pos, f32 offset, f32 radius) {
     struct WallCollisionData collisionData;
     struct Surface *wall = NULL;
 
@@ -645,7 +645,7 @@ struct Surface *resolve_and_return_wall_collisions(OUT Vec3f pos, f32 offset, f3
 /**
  * Collides with walls and returns the wall collision data.
  */
-void resolve_and_return_wall_collisions_data(OUT Vec3f pos, f32 offset, f32 radius, struct WallCollisionData* collisionData) {
+void resolve_and_return_wall_collisions_data(VEC_OUT Vec3f pos, f32 offset, f32 radius, struct WallCollisionData* collisionData) {
     if (!collisionData || !pos) { return; }
 
     collisionData->x = pos[0];
@@ -664,7 +664,7 @@ void resolve_and_return_wall_collisions_data(OUT Vec3f pos, f32 offset, f32 radi
 /**
  * Finds the ceiling from a vec3f horizontally and a height (with 80 vertical buffer).
  */
-f32 vec3f_find_ceil(Vec3f pos, f32 height, struct Surface **ceil) {
+f32 vec3f_find_ceil(Vec3f pos, f32 height, RET struct Surface **ceil) {
     if (!ceil) { return 0; }
     UNUSED f32 unused;
 
@@ -676,7 +676,7 @@ f32 vec3f_find_ceil(Vec3f pos, f32 height, struct Surface **ceil) {
  * Prevents exposed ceiling bug
  */
 // Prevent exposed ceilings
-f32 vec3f_mario_ceil(Vec3f pos, f32 height, struct Surface **ceil) {
+f32 vec3f_mario_ceil(Vec3f pos, f32 height, RET struct Surface **ceil) {
     if (!ceil) { return 0; }
     if (gLevelValues.fixCollisionBugs) {
         height = MAX(height + 80.0f, pos[1] - 2);
@@ -1042,6 +1042,29 @@ static u32 set_mario_action_airborne(struct MarioState *m, u32 action, u32 actio
 
         case ACT_JUMP_KICK:
             m->vel[1] = 20.0f;
+            break;
+
+        // Set forward vel to a predefined value for non-player knockbacks
+        case ACT_BACKWARD_AIR_KB:
+        case ACT_HARD_BACKWARD_AIR_KB:
+            if (!(actionArg & PVP_ATTACK_KNOCKBACK_ACTION_ARG)) {
+                mario_set_forward_vel(m, -16.0f);
+            }
+            break;
+
+        case ACT_FORWARD_AIR_KB:
+        case ACT_HARD_FORWARD_AIR_KB:
+            if (!(actionArg & PVP_ATTACK_KNOCKBACK_ACTION_ARG)) {
+                mario_set_forward_vel(m, 16.0f);
+            }
+            break;
+
+        case ACT_THROWN_BACKWARD:
+        case ACT_THROWN_FORWARD:
+        case ACT_SOFT_BONK:
+            if (!(actionArg & PVP_ATTACK_KNOCKBACK_ACTION_ARG)) {
+                mario_set_forward_vel(m, m->forwardVel); // needed to update velocities
+            }
             break;
     }
 
@@ -1543,6 +1566,8 @@ void update_mario_geometry_inputs(struct MarioState *m) {
     gasLevel = find_poison_gas_level(m->pos[0], m->pos[2]);
     m->waterLevel = find_water_level(m->pos[0], m->pos[2]);
 
+    if (m->action == ACT_DEBUG_FREE_MOVE) { return; }
+
     if (m->floor != NULL) {
         m->floorAngle = atan2s(m->floor->normal.z, m->floor->normal.x);
         m->terrainSoundAddend = mario_get_terrain_sound_addend(m);
@@ -1577,7 +1602,6 @@ void update_mario_geometry_inputs(struct MarioState *m) {
     } else {
         vec3s_to_vec3f(m->pos, m->spawnInfo->startPos);
         m->faceAngle[1] = m->spawnInfo->startAngle[1];
-        if (mario_can_bubble(m)) { mario_set_bubbled(m); }
         struct Surface* floor = NULL;
         find_floor(m->pos[0], m->pos[1], m->pos[2], &floor);
         if (floor == NULL) {
@@ -1926,7 +1950,7 @@ void mario_update_hitbox_and_cap_model(struct MarioState *m) {
  * An unused and possibly a debug function. Z + another button input
  * sets Mario with a different cap.
  */
-static void debug_update_mario_cap(u16 button, s32 flags, u16 capTimer, u16 capMusic) {
+UNUSED static void debug_update_mario_cap(u16 button, s32 flags, u16 capTimer, u16 capMusic) {
     // This checks for Z_TRIG instead of Z_DOWN flag
     // (which is also what other debug functions do),
     // so likely debug behavior rather than unused behavior.
@@ -2060,7 +2084,7 @@ s32 execute_mario_action(UNUSED struct Object *o) {
         }
 
         // If Mario is OOB, stop executing actions.
-        if (gMarioState->floor == NULL) {
+        if (gMarioState->floor == NULL && gMarioState->action != ACT_DEBUG_FREE_MOVE) {
             return 0;
         }
 
@@ -2201,7 +2225,7 @@ void init_single_mario(struct MarioState* m) {
     m->framesSinceB = 0xFF;
 
     m->invincTimer = 0;
-    m->visibleToEnemies = TRUE;
+    m->visibleToObjects = true;
 
     if (m->cap & (SAVE_FLAG_CAP_ON_GROUND | SAVE_FLAG_CAP_ON_KLEPTO | SAVE_FLAG_CAP_ON_UKIKI | SAVE_FLAG_CAP_ON_MR_BLIZZARD)) {
         m->flags = 0;
@@ -2220,6 +2244,7 @@ void init_single_mario(struct MarioState* m) {
 
     m->heldObj = NULL;
     m->heldByObj = NULL;
+    m->interactObj = NULL;
     m->riddenObj = NULL;
     m->usedObj = NULL;
     m->bubbleObj = NULL;

@@ -15,6 +15,8 @@
 #include "pc/network/network.h"
 #include "pc/lua/utils/smlua_level_utils.h"
 #include "pc/utils/misc.h"
+#include "pc/configfile.h"
+#include "audio/external.h"
 
 #ifndef bcopy
 #define bcopy(b1,b2,len) (memmove((b2), (b1), (len)), (void) 0)
@@ -791,7 +793,7 @@ void save_file_set_cap_pos(s16 x, s16 y, s16 z) {
     save_file_set_flags(SAVE_FLAG_CAP_ON_GROUND);
 }
 
-s32 save_file_get_cap_pos(OUT Vec3s capPos) {
+s32 save_file_get_cap_pos(VEC_OUT Vec3s capPos) {
     if (INVALID_FILE_INDEX(gCurrSaveFileNum - 1)) { return 0; }
     if (INVALID_SRC_SLOT(gSaveFileUsingBackupSlot)) { return 0; }
     struct SaveFile *saveFile = &gSaveBuffer.files[gCurrSaveFileNum - 1][gSaveFileUsingBackupSlot];
@@ -814,7 +816,8 @@ void save_file_set_sound_mode(u16 mode) {
 }
 
 u16 save_file_get_sound_mode(void) {
-    return gSaveBuffer.menuData[0].soundMode;
+    if (configSoundOutput > SOUND_MODE_HEADSET) { return SOUND_MODE_STEREO; }
+    return configSoundOutput;
 }
 
 void save_file_move_cap_to_default_location(void) {

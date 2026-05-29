@@ -2237,12 +2237,6 @@ ROM_ASSET_LOAD_TEXTURE(texture_waterbox_mist, "textures/segment2/segment2.13458.
 
 ROM_ASSET_LOAD_TEXTURE(texture_waterbox_lava, "textures/segment2/segment2.13C58.rgba16.inc.c", 0x00108a40, 48390, 0x00016ab8, 2048);
 
-// Unreferenced light group
-static const Lights1 segment2_lights_unused = gdSPDefLights1(
-    0x40, 0x40, 0x40,
-    0xff, 0xff, 0xff, 0x28, 0x28, 0x28
-);
-
 // 0x02014470 - 0x020144B0
 static const Mtx matrix_identity = {
     {{1.0f, 0.0f, 0.0f, 0.0f},
@@ -2357,7 +2351,7 @@ const Gfx dl_transition_draw_filled_region[] = {
 const Gfx dl_skybox_begin[] = {
     gsDPPipeSync(),
     gsSPClearGeometryMode(G_LIGHTING),
-    gsDPSetCombineMode(G_CC_MODULATERGB, G_CC_MODULATERGB),
+    gsDPSetCombineMode(G_CC_FADEA, G_CC_FADEA),
     gsSPPerspNormalize(0xFFFF),
     gsSPMatrix(&matrix_identity, G_MTX_PROJECTION | G_MTX_LOAD | G_MTX_NOPUSH),
     gsSPEndDisplayList(),

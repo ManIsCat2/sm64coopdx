@@ -130,7 +130,6 @@ bool djui_is_playerlist_ping_visible(void) {
 
 ///
 
-extern s8 gDialogBoxState;
 s8 get_dialog_box_state(void) {
     return gDialogBoxState;
 }
@@ -295,12 +294,10 @@ void hud_set_flash(s8 value) {
 
 ///
 
-extern s16 gMenuMode;
 bool is_game_paused(void) {
     return gMenuMode != -1;
 }
 
-extern bool gPauseMenuHidden;
 bool is_pause_menu_hidden(void) {
     return gPauseMenuHidden;
 }
@@ -309,7 +306,6 @@ void set_pause_menu_hidden(bool hidden) {
     gPauseMenuHidden = hidden;
 }
 
-extern void set_play_mode(s16);
 void game_pause(void) {
     if (gMenuMode != -1) { return; }
 
@@ -319,8 +315,6 @@ void game_pause(void) {
     set_play_mode(PLAY_MODE_PAUSED);
 }
 
-extern s8 gDialogBoxState;
-extern s16 gPauseScreenMode;
 void game_unpause(void) {
     if (gMenuMode == -1) { return; }
 
@@ -333,7 +327,17 @@ void game_unpause(void) {
 ///
 
 bool is_transition_playing(void) {
-    return sTransitionUpdate != NULL || gWarpTransition.isActive;
+    return gWarpTransition.isActive;
+}
+
+///
+
+s16 get_current_play_mode(void) {
+    return sCurrPlayMode;
+}
+
+s16 get_delayed_warp_op(void) {
+    return sDelayedWarpOp;
 }
 
 ///
@@ -375,10 +379,17 @@ f32 get_hand_foot_pos_z(struct MarioState* m, u8 index) {
     return m->marioBodyState->animPartsPos[sHandFootToAnimParts[index]][2];
 }
 
-bool get_mario_anim_part_pos(struct MarioState *m, u32 animPart, OUT Vec3f pos) {
+bool get_mario_anim_part_pos(struct MarioState *m, u32 animPart, VEC_OUT Vec3f pos) {
     if (!m) { return false; }
     if (animPart >= MARIO_ANIM_PART_MAX) { return false; }
     vec3f_copy(pos, m->marioBodyState->animPartsPos[animPart]);
+    return true;
+}
+
+bool get_mario_anim_part_rot(struct MarioState *m, u32 animPart, VEC_OUT Vec3s rot) {
+    if (!m) { return false; }
+    if (animPart >= MARIO_ANIM_PART_MAX) { return false; }
+    vec3s_copy(rot, m->marioBodyState->animPartsRot[animPart]);
     return true;
 }
 
@@ -489,6 +500,12 @@ s32 get_dialog_response(void) {
 
 ///
 
+u32 get_time_stop_flags(void) {
+    return gTimeStopState;
+}
+
+///
+
 const char* get_local_discord_id(void) {
 #ifdef DISCORD_SDK
     if (gDiscordInitialized) {
@@ -576,6 +593,7 @@ bool mod_file_exists(const char* filename) {
     if (gLuaActiveMod == NULL) { return false; }
 
     char normPath[SYS_MAX_PATH] = { 0 };
+    char normRelative[SYS_MAX_PATH] = { 0 };
 
     if (snprintf(normPath, sizeof(normPath), "%s", filename) < 0) {
         LOG_ERROR("Failed to copy filename for normalization: %s", filename);
@@ -585,7 +603,9 @@ bool mod_file_exists(const char* filename) {
 
     for (s32 i = 0; i < gLuaActiveMod->fileCount; i++) {
         struct ModFile* file = &gLuaActiveMod->files[i];
-        if (!strcmp(file->relativePath, normPath)) {
+        strcpy(normRelative, file->relativePath);
+        normalize_path(normRelative);
+        if (!strcmp(normRelative, normPath)) {
             return true;
         }
     }
@@ -597,24 +617,72 @@ struct Mod* get_active_mod(void) {
     return gLuaActiveMod;
 }
 
+LuaTable get_mod_files(struct Mod* mod, OPTIONAL const char* subDirectory) {
+    if (!mod) {
+        struct lua_State *L = gLuaState;
+        if (L) {
+            lua_newtable(L);
+            return smlua_to_lua_table(L, -1);
+        }
+        return 0;
+    }
+
+    char normalizedSubDir[SYS_MAX_PATH] = { 0 };
+    snprintf(normalizedSubDir, SYS_MAX_PATH, "%s", subDirectory ? subDirectory : "");
+    normalize_path(normalizedSubDir);
+
+    size_t subDirLen = strlen(normalizedSubDir);
+    if (subDirLen > 0 && subDirLen + 1 < SYS_MAX_PATH && normalizedSubDir[subDirLen - 1] != *PATH_SEPARATOR) {
+        strcat(normalizedSubDir, PATH_SEPARATOR);
+        subDirLen = strlen(normalizedSubDir);
+    }
+
+    struct lua_State *L = gLuaState;
+    if (!L) { return 0; }
+
+    LUA_STACK_CHECK_BEGIN_NUM(L, 1);
+
+    lua_newtable(L);
+
+    int luaTableIndex = 1;
+    for (int i = 0; i < mod->fileCount; i++) {
+        struct ModFile* file = &mod->files[i];
+        char normalizedPath[SYS_MAX_PATH] = { 0 };
+        if (snprintf(normalizedPath, SYS_MAX_PATH, "%s", file->relativePath) < 0) {
+            LOG_ERROR("Failed to copy relativePath for normalization: %s", file->relativePath);
+            continue;
+        }
+        normalize_path(normalizedPath);
+
+        if (strncmp(normalizedPath, normalizedSubDir, subDirLen) == 0) {
+            lua_pushstring(L, file->relativePath);
+            lua_rawseti(L, -2, luaTableIndex++);
+        }
+    }
+
+    LUA_STACK_CHECK_END(L);
+
+    return smlua_to_lua_table(L, -1);
+}
+
 ///
 
 void set_window_title(const char* title) {
 #ifndef __ANDROID__
-    WAPI.set_window_title(title);
+    gWindowApi->set_window_title(title);
 #endif
 }
 
 void reset_window_title(void) {
 #ifndef __ANDROID__
-    WAPI.reset_window_title();
+    gWindowApi->reset_window_title();
 #endif
 }
 
 ///
 
 const char* get_os_name(void) {
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
     return "Windows";
 #elif __APPLE__ || __MACH__
     return "Mac OSX"; // should be macOS
@@ -652,6 +720,13 @@ struct GraphNodeCamera* geo_get_current_camera(void) {
 struct GraphNodeHeldObject* geo_get_current_held_object(void) {
     return gCurGraphNodeHeldObject;
 }
+
+void geo_skip_interpolation(struct GraphNode *node, struct GraphNodeObject *obj) {
+    struct GraphNodeInterpData *interp = geo_get_interp_data(node, obj);
+    if (interp) { interp->timestamp = 0; }
+}
+
+///
 
 LuaTable texture_to_lua_table(const Texture *tex) {
     lua_State *L = gLuaState;

@@ -113,6 +113,12 @@ static void djui_panel_menu_options_djui_setting_change(UNUSED struct DjuiBase* 
         djui_text_set_font(gDjuiModReload, gDjuiFonts[configDjuiThemeFont == 0 ? FONT_NORMAL : FONT_ALIASED]);
         djui_text_set_text(gDjuiModReload, DLANG(MISC, L_BUTTON));
     }
+
+    if (gDjuiChatBox) {
+        struct DjuiTheme* theme = gDjuiThemes[configDjuiTheme];
+        struct DjuiColor* textColor = &theme->interactables.textColor;
+        djui_inputbox_set_text_color(gDjuiChatBox->chatInput, textColor->r, textColor->g, textColor->b, textColor->a);
+    }
     gDjuiChangingTheme = false;
 
     smlua_call_event_hooks(HOOK_ON_DJUI_THEME_CHANGED);
@@ -136,7 +142,7 @@ void djui_panel_main_menu_create(struct DjuiBase* caller) {
         }
         djui_selectionbox_create(body, DLANG(DJUI_THEMES, DJUI_THEME), themeChoices, DJUI_THEME_MAX, &configDjuiTheme, djui_panel_menu_options_djui_setting_change);
 
-        char* djuiScaleChoices[5] = {DLANG(DJUI_THEMES, AUTO), "x0.5", "x0.85", "x1.0", "x1.5"};
+        char* djuiScaleChoices[5] = {DLANG(DJUI_THEMES, AUTO), "x0.5", "x0.75", "x1.0", "x1.5"};
         djui_selectionbox_create(body, DLANG(DJUI_THEMES, DJUI_SCALE), djuiScaleChoices, 5, &configDjuiScale, djui_panel_menu_options_djui_setting_change);
 
         char* djuiFontChoices[2] = {DLANG(DJUI_THEMES, FONT_NORMAL), DLANG(DJUI_THEMES, FONT_ALIASED)};

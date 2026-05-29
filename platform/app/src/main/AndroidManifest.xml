@@ -3,8 +3,8 @@
      com.gamemaker.game
 -->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    android:versionCode="41"
-    android:versionName="1.4"
+    android:versionCode="42"
+    android:versionName="1.5"
     android:installLocation="auto">
 
     <!-- OpenGL ES 3.0 -->
@@ -70,7 +70,11 @@
         android:theme="@android:style/Theme.NoTitleBar.Fullscreen"
         android:hardwareAccelerated="true"
         android:icon="@mipmap/ic_launcher"
-        android:requestLegacyExternalStorage="true">
+        android:banner="@drawable/ic_banner"
+        android:requestLegacyExternalStorage="true"
+        android:isGame="true"
+        android:appCategory="game"
+        >
 
         <!-- Example of setting SDL hints from AndroidManifest.xml:
         <meta-data android:name="SDL_ENV.SDL_ACCELEROMETER_AS_JOYSTICK" android:value="0"/>
@@ -84,10 +88,12 @@
             android:windowSoftInputMode="adjustResize"
             android:fitsSystemWindows="true"
             android:exported="true"
+            android:screenOrientation="userLandscape"
             >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
+                <category android:name="android.intent.category.LEANBACK_LAUNCHER" />
             </intent-filter>
             <!-- Let Android know that we can handle some USB devices and should receive this event -->
             <intent-filter>

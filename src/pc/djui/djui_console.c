@@ -96,7 +96,7 @@ static void djui_console_on_scroll(UNUSED struct DjuiBase *base, UNUSED float x,
     if (gDjuiInputHeldShift) { y *= 3; }
 
     gDjuiConsole->scrollY -= y;
-    
+
     if (!gDjuiConsole->scrolling) {
         gDjuiConsole->scrolling = y > 0 && gDjuiConsole->scrollY > yMax;
     }

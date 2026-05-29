@@ -1,8 +1,54 @@
 #include "smlua_gfx_utils.h"
-#include "pc/gfx/gfx_pc.h"
+#include "pc/pc_main.h"
 #include "game/rendering_graph_node.h"
 #include "game/skybox.h"
 #include "geo_commands.h"
+
+bool get_shader_flag_enabled(enum ShaderFlag flag) {
+    if (flag < 0 || flag >= SHADER_FLAG_MAX) { return false; }
+    return gShaderFlags[flag];
+}
+
+void set_shader_flag_enabled(enum ShaderFlag flag, bool enabled) {
+    if (flag < 0 || flag >= SHADER_FLAG_MAX) { return; }
+    gShaderFlags[flag] = enabled ? 1 : 0;
+}
+
+f32 get_shader_flag_value(enum ShaderFlag flag) {
+    if (flag < 0 || flag >= SHADER_FLAG_MAX) { return 0.0f; }
+    return gShaderFlagValues[flag];
+}
+
+void set_shader_flag_value(enum ShaderFlag flag, f32 value) {
+    if (flag < 0 || flag >= SHADER_FLAG_MAX) { return; }
+    gShaderFlagValues[flag] = value;
+}
+
+bool get_global_shader_flags_enabled(void) {
+    return gShaderFlagsEnabled;
+}
+
+void set_global_shader_flags_enabled(bool enabled) {
+    gShaderFlagsEnabled = enabled;
+}
+
+AT_STARTUP void clear_all_shader_flags(void) {
+    gShaderFlagsEnabled = true;
+    memset(gShaderFlags, 0, sizeof(s32) * SHADER_FLAG_MAX);
+    memcpy(gShaderFlagValues, gDefaultShaderFlagValues, sizeof(f32) * SHADER_FLAG_MAX);
+}
+
+///
+
+bool get_shading_fullbright_enabled(void) {
+    return gFullbright;
+}
+
+void set_shading_fullbright_enabled(bool enabled) {
+    gFullbright = enabled;
+}
+
+///
 
 void set_override_fov(f32 fov) {
     gOverrideFOV = fov;
@@ -247,6 +293,11 @@ Texture *gfx_get_texture(Gfx *cmd) {
     return (Texture *) cmd->words.w1;
 }
 
+Gfx *gfx_get_from_name(const char *name, RET u32 *length) {
+    *length = 0;
+    return dynos_gfx_get(name, length);
+}
+
 const char *gfx_get_name(Gfx *gfx) {
     if (!gfx) { return NULL; }
 
@@ -353,6 +404,11 @@ void gfx_delete(Gfx *gfx) {
 
 void gfx_delete_all() {
     dynos_gfx_delete_all();
+}
+
+Vtx *vtx_get_from_name(const char *name, RET u32 *count) {
+    *count = 0;
+    return dynos_vtx_get(name, count);
 }
 
 const char *vtx_get_name(Vtx *vtx) {

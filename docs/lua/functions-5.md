@@ -6,6 +6,545 @@
 
 
 ---
+# functions from math_util_vec3i.inl
+
+<br />
+
+
+## [vec3i_zero](#vec3i_zero)
+
+### Description
+Sets the components of the 3D integer vector `v` to 0
+
+### Lua Example
+`local vec3iValue = vec3i_zero(v)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| v | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_zero(VEC_OUT Vec3i v);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_copy](#vec3i_copy)
+
+### Description
+Copies the contents of a 3D integer vector (`src`) into another 3D integer vector (`dest`)
+
+### Lua Example
+`local vec3iValue = vec3i_copy(dest, src)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3i](structs.md#Vec3i) |
+| src | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_copy(VEC_OUT Vec3i dest, Vec3i src);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_set](#vec3i_set)
+
+### Description
+Sets the values of the 3D integer vector `dest` to the given x, y, and z values
+
+### Lua Example
+`local vec3iValue = vec3i_set(dest, x, y, z)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3i](structs.md#Vec3i) |
+| x | `integer` |
+| y | `integer` |
+| z | `integer` |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_set(VEC_OUT Vec3i dest, s32 x, s32 y, s32 z);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_add](#vec3i_add)
+
+### Description
+Adds the components of the 3D integer vector `a` to `dest`
+
+### Lua Example
+`local vec3iValue = vec3i_add(dest, a)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3i](structs.md#Vec3i) |
+| a | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_add(VEC_OUT Vec3i dest, Vec3i a);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_sum](#vec3i_sum)
+
+### Description
+Adds the components of two 3D integer vectors `a` and `b` and stores the result in `dest`
+
+### Lua Example
+`local vec3iValue = vec3i_sum(dest, a, b)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3i](structs.md#Vec3i) |
+| a | [Vec3i](structs.md#Vec3i) |
+| b | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_sum(VEC_OUT Vec3i dest, Vec3i a, Vec3i b);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_sub](#vec3i_sub)
+
+### Description
+Subtracts the components of the 3D integer vector `a` from `dest`
+
+### Lua Example
+`local vec3iValue = vec3i_sub(dest, a)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3i](structs.md#Vec3i) |
+| a | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_sub(VEC_OUT Vec3i dest, Vec3i a);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_dif](#vec3i_dif)
+
+### Description
+Subtracts the components of the 3D integer vector `b` from the components of `a` and stores the result in `dest`
+
+### Lua Example
+`local vec3iValue = vec3i_dif(dest, a, b)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3i](structs.md#Vec3i) |
+| a | [Vec3i](structs.md#Vec3i) |
+| b | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_dif(VEC_OUT Vec3i dest, Vec3i a, Vec3i b);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_mul](#vec3i_mul)
+
+### Description
+Multiplies each component of the 3D integer vector `dest` by the scalar value `a`
+
+### Lua Example
+`local vec3iValue = vec3i_mul(dest, a)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3i](structs.md#Vec3i) |
+| a | `number` |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_mul(VEC_OUT Vec3i dest, f32 a);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_mult](#vec3i_mult)
+
+### Description
+Multiplies the components of the 3D integer vector `dest` with the components of `a`
+
+### Lua Example
+`local vec3iValue = vec3i_mult(dest, a)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3i](structs.md#Vec3i) |
+| a | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_mult(VEC_OUT Vec3i dest, Vec3i a);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_prod](#vec3i_prod)
+
+### Description
+Multiplies the components of two 3D integer vectors `a` and `b` and stores the result in `dest`
+
+### Lua Example
+`local vec3iValue = vec3i_prod(dest, a, b)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3i](structs.md#Vec3i) |
+| a | [Vec3i](structs.md#Vec3i) |
+| b | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_prod(VEC_OUT Vec3i dest, Vec3i a, Vec3i b);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_div](#vec3i_div)
+
+### Description
+Divides each component of the 3D integer vector `dest` by the scalar value `a`
+
+### Lua Example
+`local vec3iValue = vec3i_div(dest, a)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3i](structs.md#Vec3i) |
+| a | `number` |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_div(VEC_OUT Vec3i dest, f32 a);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_length](#vec3i_length)
+
+### Description
+Calculates the length (magnitude) of the 3D integer vector `a`
+
+### Lua Example
+`local numberValue = vec3i_length(a)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| a | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- `number`
+
+### C Prototype
+`f32 vec3i_length(Vec3i a);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_normalize](#vec3i_normalize)
+
+### Description
+Normalizes the 3D integer vector `v` so that its length (magnitude) becomes 1, while retaining its direction
+
+### Lua Example
+`local vec3iValue = vec3i_normalize(v)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| v | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_normalize(VEC_OUT Vec3i v);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_set_magnitude](#vec3i_set_magnitude)
+
+### Description
+Sets the length (magnitude) of 3D integer vector `v`, while retaining its direction
+
+### Lua Example
+`local vec3iValue = vec3i_set_magnitude(v, mag)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| v | [Vec3i](structs.md#Vec3i) |
+| mag | `number` |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_set_magnitude(VEC_OUT Vec3i v, f32 mag);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_dot](#vec3i_dot)
+
+### Description
+Computes the dot product of the two 3D integer vectors `a` and `b`
+
+### Lua Example
+`local numberValue = vec3i_dot(a, b)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| a | [Vec3i](structs.md#Vec3i) |
+| b | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- `number`
+
+### C Prototype
+`f32 vec3i_dot(Vec3i a, Vec3i b);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_cross](#vec3i_cross)
+
+### Description
+Computes the cross product of two 3D integer vectors `a` and `b` and stores the result in `dest`
+
+### Lua Example
+`local vec3iValue = vec3i_cross(dest, a, b)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3i](structs.md#Vec3i) |
+| a | [Vec3i](structs.md#Vec3i) |
+| b | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_cross(VEC_OUT Vec3i dest, Vec3i a, Vec3i b);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_combine](#vec3i_combine)
+
+### Description
+Takes two 3D integer vectors `vecA` and `vecB`, multiplies them by `sclA` and `sclB` respectively, adds the scaled vectors together and stores the result in `dest`
+
+### Lua Example
+`local vec3iValue = vec3i_combine(dest, vecA, vecB, sclA, sclB)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3i](structs.md#Vec3i) |
+| vecA | [Vec3i](structs.md#Vec3i) |
+| vecB | [Vec3i](structs.md#Vec3i) |
+| sclA | `number` |
+| sclB | `number` |
+
+### Returns
+- [Vec3i](structs.md#Vec3i)
+
+### C Prototype
+`Vec3ip vec3i_combine(VEC_OUT Vec3i dest, Vec3i vecA, Vec3i vecB, f32 sclA, f32 sclB);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_dist](#vec3i_dist)
+
+### Description
+Calculates the distance between two 3D integer vectors `v1` and `v2`
+
+### Lua Example
+`local numberValue = vec3i_dist(v1, v2)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| v1 | [Vec3i](structs.md#Vec3i) |
+| v2 | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- `number`
+
+### C Prototype
+`f32 vec3i_dist(Vec3i v1, Vec3i v2);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_hdist](#vec3i_hdist)
+
+### Description
+Calculates the horizontal distance between two 3D integer vectors `v1` and `v2`, as if their y component was 0
+
+### Lua Example
+`local numberValue = vec3i_hdist(v1, v2)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| v1 | [Vec3i](structs.md#Vec3i) |
+| v2 | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- `number`
+
+### C Prototype
+`f32 vec3i_hdist(Vec3i v1, Vec3i v2);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_is_zero](#vec3i_is_zero)
+
+### Description
+Returns `true` if all components of the 3D integer vector `v` are zero
+
+### Lua Example
+`local booleanValue = vec3i_is_zero(v)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| v | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- `boolean`
+
+### C Prototype
+`bool vec3i_is_zero(Vec3i v);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_to_vec3f](#vec3i_to_vec3f)
+
+### Description
+Converts a 3D integer vector `a` into a 3D floating-point vector and stores the result in `dest`
+
+### Lua Example
+`local vec3fValue = vec3i_to_vec3f(dest, a)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3f](structs.md#Vec3f) |
+| a | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- [Vec3f](structs.md#Vec3f)
+
+### C Prototype
+`Vec3fp vec3i_to_vec3f(VEC_OUT Vec3f dest, Vec3i a);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3i_to_vec3s](#vec3i_to_vec3s)
+
+### Description
+Converts a 3D integer vector `a` into a 3D short integer vector and stores the result in `dest`
+
+### Lua Example
+`local vec3sValue = vec3i_to_vec3s(dest, a)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| dest | [Vec3s](structs.md#Vec3s) |
+| a | [Vec3i](structs.md#Vec3i) |
+
+### Returns
+- [Vec3s](structs.md#Vec3s)
+
+### C Prototype
+`Vec3sp vec3i_to_vec3s(VEC_OUT Vec3s dest, Vec3i a);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+---
 # functions from math_util_vec3s.inl
 
 <br />
@@ -17,7 +556,7 @@
 Sets the components of the 3D short integer vector `v` to 0
 
 ### Lua Example
-`local Vec3sValue = vec3s_zero(v)`
+`local vec3sValue = vec3s_zero(v)`
 
 ### Parameters
 | Field | Type |
@@ -25,10 +564,10 @@ Sets the components of the 3D short integer vector `v` to 0
 | v | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_zero(OUT Vec3s v);`
+`Vec3sp vec3s_zero(VEC_OUT Vec3s v);`
 
 [:arrow_up_small:](#)
 
@@ -40,7 +579,7 @@ Sets the components of the 3D short integer vector `v` to 0
 Copies the contents of a 3D short integer vector (`src`) into another 3D short integer vector (`dest`)
 
 ### Lua Example
-`local Vec3sValue = vec3s_copy(dest, src)`
+`local vec3sValue = vec3s_copy(dest, src)`
 
 ### Parameters
 | Field | Type |
@@ -49,10 +588,10 @@ Copies the contents of a 3D short integer vector (`src`) into another 3D short i
 | src | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_copy(OUT Vec3s dest, Vec3s src);`
+`Vec3sp vec3s_copy(VEC_OUT Vec3s dest, Vec3s src);`
 
 [:arrow_up_small:](#)
 
@@ -64,7 +603,7 @@ Copies the contents of a 3D short integer vector (`src`) into another 3D short i
 Sets the values of the 3D short integer vector `dest` to the given x, y, and z values
 
 ### Lua Example
-`local Vec3sValue = vec3s_set(dest, x, y, z)`
+`local vec3sValue = vec3s_set(dest, x, y, z)`
 
 ### Parameters
 | Field | Type |
@@ -75,10 +614,10 @@ Sets the values of the 3D short integer vector `dest` to the given x, y, and z v
 | z | `integer` |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_set(OUT Vec3s dest, s16 x, s16 y, s16 z);`
+`Vec3sp vec3s_set(VEC_OUT Vec3s dest, s16 x, s16 y, s16 z);`
 
 [:arrow_up_small:](#)
 
@@ -90,7 +629,7 @@ Sets the values of the 3D short integer vector `dest` to the given x, y, and z v
 Adds the components of the 3D short integer vector `a` to `dest`
 
 ### Lua Example
-`local Vec3sValue = vec3s_add(dest, a)`
+`local vec3sValue = vec3s_add(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -99,10 +638,10 @@ Adds the components of the 3D short integer vector `a` to `dest`
 | a | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_add(OUT Vec3s dest, Vec3s a);`
+`Vec3sp vec3s_add(VEC_OUT Vec3s dest, Vec3s a);`
 
 [:arrow_up_small:](#)
 
@@ -114,7 +653,7 @@ Adds the components of the 3D short integer vector `a` to `dest`
 Adds the components of two 3D short integer vectors `a` and `b` and stores the result in `dest`
 
 ### Lua Example
-`local Vec3sValue = vec3s_sum(dest, a, b)`
+`local vec3sValue = vec3s_sum(dest, a, b)`
 
 ### Parameters
 | Field | Type |
@@ -124,10 +663,10 @@ Adds the components of two 3D short integer vectors `a` and `b` and stores the r
 | b | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_sum(OUT Vec3s dest, Vec3s a, Vec3s b);`
+`Vec3sp vec3s_sum(VEC_OUT Vec3s dest, Vec3s a, Vec3s b);`
 
 [:arrow_up_small:](#)
 
@@ -139,7 +678,7 @@ Adds the components of two 3D short integer vectors `a` and `b` and stores the r
 Subtracts the components of the 3D short integer vector `a` from `dest`
 
 ### Lua Example
-`local Vec3sValue = vec3s_sub(dest, a)`
+`local vec3sValue = vec3s_sub(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -148,10 +687,10 @@ Subtracts the components of the 3D short integer vector `a` from `dest`
 | a | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_sub(OUT Vec3s dest, Vec3s a);`
+`Vec3sp vec3s_sub(VEC_OUT Vec3s dest, Vec3s a);`
 
 [:arrow_up_small:](#)
 
@@ -163,7 +702,7 @@ Subtracts the components of the 3D short integer vector `a` from `dest`
 Subtracts the components of the 3D short integer vector `b` from the components of `a` and stores the result in `dest`
 
 ### Lua Example
-`local Vec3sValue = vec3s_dif(dest, a, b)`
+`local vec3sValue = vec3s_dif(dest, a, b)`
 
 ### Parameters
 | Field | Type |
@@ -173,10 +712,10 @@ Subtracts the components of the 3D short integer vector `b` from the components 
 | b | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_dif(OUT Vec3s dest, Vec3s a, Vec3s b);`
+`Vec3sp vec3s_dif(VEC_OUT Vec3s dest, Vec3s a, Vec3s b);`
 
 [:arrow_up_small:](#)
 
@@ -188,7 +727,7 @@ Subtracts the components of the 3D short integer vector `b` from the components 
 Multiplies each component of the 3D short integer vector `dest` by the scalar value `a`
 
 ### Lua Example
-`local Vec3sValue = vec3s_mul(dest, a)`
+`local vec3sValue = vec3s_mul(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -197,10 +736,10 @@ Multiplies each component of the 3D short integer vector `dest` by the scalar va
 | a | `number` |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_mul(OUT Vec3s dest, f32 a);`
+`Vec3sp vec3s_mul(VEC_OUT Vec3s dest, f32 a);`
 
 [:arrow_up_small:](#)
 
@@ -212,7 +751,7 @@ Multiplies each component of the 3D short integer vector `dest` by the scalar va
 Multiplies the components of the 3D short integer vector `dest` with the components of `a`
 
 ### Lua Example
-`local Vec3sValue = vec3s_mult(dest, a)`
+`local vec3sValue = vec3s_mult(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -221,10 +760,10 @@ Multiplies the components of the 3D short integer vector `dest` with the compone
 | a | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_mult(OUT Vec3s dest, Vec3s a);`
+`Vec3sp vec3s_mult(VEC_OUT Vec3s dest, Vec3s a);`
 
 [:arrow_up_small:](#)
 
@@ -236,7 +775,7 @@ Multiplies the components of the 3D short integer vector `dest` with the compone
 Multiplies the components of two 3D short integer vectors `a` and `b` and stores the result in `dest`
 
 ### Lua Example
-`local Vec3sValue = vec3s_prod(dest, a, b)`
+`local vec3sValue = vec3s_prod(dest, a, b)`
 
 ### Parameters
 | Field | Type |
@@ -246,10 +785,10 @@ Multiplies the components of two 3D short integer vectors `a` and `b` and stores
 | b | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_prod(OUT Vec3s dest, Vec3s a, Vec3s b);`
+`Vec3sp vec3s_prod(VEC_OUT Vec3s dest, Vec3s a, Vec3s b);`
 
 [:arrow_up_small:](#)
 
@@ -261,7 +800,7 @@ Multiplies the components of two 3D short integer vectors `a` and `b` and stores
 Divides each component of the 3D short integer vector `dest` by the scalar value `a`
 
 ### Lua Example
-`local Vec3sValue = vec3s_div(dest, a)`
+`local vec3sValue = vec3s_div(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -270,10 +809,10 @@ Divides each component of the 3D short integer vector `dest` by the scalar value
 | a | `number` |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_div(OUT Vec3s dest, f32 a);`
+`Vec3sp vec3s_div(VEC_OUT Vec3s dest, f32 a);`
 
 [:arrow_up_small:](#)
 
@@ -308,7 +847,7 @@ Calculates the length (magnitude) of the 3D short integer vector `a`
 Normalizes the 3D short integer vector `v` so that its length (magnitude) becomes 1, while retaining its direction
 
 ### Lua Example
-`local Vec3sValue = vec3s_normalize(v)`
+`local vec3sValue = vec3s_normalize(v)`
 
 ### Parameters
 | Field | Type |
@@ -316,10 +855,10 @@ Normalizes the 3D short integer vector `v` so that its length (magnitude) become
 | v | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_normalize(OUT Vec3s v);`
+`Vec3sp vec3s_normalize(VEC_OUT Vec3s v);`
 
 [:arrow_up_small:](#)
 
@@ -331,7 +870,7 @@ Normalizes the 3D short integer vector `v` so that its length (magnitude) become
 Sets the length (magnitude) of 3D short integer vector `v`, while retaining its direction
 
 ### Lua Example
-`local Vec3sValue = vec3s_set_magnitude(v, mag)`
+`local vec3sValue = vec3s_set_magnitude(v, mag)`
 
 ### Parameters
 | Field | Type |
@@ -340,10 +879,10 @@ Sets the length (magnitude) of 3D short integer vector `v`, while retaining its 
 | mag | `number` |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_set_magnitude(OUT Vec3s v, f32 mag);`
+`Vec3sp vec3s_set_magnitude(VEC_OUT Vec3s v, f32 mag);`
 
 [:arrow_up_small:](#)
 
@@ -379,7 +918,7 @@ Computes the dot product of the two 3D short integer vectors `a` and `b`
 Computes the cross product of two 3D short integer vectors `a` and `b` and stores the result in `dest`
 
 ### Lua Example
-`local Vec3sValue = vec3s_cross(dest, a, b)`
+`local vec3sValue = vec3s_cross(dest, a, b)`
 
 ### Parameters
 | Field | Type |
@@ -389,10 +928,10 @@ Computes the cross product of two 3D short integer vectors `a` and `b` and store
 | b | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_cross(OUT Vec3s dest, Vec3s a, Vec3s b);`
+`Vec3sp vec3s_cross(VEC_OUT Vec3s dest, Vec3s a, Vec3s b);`
 
 [:arrow_up_small:](#)
 
@@ -404,7 +943,7 @@ Computes the cross product of two 3D short integer vectors `a` and `b` and store
 Takes two 3D short integer vectors `vecA` and `vecB`, multiplies them by `sclA` and `sclB` respectively, adds the scaled vectors together and stores the result in `dest`
 
 ### Lua Example
-`local Vec3sValue = vec3s_combine(dest, vecA, vecB, sclA, sclB)`
+`local vec3sValue = vec3s_combine(dest, vecA, vecB, sclA, sclB)`
 
 ### Parameters
 | Field | Type |
@@ -416,10 +955,10 @@ Takes two 3D short integer vectors `vecA` and `vecB`, multiplies them by `sclA` 
 | sclB | `number` |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3s_combine(OUT Vec3s dest, Vec3s vecA, Vec3s vecB, f32 sclA, f32 sclB);`
+`Vec3sp vec3s_combine(VEC_OUT Vec3s dest, Vec3s vecA, Vec3s vecB, f32 sclA, f32 sclB);`
 
 [:arrow_up_small:](#)
 
@@ -502,7 +1041,7 @@ Returns `true` if all components of the 3D short integer vector `v` are zero
 Converts a 3D short integer vector `a` into a 3D floating-point vector and stores the result in `dest`
 
 ### Lua Example
-`local Vec3fValue = vec3s_to_vec3f(dest, a)`
+`local vec3fValue = vec3s_to_vec3f(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -511,10 +1050,10 @@ Converts a 3D short integer vector `a` into a 3D floating-point vector and store
 | a | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3s_to_vec3f(OUT Vec3f dest, Vec3s a);`
+`Vec3fp vec3s_to_vec3f(VEC_OUT Vec3f dest, Vec3s a);`
 
 [:arrow_up_small:](#)
 
@@ -526,7 +1065,7 @@ Converts a 3D short integer vector `a` into a 3D floating-point vector and store
 Converts a 3D short integer vector `a` into a 3D integer vector and stores the result in `dest`
 
 ### Lua Example
-`local Vec3iValue = vec3s_to_vec3i(dest, a)`
+`local vec3iValue = vec3s_to_vec3i(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -535,10 +1074,10 @@ Converts a 3D short integer vector `a` into a 3D integer vector and stores the r
 | a | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3i](structs.md#Vec3i)
+- [Vec3i](structs.md#Vec3i)
 
 ### C Prototype
-`Vec3ip vec3s_to_vec3i(OUT Vec3i dest, Vec3s a);`
+`Vec3ip vec3s_to_vec3i(VEC_OUT Vec3i dest, Vec3s a);`
 
 [:arrow_up_small:](#)
 
@@ -753,7 +1292,7 @@ Linearly interpolates `res` between `a` and `b` with `delta`
 - None
 
 ### C Prototype
-`void delta_interpolate_vec3f(OUT Vec3f res, Vec3f a, Vec3f b, f32 delta);`
+`void delta_interpolate_vec3f(VEC_OUT Vec3f res, Vec3f a, Vec3f b, f32 delta);`
 
 [:arrow_up_small:](#)
 
@@ -779,7 +1318,7 @@ Linearly interpolates `res` between `a` and `b` with `delta`
 - None
 
 ### C Prototype
-`void delta_interpolate_vec3s(OUT Vec3s res, Vec3s a, Vec3s b, f32 delta);`
+`void delta_interpolate_vec3s(VEC_OUT Vec3s res, Vec3s a, Vec3s b, f32 delta);`
 
 [:arrow_up_small:](#)
 
@@ -820,7 +1359,7 @@ Checks the existence of a modfs at path `modPath` or for the active mod if not p
 Gets the modfs object at path `modPath` or the active mod one if not provided. This function will return nil for a private modfs, even if it exists
 
 ### Lua Example
-`local ModFsValue = mod_fs_get(modPath)`
+`local modFsValue = mod_fs_get(modPath)`
 
 ### Parameters
 | Field | Type |
@@ -828,7 +1367,7 @@ Gets the modfs object at path `modPath` or the active mod one if not provided. T
 | modPath | `string` |
 
 ### Returns
-[ModFs](structs.md#ModFs)
+- [ModFs](structs.md#ModFs)
 
 ### C Prototype
 `struct ModFs *mod_fs_get(OPTIONAL const char *modPath);`
@@ -843,7 +1382,7 @@ Gets the modfs object at path `modPath` or the active mod one if not provided. T
 Reloads the modfs object at path `modPath`. This function will return nil for a private modfs, even if it exists
 
 ### Lua Example
-`local ModFsValue = mod_fs_reload(modPath)`
+`local modFsValue = mod_fs_reload(modPath)`
 
 ### Parameters
 | Field | Type |
@@ -851,7 +1390,7 @@ Reloads the modfs object at path `modPath`. This function will return nil for a 
 | modPath | `string` |
 
 ### Returns
-[ModFs](structs.md#ModFs)
+- [ModFs](structs.md#ModFs)
 
 ### C Prototype
 `struct ModFs *mod_fs_reload(OPTIONAL const char *modPath);`
@@ -866,13 +1405,13 @@ Reloads the modfs object at path `modPath`. This function will return nil for a 
 Creates a modfs object for the active mod if it doesn't exist. Returns the modfs object on success
 
 ### Lua Example
-`local ModFsValue = mod_fs_create()`
+`local modFsValue = mod_fs_create()`
 
 ### Parameters
 - None
 
 ### Returns
-[ModFs](structs.md#ModFs)
+- [ModFs](structs.md#ModFs)
 
 ### C Prototype
 `struct ModFs *mod_fs_create();`
@@ -911,7 +1450,7 @@ Gets the filename at position `index` of the provided `modFs`
 Gets the file object at path `filepath` of the provided `modFs`. This function will return nil for a private modfs file, even if it exists
 
 ### Lua Example
-`local ModFsFileValue = mod_fs_get_file(modFs, filepath)`
+`local modFsFileValue = mod_fs_get_file(modFs, filepath)`
 
 ### Parameters
 | Field | Type |
@@ -920,7 +1459,7 @@ Gets the file object at path `filepath` of the provided `modFs`. This function w
 | filepath | `string` |
 
 ### Returns
-[ModFsFile](structs.md#ModFsFile)
+- [ModFsFile](structs.md#ModFsFile)
 
 ### C Prototype
 `struct ModFsFile *mod_fs_get_file(struct ModFs *modFs, const char *filepath);`
@@ -935,7 +1474,7 @@ Gets the file object at path `filepath` of the provided `modFs`. This function w
 Creates a new file at path `filepath` for the provided `modFs`. Set `text` to true to treat the file as a pure text file, not a binary file. Returns the created file on success
 
 ### Lua Example
-`local ModFsFileValue = mod_fs_create_file(modFs, filepath, text)`
+`local modFsFileValue = mod_fs_create_file(modFs, filepath, text)`
 
 ### Parameters
 | Field | Type |
@@ -945,7 +1484,7 @@ Creates a new file at path `filepath` for the provided `modFs`. Set `text` to tr
 | text | `boolean` |
 
 ### Returns
-[ModFsFile](structs.md#ModFsFile)
+- [ModFsFile](structs.md#ModFsFile)
 
 ### C Prototype
 `struct ModFsFile *mod_fs_create_file(struct ModFs *modFs, const char *filepath, bool text);`
@@ -1413,7 +1952,11 @@ Writes a line to a text modfs `file`. Returns true on success
 ## [mod_fs_file_seek](#mod_fs_file_seek)
 
 ### Description
-Sets the current position of a modfs `file`. If `origin` is `FILE_SEEK_SET`, file position is set to `offset`. If `origin` is `FILE_SEEK_CUR`, `offset` is added to file current position. If `origin` is `FILE_SEEK_END`, file position is set to `end of file + offset`. Returns true on success
+Sets the current position of a modfs `file`.
+If `origin` is `FILE_SEEK_SET`, file position is set to `offset`.
+If `origin` is `FILE_SEEK_CUR`, `offset` is added to file current position.
+If `origin` is `FILE_SEEK_END`, file position is set to `end of file + offset`.
+Returns true on success
 
 ### Lua Example
 `local booleanValue = mod_fs_file_seek(file, offset, origin)`
@@ -1438,7 +1981,8 @@ Sets the current position of a modfs `file`. If `origin` is `FILE_SEEK_SET`, fil
 ## [mod_fs_file_rewind](#mod_fs_file_rewind)
 
 ### Description
-Sets the current position of a modfs `file` to its beginning. Returns true on success
+Sets the current position of a modfs `file` to its beginning.
+Returns true on success
 
 ### Lua Example
 `local booleanValue = mod_fs_file_rewind(file)`
@@ -1578,6 +2122,30 @@ Marks the provided modfs `file` as public (i.e. readable by other mods). Returns
 
 <br />
 
+## [mod_fs_file_set_compression](#mod_fs_file_set_compression)
+
+### Description
+Sets the compression level of the provided modfs `file`. Must be between 0 (no compression) and 9 (most compression). Returns true on success.
+
+### Lua Example
+`local booleanValue = mod_fs_file_set_compression(file, level)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| file | [ModFsFile](structs.md#ModFsFile) |
+| level | `integer` |
+
+### Returns
+- `boolean`
+
+### C Prototype
+`bool mod_fs_file_set_compression(struct ModFsFile *file, s32 level);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [mod_fs_hide_errors](#mod_fs_hide_errors)
 
 ### Description
@@ -1652,10 +2220,34 @@ Saves a `key` corresponding to a string `value` to mod storage
 
 <br />
 
+## [mod_storage_save_integer](#mod_storage_save_integer)
+
+### Description
+Saves a `key` corresponding to an integer `value` to mod storage
+
+### Lua Example
+`local booleanValue = mod_storage_save_integer(key, value)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| key | `string` |
+| value | `integer` |
+
+### Returns
+- `boolean`
+
+### C Prototype
+`bool mod_storage_save_integer(const char* key, lua_Integer value);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [mod_storage_save_number](#mod_storage_save_number)
 
 ### Description
-Saves a `key` corresponding to a float `value` to mod storage
+Saves a `key` corresponding to a number `value` to mod storage
 
 ### Lua Example
 `local booleanValue = mod_storage_save_number(key, value)`
@@ -1670,7 +2262,7 @@ Saves a `key` corresponding to a float `value` to mod storage
 - `boolean`
 
 ### C Prototype
-`bool mod_storage_save_number(const char* key, f32 value);`
+`bool mod_storage_save_number(const char* key, lua_Number value);`
 
 [:arrow_up_small:](#)
 
@@ -1703,21 +2295,46 @@ Saves a `key` corresponding to a bool `value` to mod storage
 ## [mod_storage_load](#mod_storage_load)
 
 ### Description
-Loads a string `value` from a `key` in mod storage
+Loads a string `value` from a `key` in mod storage. If the `key` is not found, returns `defaultValue` or `nil`
 
 ### Lua Example
-`local stringValue = mod_storage_load(key)`
+`local stringValue = mod_storage_load(key, defaultValue)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
 | key | `string` |
+| defaultValue | `string` |
 
 ### Returns
 - `string`
 
 ### C Prototype
-`const char *mod_storage_load(const char* key);`
+`const char *mod_storage_load(const char* key, OPTIONAL const char* defaultValue);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [mod_storage_load_integer](#mod_storage_load_integer)
+
+### Description
+Loads an integer `value` from a `key` in mod storage. If the `key` is not found, returns `defaultValue` or `0`
+
+### Lua Example
+`local integerValue = mod_storage_load_integer(key, defaultValue)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| key | `string` |
+| defaultValue | `integer` |
+
+### Returns
+- `integer`
+
+### C Prototype
+`lua_Integer mod_storage_load_integer(const char* key, OPTIONAL lua_Integer defaultValue);`
 
 [:arrow_up_small:](#)
 
@@ -1726,21 +2343,22 @@ Loads a string `value` from a `key` in mod storage
 ## [mod_storage_load_number](#mod_storage_load_number)
 
 ### Description
-Loads a float `value` from a `key` in mod storage
+Loads a number `value` from a `key` in mod storage. If the `key` is not found, returns `defaultValue` or `0`
 
 ### Lua Example
-`local numberValue = mod_storage_load_number(key)`
+`local numberValue = mod_storage_load_number(key, defaultValue)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
 | key | `string` |
+| defaultValue | `number` |
 
 ### Returns
 - `number`
 
 ### C Prototype
-`f32 mod_storage_load_number(const char* key);`
+`lua_Number mod_storage_load_number(const char* key, OPTIONAL lua_Number defaultValue);`
 
 [:arrow_up_small:](#)
 
@@ -1749,21 +2367,22 @@ Loads a float `value` from a `key` in mod storage
 ## [mod_storage_load_bool](#mod_storage_load_bool)
 
 ### Description
-Loads a bool `value` from a `key` in mod storage
+Loads a bool `value` from a `key` in mod storage. If the `key` is not found, returns `defaultValue` or `false`
 
 ### Lua Example
-`local booleanValue = mod_storage_load_bool(key)`
+`local booleanValue = mod_storage_load_bool(key, defaultValue)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
 | key | `string` |
+| defaultValue | `boolean` |
 
 ### Returns
 - `boolean`
 
 ### C Prototype
-`bool mod_storage_load_bool(const char* key);`
+`bool mod_storage_load_bool(const char* key, OPTIONAL bool defaultValue);`
 
 [:arrow_up_small:](#)
 
@@ -1942,7 +2561,7 @@ Overrides the location of `np`
 Gets a network player from `globalIndex`
 
 ### Lua Example
-`local NetworkPlayerValue = network_player_from_global_index(globalIndex)`
+`local networkPlayerValue = network_player_from_global_index(globalIndex)`
 
 ### Parameters
 | Field | Type |
@@ -1950,7 +2569,7 @@ Gets a network player from `globalIndex`
 | globalIndex | `integer` |
 
 ### Returns
-[NetworkPlayer](structs.md#NetworkPlayer)
+- [NetworkPlayer](structs.md#NetworkPlayer)
 
 ### C Prototype
 `struct NetworkPlayer* network_player_from_global_index(u8 globalIndex);`
@@ -1965,7 +2584,7 @@ Gets a network player from `globalIndex`
 Gets the first network player whose information matches `courseNum`, `actNum`, and `levelNum`
 
 ### Lua Example
-`local NetworkPlayerValue = get_network_player_from_level(courseNum, actNum, levelNum)`
+`local networkPlayerValue = get_network_player_from_level(courseNum, actNum, levelNum)`
 
 ### Parameters
 | Field | Type |
@@ -1975,7 +2594,7 @@ Gets the first network player whose information matches `courseNum`, `actNum`, a
 | levelNum | `integer` |
 
 ### Returns
-[NetworkPlayer](structs.md#NetworkPlayer)
+- [NetworkPlayer](structs.md#NetworkPlayer)
 
 ### C Prototype
 `struct NetworkPlayer* get_network_player_from_level(s16 courseNum, s16 actNum, s16 levelNum);`
@@ -1990,7 +2609,7 @@ Gets the first network player whose information matches `courseNum`, `actNum`, a
 Gets the first network player whose information matches `courseNum`, `actNum`, `levelNum`, and `areaIndex`
 
 ### Lua Example
-`local NetworkPlayerValue = get_network_player_from_area(courseNum, actNum, levelNum, areaIndex)`
+`local networkPlayerValue = get_network_player_from_area(courseNum, actNum, levelNum, areaIndex)`
 
 ### Parameters
 | Field | Type |
@@ -2001,7 +2620,7 @@ Gets the first network player whose information matches `courseNum`, `actNum`, `
 | areaIndex | `integer` |
 
 ### Returns
-[NetworkPlayer](structs.md#NetworkPlayer)
+- [NetworkPlayer](structs.md#NetworkPlayer)
 
 ### C Prototype
 `struct NetworkPlayer* get_network_player_from_area(s16 courseNum, s16 actNum, s16 levelNum, s16 areaIndex);`
@@ -2016,13 +2635,13 @@ Gets the first network player whose information matches `courseNum`, `actNum`, `
 Gets the active network player with the smallest global index. Useful for assigning one player to "own" some kind of functionality or object
 
 ### Lua Example
-`local NetworkPlayerValue = get_network_player_smallest_global()`
+`local networkPlayerValue = get_network_player_smallest_global()`
 
 ### Parameters
 - None
 
 ### Returns
-[NetworkPlayer](structs.md#NetworkPlayer)
+- [NetworkPlayer](structs.md#NetworkPlayer)
 
 ### C Prototype
 `struct NetworkPlayer* get_network_player_smallest_global(void);`
@@ -2272,7 +2891,7 @@ Gets a Discord ID corresponding to the network player with `localIndex`
 ## [set_yoshi_as_not_dead](#set_yoshi_as_not_dead)
 
 ### Description
-Resets Yoshi as being alive
+Marks Yoshi as alive
 
 ### Lua Example
 `set_yoshi_as_not_dead()`
@@ -2395,22 +3014,21 @@ Orients an object with the given normals, typically the surface under the object
 ## [calc_obj_friction](#calc_obj_friction)
 
 ### Description
-Orients an object with the given normals, typically the surface under the object.
+Determines an object's forward speed multiplier.
 
 ### Lua Example
-`calc_obj_friction(objFriction, floor_nY)`
+`local objFriction = calc_obj_friction(floor_nY)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
-| objFriction | `Pointer` <`number`> |
 | floor_nY | `number` |
 
 ### Returns
-- None
+- `number`
 
 ### C Prototype
-`void calc_obj_friction(f32 *objFriction, f32 floor_nY);`
+`void calc_obj_friction(RET f32 *objFriction, f32 floor_nY);`
 
 [:arrow_up_small:](#)
 
@@ -2517,7 +3135,8 @@ Generates splashes if at surface of water, entering water, or bubbles if underwa
 ## [object_step](#object_step)
 
 ### Description
-Generic object move function. Handles walls, water, floors, and gravity. Returns flags for certain interactions
+Generic object move function. Handles walls, water, floors, and gravity.
+Returns flags for certain interactions
 
 ### Lua Example
 `local integerValue = object_step()`
@@ -2538,7 +3157,8 @@ Generic object move function. Handles walls, water, floors, and gravity. Returns
 ## [object_step_without_floor_orient](#object_step_without_floor_orient)
 
 ### Description
-Takes an object step but does not orient with the object's floor. Used for boulders, falling pillars, and the rolling snowman body
+Takes an object step but does not orient with the object's floor.
+Used for boulders, falling pillars, and the rolling snowman body
 
 ### Lua Example
 `local integerValue = object_step_without_floor_orient()`
@@ -2559,7 +3179,7 @@ Takes an object step but does not orient with the object's floor. Used for bould
 ## [obj_move_xyz_using_fvel_and_yaw](#obj_move_xyz_using_fvel_and_yaw)
 
 ### Description
-Don't use this function outside of of a context where the current object and `obj` are the same. Moves `obj` based on a seemingly random mix of using either the current obj or `obj`'s fields
+Updates the object `obj` horizontal velocity using its forward vel and move angle yaw, then moves it
 
 ### Lua Example
 `obj_move_xyz_using_fvel_and_yaw(obj)`
@@ -2582,7 +3202,7 @@ Don't use this function outside of of a context where the current object and `ob
 ## [is_point_within_radius_of_mario](#is_point_within_radius_of_mario)
 
 ### Description
-Checks if a point is within distance from any active Mario visible to enemies' graphical position
+Checks if a point is within distance from any active Mario visible to objects' graphical position
 
 ### Lua Example
 `local integerValue = is_point_within_radius_of_mario(x, y, z, dist)`
@@ -2704,7 +3324,7 @@ Checks if `m` is in the current course/act/level/area
 Gets the nearest active Mario who isn't bubbled to `obj`
 
 ### Lua Example
-`local MarioStateValue = nearest_mario_state_to_object(obj)`
+`local marioStateValue = nearest_mario_state_to_object(obj)`
 
 ### Parameters
 | Field | Type |
@@ -2712,7 +3332,7 @@ Gets the nearest active Mario who isn't bubbled to `obj`
 | obj | [Object](structs.md#Object) |
 
 ### Returns
-[MarioState](structs.md#MarioState)
+- [MarioState](structs.md#MarioState)
 
 ### C Prototype
 `struct MarioState* nearest_mario_state_to_object(struct Object *obj);`
@@ -2727,7 +3347,7 @@ Gets the nearest active Mario who isn't bubbled to `obj`
 Gets the nearest possible Mario to `obj` despite anything like bubbled state or enemy visibility
 
 ### Lua Example
-`local MarioStateValue = nearest_possible_mario_state_to_object(obj)`
+`local marioStateValue = nearest_possible_mario_state_to_object(obj)`
 
 ### Parameters
 | Field | Type |
@@ -2735,7 +3355,7 @@ Gets the nearest possible Mario to `obj` despite anything like bubbled state or 
 | obj | [Object](structs.md#Object) |
 
 ### Returns
-[MarioState](structs.md#MarioState)
+- [MarioState](structs.md#MarioState)
 
 ### C Prototype
 `struct MarioState* nearest_possible_mario_state_to_object(struct Object *obj);`
@@ -2750,7 +3370,7 @@ Gets the nearest possible Mario to `obj` despite anything like bubbled state or 
 Gets the nearest player (Mario Object) to `obj`
 
 ### Lua Example
-`local ObjectValue = nearest_player_to_object(obj)`
+`local objectValue = nearest_player_to_object(obj)`
 
 ### Parameters
 | Field | Type |
@@ -2758,7 +3378,7 @@ Gets the nearest player (Mario Object) to `obj`
 | obj | [Object](structs.md#Object) |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object* nearest_player_to_object(struct Object *obj);`
@@ -2773,7 +3393,7 @@ Gets the nearest player (Mario Object) to `obj`
 Gets the nearest interacting Mario to `obj`
 
 ### Lua Example
-`local MarioStateValue = nearest_interacting_mario_state_to_object(obj)`
+`local marioStateValue = nearest_interacting_mario_state_to_object(obj)`
 
 ### Parameters
 | Field | Type |
@@ -2781,7 +3401,7 @@ Gets the nearest interacting Mario to `obj`
 | obj | [Object](structs.md#Object) |
 
 ### Returns
-[MarioState](structs.md#MarioState)
+- [MarioState](structs.md#MarioState)
 
 ### C Prototype
 `struct MarioState *nearest_interacting_mario_state_to_object(struct Object *obj);`
@@ -2796,7 +3416,7 @@ Gets the nearest interacting Mario to `obj`
 Gets the nearest interacting player (Mario Object) to `obj`
 
 ### Lua Example
-`local ObjectValue = nearest_interacting_player_to_object(obj)`
+`local objectValue = nearest_interacting_player_to_object(obj)`
 
 ### Parameters
 | Field | Type |
@@ -2804,7 +3424,7 @@ Gets the nearest interacting player (Mario Object) to `obj`
 | obj | [Object](structs.md#Object) |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object *nearest_interacting_player_to_object(struct Object *obj);`
@@ -2969,7 +3589,8 @@ Randomly displaces an objects home if RNG says to, and turns the object towards 
 ## [obj_check_if_facing_toward_angle](#obj_check_if_facing_toward_angle)
 
 ### Description
-A series of checks using sin and cos to see if a given angle is facing in the same direction of a given angle, within a certain range
+A series of checks using sin and cos to see if a given angle is facing in the same direction
+of a given angle, within a certain range
 
 ### Lua Example
 `local integerValue = obj_check_if_facing_toward_angle(base, goal, range)`
@@ -3012,7 +3633,7 @@ Finds any wall collisions and returns what the displacement vector would be.
 - `integer`
 
 ### C Prototype
-`s8 obj_find_wall_displacement(OUT Vec3f dist, f32 x, f32 y, f32 z, f32 radius);`
+`s8 obj_find_wall_displacement(VEC_OUT Vec3f dist, f32 x, f32 y, f32 z, f32 radius);`
 
 [:arrow_up_small:](#)
 
@@ -3092,7 +3713,8 @@ Checks if a given room is Mario's current room, even if on an object
 ## [obj_check_floor_death](#obj_check_floor_death)
 
 ### Description
-Checks if `floor`'s type is burning or death plane and if so change the current object's action accordingly
+Checks if `floor`'s type is burning or death plane and if so change the
+current object's action accordingly
 
 ### Lua Example
 `obj_check_floor_death(collisionFlags, floor)`
@@ -3116,7 +3738,8 @@ Checks if `floor`'s type is burning or death plane and if so change the current 
 ## [obj_lava_death](#obj_lava_death)
 
 ### Description
-Controls an object dying in lava by creating smoke, sinking the object, playing audio, and eventually despawning it. Returns TRUE when the obj is dead
+Controls an object dying in lava by creating smoke, sinking the object, playing
+audio, and eventually despawning it. Returns TRUE when the obj is dead
 
 ### Lua Example
 `local integerValue = obj_lava_death()`
@@ -3522,23 +4145,24 @@ Turns the current object towards `m` by `turnAmount` and subtracts and adds `tar
 ## [approach_f32_ptr](#approach_f32_ptr)
 
 ### Description
-Approaches a `target` for `px` using `delta`
+Approaches a `target` for `px` using `delta`. Returns TRUE if `px` reaches `target`
 
 ### Lua Example
-`local integerValue = approach_f32_ptr(px, target, delta)`
+`local integerValue, px = approach_f32_ptr(px, target, delta)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
-| px | `Pointer` <`number`> |
+| px | `number` |
 | target | `number` |
 | delta | `number` |
 
 ### Returns
 - `integer`
+- `number`
 
 ### C Prototype
-`s32 approach_f32_ptr(f32 *px, f32 target, f32 delta);`
+`s32 approach_f32_ptr(INOUT f32 *px, f32 target, f32 delta);`
 
 [:arrow_up_small:](#)
 
@@ -3691,13 +4315,13 @@ Approaches a `target` value with the current object's facing roll using `delta`
 ## [obj_smooth_turn](#obj_smooth_turn)
 
 ### Lua Example
-`local integerValue = obj_smooth_turn(angleVel, angle, targetAngle, targetSpeedProportion, accel, minSpeed, maxSpeed)`
+`local integerValue, angleVel, angle = obj_smooth_turn(angleVel, angle, targetAngle, targetSpeedProportion, accel, minSpeed, maxSpeed)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
-| angleVel | `Pointer` <`integer`> |
-| angle | `Pointer` <`integer`> |
+| angleVel | `integer` |
+| angle | `integer` |
 | targetAngle | `integer` |
 | targetSpeedProportion | `number` |
 | accel | `integer` |
@@ -3706,9 +4330,11 @@ Approaches a `target` value with the current object's facing roll using `delta`
 
 ### Returns
 - `integer`
+- `integer`
+- `integer`
 
 ### C Prototype
-`s32 obj_smooth_turn(s16 *angleVel, s32 *angle, s16 targetAngle, f32 targetSpeedProportion, s16 accel, s16 minSpeed, s16 maxSpeed);`
+`s32 obj_smooth_turn(INOUT s16 *angleVel, INOUT s32 *angle, s16 targetAngle, f32 targetSpeedProportion, s16 accel, s16 minSpeed, s16 maxSpeed);`
 
 [:arrow_up_small:](#)
 
@@ -3814,23 +4440,27 @@ Rotates the current object's move angle yaw using `delta` in either a randomly d
 ## [obj_grow_then_shrink](#obj_grow_then_shrink)
 
 ### Description
-Begin by increasing the current object's scale by `*scaleVel`, and slowly decreasing `scaleVel`. Once the object starts to shrink, wait a bit, and then begin to scale the object toward `endScale`. The first time it reaches below `shootFireScale` during this time, return 1. Return -1 once it's reached endScale
+Begin by increasing the current object's scale by `scaleVel`, and slowly decreasing `scaleVel`.
+Once the object starts to shrink, wait a bit, and then begin to scale the object toward `endScale`.
+The first time it reaches below `shootFireScale` during this time, return 1.
+Return -1 once it's reached endScale
 
 ### Lua Example
-`local integerValue = obj_grow_then_shrink(scaleVel, shootFireScale, endScale)`
+`local integerValue, scaleVel = obj_grow_then_shrink(scaleVel, shootFireScale, endScale)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
-| scaleVel | `Pointer` <`number`> |
+| scaleVel | `number` |
 | shootFireScale | `number` |
 | endScale | `number` |
 
 ### Returns
 - `integer`
+- `number`
 
 ### C Prototype
-`s32 obj_grow_then_shrink(f32 *scaleVel, f32 shootFireScale, f32 endScale);`
+`s32 obj_grow_then_shrink(INOUT f32 *scaleVel, f32 shootFireScale, f32 endScale);`
 
 [:arrow_up_small:](#)
 
@@ -3839,13 +4469,13 @@ Begin by increasing the current object's scale by `*scaleVel`, and slowly decrea
 ## [oscillate_toward](#oscillate_toward)
 
 ### Lua Example
-`local integerValue = oscillate_toward(value, vel, target, velCloseToZero, accel, slowdown)`
+`local integerValue, value, vel = oscillate_toward(value, vel, target, velCloseToZero, accel, slowdown)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
-| value | `Pointer` <`integer`> |
-| vel | `Pointer` <`number`> |
+| value | `integer` |
+| vel | `number` |
 | target | `integer` |
 | velCloseToZero | `number` |
 | accel | `number` |
@@ -3853,9 +4483,11 @@ Begin by increasing the current object's scale by `*scaleVel`, and slowly decrea
 
 ### Returns
 - `integer`
+- `integer`
+- `number`
 
 ### C Prototype
-`s32 oscillate_toward(s32 *value, f32 *vel, s32 target, f32 velCloseToZero, f32 accel, f32 slowdown);`
+`s32 oscillate_toward(INOUT s32 *value, INOUT f32 *vel, s32 target, f32 velCloseToZero, f32 accel, f32 slowdown);`
 
 [:arrow_up_small:](#)
 
@@ -3864,21 +4496,21 @@ Begin by increasing the current object's scale by `*scaleVel`, and slowly decrea
 ## [obj_update_blinking](#obj_update_blinking)
 
 ### Lua Example
-`obj_update_blinking(blinkTimer, baseCycleLength, cycleLengthRange, blinkLength)`
+`local blinkTimer = obj_update_blinking(blinkTimer, baseCycleLength, cycleLengthRange, blinkLength)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
-| blinkTimer | `Pointer` <`integer`> |
+| blinkTimer | `integer` |
 | baseCycleLength | `integer` |
 | cycleLengthRange | `integer` |
 | blinkLength | `integer` |
 
 ### Returns
-- None
+- `integer`
 
 ### C Prototype
-`void obj_update_blinking(s32 *blinkTimer, s16 baseCycleLength, s16 cycleLengthRange, s16 blinkLength);`
+`void obj_update_blinking(INOUT s32 *blinkTimer, s16 baseCycleLength, s16 cycleLengthRange, s16 blinkLength);`
 
 [:arrow_up_small:](#)
 
@@ -3887,21 +4519,20 @@ Begin by increasing the current object's scale by `*scaleVel`, and slowly decrea
 ## [obj_resolve_object_collisions](#obj_resolve_object_collisions)
 
 ### Description
-Resolves "collisions" with the current object and other objects by offsetting the current object's position
+Resolves "collisions" with the current object and other objects by offsetting the current object's position. Returns TRUE and the target yaw if there is collision
 
 ### Lua Example
-`local integerValue = obj_resolve_object_collisions(targetYaw)`
+`local integerValue, targetYaw = obj_resolve_object_collisions()`
 
 ### Parameters
-| Field | Type |
-| ----- | ---- |
-| targetYaw | `Pointer` <`integer`> |
+- None
 
 ### Returns
 - `integer`
+- `integer`
 
 ### C Prototype
-`s32 obj_resolve_object_collisions(s32 *targetYaw);`
+`s32 obj_resolve_object_collisions(RET s32 *targetYaw);`
 
 [:arrow_up_small:](#)
 
@@ -3910,21 +4541,20 @@ Resolves "collisions" with the current object and other objects by offsetting th
 ## [obj_bounce_off_walls_edges_objects](#obj_bounce_off_walls_edges_objects)
 
 ### Description
-Bounces the current object off of walls, edges, and objects using `*targetYaw`
+Bounces the current object off of walls, edges, and objects. Returns TRUE and the target yaw if there is collision
 
 ### Lua Example
-`local integerValue = obj_bounce_off_walls_edges_objects(targetYaw)`
+`local integerValue, targetYaw = obj_bounce_off_walls_edges_objects()`
 
 ### Parameters
-| Field | Type |
-| ----- | ---- |
-| targetYaw | `Pointer` <`integer`> |
+- None
 
 ### Returns
 - `integer`
+- `integer`
 
 ### C Prototype
-`s32 obj_bounce_off_walls_edges_objects(s32 *targetYaw);`
+`s32 obj_bounce_off_walls_edges_objects(RET s32 *targetYaw);`
 
 [:arrow_up_small:](#)
 
@@ -4190,23 +4820,22 @@ Moves the current object for specifically one second (`oTimer` < 30)
 ## [treat_far_home_as_mario](#treat_far_home_as_mario)
 
 ### Description
-Moves the current object for specifically one second (`oTimer` < 30)
+Treats far home as Mario. Returns the distance and angle to the nearest player
 
 ### Lua Example
-`treat_far_home_as_mario(threshold, distanceToPlayer, angleToPlayer)`
+`local distanceToPlayer, angleToPlayer = treat_far_home_as_mario(threshold)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
 | threshold | `number` |
-| distanceToPlayer | `Pointer` <`integer`> |
-| angleToPlayer | `Pointer` <`integer`> |
 
 ### Returns
-- None
+- `integer`
+- `integer`
 
 ### C Prototype
-`void treat_far_home_as_mario(f32 threshold, s32* distanceToPlayer, s32* angleToPlayer);`
+`void treat_far_home_as_mario(f32 threshold, RET s32* distanceToPlayer, RET s32* angleToPlayer);`
 
 [:arrow_up_small:](#)
 
@@ -4215,7 +4844,7 @@ Moves the current object for specifically one second (`oTimer` < 30)
 ## [obj_spit_fire](#obj_spit_fire)
 
 ### Lua Example
-`local ObjectValue = obj_spit_fire(relativePosX, relativePosY, relativePosZ, scale, model, startSpeed, endSpeed, movePitch)`
+`local objectValue = obj_spit_fire(relativePosX, relativePosY, relativePosZ, scale, model, startSpeed, endSpeed, movePitch)`
 
 ### Parameters
 | Field | Type |
@@ -4230,7 +4859,7 @@ Moves the current object for specifically one second (`oTimer` < 30)
 | movePitch | `integer` |
 
 ### Returns
-[Object](structs.md#Object)
+- [Object](structs.md#Object)
 
 ### C Prototype
 `struct Object* obj_spit_fire(s16 relativePosX, s16 relativePosY, s16 relativePosZ, f32 scale, s32 model, f32 startSpeed, f32 endSpeed, s16 movePitch);`

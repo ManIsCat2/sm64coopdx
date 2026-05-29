@@ -62,8 +62,8 @@ void djui_chat_message_create_from(u8 globalIndex, const char* message) {
     }
 
     const char* playerColorString = network_get_player_text_color_string(np->localIndex);
-    char chatMsg[MAX_CHAT_MSG_LENGTH] = { 0 };
-    snprintf(chatMsg, MAX_CHAT_MSG_LENGTH, "%s%s\\#dcdcdc\\: %s", playerColorString, (np != NULL) ? np->name : "Player", message);
+    char chatMsg[MAX_CHAT_PACKET_LENGTH] = { 0 };
+    snprintf(chatMsg, MAX_CHAT_PACKET_LENGTH, "%s%s\\#dcdcdc\\: %s", playerColorString, (np != NULL) ? np->name : "Player", message);
 
     play_sound((globalIndex == gNetworkPlayerLocal->globalIndex) ? SOUND_MENU_MESSAGE_DISAPPEAR : SOUND_MENU_MESSAGE_APPEAR, gGlobalSoundSource);
     djui_chat_message_create(chatMsg);
@@ -96,6 +96,9 @@ void djui_chat_message_create(const char* message) {
     chatText->base.comp.width = maxTextWidth;
     f32 messageHeight = djui_text_count_lines(chatText, 10) * (chatText->font->lineHeight * chatText->font->defaultFontScale) + 8;
     djui_base_set_size(base, 1.0f, messageHeight);
+    if (gDjuiChatBox->chatFlow->base.height.value == 0) {
+        gDjuiChatBox->chatFlow->base.height.value = 2;
+    }
     gDjuiChatBox->chatFlow->base.height.value += messageHeight + gDjuiChatBox->chatFlow->margin.value;
     if (!gDjuiChatBox->scrolling) {
         gDjuiChatBox->chatFlow->base.y.value = gDjuiChatBox->chatContainer->base.elem.height - gDjuiChatBox->chatFlow->base.height.value;

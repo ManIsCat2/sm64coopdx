@@ -28,15 +28,20 @@ f32 delta_interpolate_f32(f32 a, f32 b, f32 delta);
 /* |description|Linearly interpolates between `a` and `b` with `delta`|descriptionEnd| */
 s32 delta_interpolate_s32(s32 a, s32 b, f32 delta);
 /* |description|Linearly interpolates `res` between `a` and `b` with `delta`|descriptionEnd| */
-void delta_interpolate_vec3f(OUT Vec3f res, Vec3f a, Vec3f b, f32 delta);
+void delta_interpolate_vec3f(VEC_OUT Vec3f res, Vec3f a, Vec3f b, f32 delta);
 /* |description|Linearly interpolates `res` between `a` and `b` with `delta`|descriptionEnd| */
-void delta_interpolate_vec3s(OUT Vec3s res, Vec3s a, Vec3s b, f32 delta);
+void delta_interpolate_vec3s(VEC_OUT Vec3s res, Vec3s a, Vec3s b, f32 delta);
 void delta_interpolate_normal(s8* res, s8* a, s8* b, f32 delta);
 void delta_interpolate_rgba(u8* res, u8* a, u8* b, f32 delta);
 void delta_interpolate_mtx(Mtx* out, Mtx* a, Mtx* b, f32 delta);
 void detect_and_skip_mtx_interpolation(Mtx** mtxPrev, Mtx** mtx);
 
 void str_seperator_concat(char *output_buffer, int buffer_size, char** strings, int num_strings, char* seperator);
-char *str_remove_color_codes(const char *str);
+void open_url(const char* url);
+void open_folder(const char* path);
+const char *strstr_lowercased(const char *haystack, const char *needle);
+
+bool can_update_game(void);
+void update_game(void);
 
 #endif

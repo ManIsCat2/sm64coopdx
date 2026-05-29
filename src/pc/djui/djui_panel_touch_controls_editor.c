@@ -12,7 +12,7 @@ static struct DjuiSlider *sTouchConfigSliderB = NULL;
 static struct DjuiSlider *sTouchConfigSliderA = NULL;
 static struct DjuiSlider *sTouchConfigSliderS = NULL;
 
-static struct DjuiCheckbox* sTouchConfigSelectionboxHide = NULL;
+static struct DjuiCheckbox* sTouchConfigCheckboxHide = NULL;
 
 static u32 sR = 0;
 static u32 sG = 0;
@@ -23,7 +23,7 @@ static u32 sSize = 100;
 static void djui_panel_touch_controls_editor_update_values(struct DjuiBase* caller) {
     struct DjuiSelectionbox* selectionbox = (struct DjuiSelectionbox*)caller;
     bool enabled = *selectionbox->value != TOUCH_MOUSE ? true : false;
-    djui_base_set_enabled(&sTouchConfigSelectionboxHide->base, enabled);
+    djui_base_set_enabled(&sTouchConfigCheckboxHide->base, enabled);
     djui_base_set_enabled(&sTouchConfigSliderR->base, enabled);
     djui_base_set_enabled(&sTouchConfigSliderG->base, enabled);
     djui_base_set_enabled(&sTouchConfigSliderB->base, enabled);
@@ -36,13 +36,13 @@ static void djui_panel_touch_controls_editor_update_values(struct DjuiBase* call
     sA = configTouchControls[*selectionbox->value].a;
     sSize = (u32)(configTouchControls[*selectionbox->value].size * 100.0f);
 
-    sTouchConfigSelectionboxHide->value = &configTouchControls[*selectionbox->value].hidden;
+    sTouchConfigCheckboxHide->value = &configTouchControls[*selectionbox->value].hidden;
     sTouchConfigSliderR->value = &sR;
     sTouchConfigSliderG->value = &sG;
     sTouchConfigSliderB->value = &sB;
     sTouchConfigSliderA->value = &sA;
     sTouchConfigSliderS->value = &sSize;
-    djui_checkbox_update_value(&sTouchConfigSelectionboxHide->base);
+    djui_checkbox_update_value(&sTouchConfigCheckboxHide->base);
     djui_slider_update_value(&sTouchConfigSliderR->base);
     djui_slider_update_value(&sTouchConfigSliderG->base);
     djui_slider_update_value(&sTouchConfigSliderB->base);
@@ -61,12 +61,13 @@ static void djui_panel_touch_controls_editor_update_sliders(UNUSED struct DjuiBa
 
 void djui_panel_touch_controls_editor_update(void) {
     bool enabled = gTouchControlSelected != TOUCH_MOUSE ? true : false;
-    djui_base_set_enabled(&sTouchConfigSelectionboxHide->base, enabled);
+    djui_base_set_enabled(&sTouchConfigCheckboxHide->base, enabled);
     djui_base_set_enabled(&sTouchConfigSliderR->base, enabled);
     djui_base_set_enabled(&sTouchConfigSliderG->base, enabled);
     djui_base_set_enabled(&sTouchConfigSliderB->base, enabled);
     djui_base_set_enabled(&sTouchConfigSliderA->base, enabled);
     djui_base_set_enabled(&sTouchConfigSliderS->base, enabled);
+    djui_base_set_enabled(&sTouchConfigCheckboxH->base, enabled);
 
     sR = configTouchControls[gTouchControlSelected].r;
     sG = configTouchControls[gTouchControlSelected].g;
@@ -74,18 +75,19 @@ void djui_panel_touch_controls_editor_update(void) {
     sA = configTouchControls[gTouchControlSelected].a;
     sSize = (u32)(configTouchControls[gTouchControlSelected].size * 100.0f);
 
-    sTouchConfigSelectionboxHide->value = &configTouchControls[gTouchControlSelected].hidden;
+    sTouchConfigCheckboxHide->value = &configTouchControls[gTouchControlSelected].hidden;
     sTouchConfigSliderR->value = &sR;
     sTouchConfigSliderG->value = &sG;
     sTouchConfigSliderB->value = &sB;
     sTouchConfigSliderA->value = &sA;
     sTouchConfigSliderS->value = &sSize;
-    djui_checkbox_update_value(&sTouchConfigSelectionboxHide->base);
+    djui_checkbox_update_value(&sTouchConfigCheckboxHide->base);
     djui_slider_update_value(&sTouchConfigSliderR->base);
     djui_slider_update_value(&sTouchConfigSliderG->base);
     djui_slider_update_value(&sTouchConfigSliderB->base);
     djui_slider_update_value(&sTouchConfigSliderA->base);
     djui_slider_update_value(&sTouchConfigSliderS->base);
+    djui_checkbox_update_value(&sTouchConfigCheckboxH->base);
 }
 
 static void djui_panel_touch_controls_editor_update_hidden(struct DjuiBase* caller) {
@@ -134,7 +136,7 @@ void djui_panel_touch_controls_editor_create(struct DjuiBase* caller) {
 
         char* buttonChoices[21] = { "Joystick", "None", "A Button", "B Button", "X Button", "Y Button", "Start Button", "L Trigger", "R Trigger", "Z Trigger", "C-Up", "C-Down", "C-Left", "C-Right", "Chat", "Playerlist", "Dpad-Up", "Dpad-Down", "Dpad-Left", "Dpad-Right", "Console" };
         djui_selectionbox_create(body, "Selected Button"/*DLANG(TOUCH_CONTROLS, TOUCH_CONTROLS_BUTTON)*/, buttonChoices, 21, &gTouchControlSelected, djui_panel_touch_controls_editor_update_values);
-        sTouchConfigSelectionboxHide = djui_checkbox_create(body, "Hide"/*DLANG(TOUCH_CONTROLS, TOUCH_CONTROLS_HIDE)*/, &configTouchControls[gTouchControlSelected].hidden, djui_panel_touch_controls_editor_update_hidden);
+        sTouchConfigCheckboxHide = djui_checkbox_create(body, "Hide"/*DLANG(TOUCH_CONTROLS, TOUCH_CONTROLS_HIDE)*/, &configTouchControls[gTouchControlSelected].hidden, djui_panel_touch_controls_editor_update_hidden);
 
         {
             sTouchConfigSliderR = djui_slider_create(body, DLANG(PLAYER, RED), &sR, 0, 255, djui_panel_touch_controls_editor_update_sliders);
@@ -155,12 +157,13 @@ void djui_panel_touch_controls_editor_create(struct DjuiBase* caller) {
         }
 
         if (gTouchControlSelected == TOUCH_MOUSE) {
-            djui_base_set_enabled(&sTouchConfigSelectionboxHide->base, false);
+            djui_base_set_enabled(&sTouchConfigCheckboxHide->base, false);
             djui_base_set_enabled(&sTouchConfigSliderR->base, false);
             djui_base_set_enabled(&sTouchConfigSliderG->base, false);
             djui_base_set_enabled(&sTouchConfigSliderB->base, false);
             djui_base_set_enabled(&sTouchConfigSliderA->base, false);
             djui_base_set_enabled(&sTouchConfigSliderS->base, false);
+            djui_base_set_enabled(&sTouchConfigCheckboxH->base, false);
         }
 
         {

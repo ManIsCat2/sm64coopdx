@@ -125,7 +125,7 @@ static void djui_interactable_on_focus_end(struct DjuiBase* base) {
     CALL_CALLBACK(on_focus_end);
 }
 
-static void djui_interactable_on_value_change(struct DjuiBase* base) {
+UNUSED static void djui_interactable_on_value_change(struct DjuiBase* base) {
     if (base               == NULL) { return; }
     if (base->interactable == NULL) { return; }
 
@@ -284,10 +284,6 @@ bool djui_interactable_on_key_down(int scancode) {
 
 void djui_interactable_on_key_up(int scancode) {
 
-    bool keyFocused = (gInteractableFocus != NULL)
-                   && (gInteractableFocus->interactable != NULL)
-                   && (gInteractableFocus->interactable->on_key_up != NULL);
-
     if (!gDjuiChatBoxFocus) {
         for (int i = 0; i < MAX_BINDS; i++) {
             if (scancode == (int)configKeyConsole[i]) { djui_console_toggle(); break; }
@@ -308,6 +304,10 @@ void djui_interactable_on_key_up(int scancode) {
             }
         }
     }
+
+    bool keyFocused = (gInteractableFocus != NULL)
+                   && (gInteractableFocus->interactable != NULL)
+                   && (gInteractableFocus->interactable->on_key_up != NULL);
 
     if (keyFocused) {
         gInteractableFocus->interactable->on_key_up(gInteractableFocus, scancode);

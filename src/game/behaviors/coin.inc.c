@@ -228,15 +228,15 @@ void coin_inside_boo_act_1(void) {
 
 void coin_inside_boo_act_0(void) {
     struct Object *parent = o->parentObj;
-    
+
     cur_obj_become_intangible();
-    
+
     if (parent == NULL || (parent->behavior != smlua_override_behavior(bhvMerryGoRoundBoo) && parent->behavior != smlua_override_behavior(bhvGhostHuntBoo) && parent->behavior != smlua_override_behavior(bhvBoo))) {
         o->parentObj = NULL;
         obj_mark_for_deletion(o);
         return;
     }
-    
+
     if (o->oTimer == 0 && gCurrLevelNum == LEVEL_BBH) {
         cur_obj_set_model(smlua_model_util_load(E_MODEL_BLUE_COIN));
         cur_obj_scale(0.7);

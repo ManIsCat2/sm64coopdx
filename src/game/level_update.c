@@ -18,6 +18,7 @@
 #include "sound_init.h"
 #include "mario.h"
 #include "camera.h"
+#include "bettercamera.h"
 #include "object_list_processor.h"
 #include "ingame_menu.h"
 #include "obj_behaviors.h"
@@ -42,6 +43,7 @@
 #include "pc/configfile.h"
 #include "pc/network/network.h"
 #include "pc/djui/djui.h"
+#include "pc/djui/djui_hud_utils.h"
 // used for getting gMainMenuSounds
 #include "pc/djui/djui_panel_menu_options.h"
 #include "pc/lua/smlua_hooks.h"
@@ -317,6 +319,9 @@ void load_level_init_text(u32 arg) {
     if (!gotAchievement) {
         //level_set_transition(-1, NULL);
         create_dialog_box(dialogID);
+        // since coop doesn't use timefreeze, freeze mario to preserve no input when there
+        // is a dialog on screen when loading a new level
+        gMarioState->freeze = 2;
     }
 }
 
@@ -471,6 +476,14 @@ void init_mario_after_warp(void) {
 
     if (gCurrentArea) {
         reset_camera(gCurrentArea->camera);
+        if (sWarpDest.type == WARP_TYPE_SAME_AREA && gCurrentArea->camera->mode == CAMERA_MODE_NEWCAM) {
+            // When we warp to a level in the same area, the camera mode never has the chance
+            // to reset. This is bad if our camera mode is newcam, since when init cam is called
+            // our old camera mode will be set to newcam, which causes newcam to not be able to be
+            // turned off. The fix is setting our mode to newcam's old mode
+            gCurrentArea->camera->mode = gNewCamera.savedMode;
+            gCurrentArea->camera->defMode = gNewCamera.savedDefMode;
+        }
     }
     sWarpDest.type = WARP_TYPE_NOT_WARPING;
     sDelayedWarpOp = WARP_OP_NONE;
@@ -546,7 +559,7 @@ void init_mario_after_warp(void) {
     }
 
     if (gMarioState && gMarioState->health <= 0x110) {
-        gMarioState->health = 0x880;
+        gMarioState->health = 0x180;
     }
 
     if (gMarioState) {
@@ -869,8 +882,7 @@ void verify_warp(struct MarioState *m, bool killMario) {
         return;
     }
 
-    m->numLives--;
-    if (m->numLives < 0) {
+    if (m->numLives <= 0) {
         sDelayedWarpOp = WARP_OP_GAME_OVER;
     } else {
         sSourceWarpNodeId = WARP_NODE_DEATH;
@@ -925,8 +937,7 @@ s16 level_trigger_warp(struct MarioState *m, s32 warpOp) {
                 break;
 
             case WARP_OP_DEATH:
-                m->numLives--;
-                if (m->numLives <= -1) {
+                if (m->numLives <= 0) {
                     sDelayedWarpOp = WARP_OP_GAME_OVER;
                 }
                 sDelayedWarpTimer = 48;
@@ -1136,7 +1147,7 @@ void update_hud_values(void) {
                 gHudDisplay.coins += 1;
                 play_sound(coinSound, gMarioState->marioObj->header.gfx.cameraToObject);
 
-                if (gServerSettings.stayInLevelAfterStar > 0 && gCurrCourseNum != COURSE_NONE) {
+                if (gServerSettings.stayInLevelAfterStar > STAR_LEAVE_LEVEL && gCurrCourseNum != COURSE_NONE) {
                     // retain vanilla behavior
                     if (gLevelValues.numCoinsToLife == 50) {
                         if (gHudDisplay.coins == 50 || gHudDisplay.coins == 100 || gHudDisplay.coins == 150) {
@@ -1495,6 +1506,44 @@ UNUSED static s32 play_mode_unused(void) {
     return 0;
 }
 
+s32 update_current_play_mode() {
+    s32 changeLevel = 0;
+
+    s16 hookPlaymode = sCurrPlayMode;
+    if (smlua_call_event_hooks(HOOK_BEFORE_PLAY_MODE_UPDATE, sCurrPlayMode, &hookPlaymode)) {
+        sCurrPlayMode = hookPlaymode;
+    }
+
+    switch (sCurrPlayMode) {
+        case PLAY_MODE_NORMAL:
+            changeLevel = play_mode_normal();
+            break;
+        case PLAY_MODE_PAUSED:
+            if (!network_check_singleplayer_pause()) {
+                changeLevel = play_mode_normal();
+            }
+
+            if (sCurrPlayMode == PLAY_MODE_PAUSED) {
+                changeLevel = play_mode_paused();
+            }
+            break;
+        case PLAY_MODE_CHANGE_AREA:
+            changeLevel = play_mode_change_area();
+            break;
+        case PLAY_MODE_CHANGE_LEVEL:
+            changeLevel = play_mode_change_level();
+            break;
+        case PLAY_MODE_FRAME_ADVANCE:
+            changeLevel = play_mode_frame_advance();
+            break;
+    }
+    s32 hookChangeLevel = changeLevel;
+    if (smlua_call_event_hooks(HOOK_ON_PLAY_MODE_UPDATE, sCurrPlayMode, &hookChangeLevel)) {
+        changeLevel = hookChangeLevel;
+    }
+    return changeLevel;
+}
+
 void update_menu_level(void) {
     // figure out level
     s32 curLevel = 0;
@@ -1722,29 +1771,7 @@ s32 update_level(void) {
         gCurrentArea->localAreaTimer++;
     }
 
-    switch (sCurrPlayMode) {
-        case PLAY_MODE_NORMAL:
-            changeLevel = play_mode_normal();
-            break;
-        case PLAY_MODE_PAUSED:
-            if (!network_check_singleplayer_pause()) {
-                changeLevel = play_mode_normal();
-            }
-
-            if (sCurrPlayMode == PLAY_MODE_PAUSED) {
-                changeLevel = play_mode_paused();
-            }
-            break;
-        case PLAY_MODE_CHANGE_AREA:
-            changeLevel = play_mode_change_area();
-            break;
-        case PLAY_MODE_CHANGE_LEVEL:
-            changeLevel = play_mode_change_level();
-            break;
-        case PLAY_MODE_FRAME_ADVANCE:
-            changeLevel = play_mode_frame_advance();
-            break;
-    }
+    changeLevel = update_current_play_mode();
 
     if (changeLevel) {
         reset_volume();
@@ -1757,6 +1784,7 @@ s32 update_level(void) {
 s32 init_level(void) {
     sync_objects_clear();
     geo_clear_interp_data();
+    djui_hud_clear_interp_data();
     reset_dialog_render_state();
 
     s32 val4 = 0;
@@ -1929,7 +1957,6 @@ s32 lvl_init_from_save_file(UNUSED s16 arg0, s16 levelNum) {
     disable_warp_checkpoint();
     save_file_move_cap_to_default_location();
     select_mario_cam_mode();
-    set_yoshi_as_not_dead();
 
     return levelNum;
 }
@@ -2019,7 +2046,6 @@ void fake_lvl_init_from_save_file(void) {
     disable_warp_checkpoint();
     save_file_move_cap_to_default_location();
     select_mario_cam_mode();
-    set_yoshi_as_not_dead();
     fadeout_music(30);
 
     gChangeLevel = gLevelValues.entryLevel;

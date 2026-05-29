@@ -26,39 +26,39 @@ void bhv_grand_star_init(void) {
         if (!sync_object_is_initialized(o->oSyncID)) {
             struct SyncObject *so = sync_object_init(o, 4000.0f);
             if (so) {
-                sync_object_init_field(o, &o->header.gfx.scale[0]);
-                sync_object_init_field(o, &o->header.gfx.scale[1]);
-                sync_object_init_field(o, &o->header.gfx.scale[2]);
-                sync_object_init_field(o, &o->oPrevAction);
-                sync_object_init_field(o, &o->oAction);
-                sync_object_init_field(o, &o->oSubAction);
-                sync_object_init_field(o, &o->oInteractStatus);
-                sync_object_init_field(o, &o->oTimer);
-                sync_object_init_field(o, &o->oHomeX);
-                sync_object_init_field(o, &o->oHomeY);
-                sync_object_init_field(o, &o->oHomeZ);
-                sync_object_init_field(o, &o->oPosX);
-                sync_object_init_field(o, &o->oPosY);
-                sync_object_init_field(o, &o->oPosZ);
-                sync_object_init_field(o, &o->oGravity);
-                sync_object_init_field(o, &o->oVelY);
-                sync_object_init_field(o, &o->oForwardVel);
-                sync_object_init_field(o, &o->oAngleVelYaw);
-                sync_object_init_field(o, &o->oMoveAngleYaw);
-                sync_object_init_field(o, &o->oFaceAngleYaw);
-                sync_object_init_field(o, &o->oGraphYOffset);
+                sync_object_init_field(o, o->header.gfx.scale[0]);
+                sync_object_init_field(o, o->header.gfx.scale[1]);
+                sync_object_init_field(o, o->header.gfx.scale[2]);
+                sync_object_init_field(o, o->oPrevAction);
+                sync_object_init_field(o, o->oAction);
+                sync_object_init_field(o, o->oSubAction);
+                sync_object_init_field(o, o->oInteractStatus);
+                sync_object_init_field(o, o->oTimer);
+                sync_object_init_field(o, o->oHomeX);
+                sync_object_init_field(o, o->oHomeY);
+                sync_object_init_field(o, o->oHomeZ);
+                sync_object_init_field(o, o->oPosX);
+                sync_object_init_field(o, o->oPosY);
+                sync_object_init_field(o, o->oPosZ);
+                sync_object_init_field(o, o->oGravity);
+                sync_object_init_field(o, o->oVelY);
+                sync_object_init_field(o, o->oForwardVel);
+                sync_object_init_field(o, o->oAngleVelYaw);
+                sync_object_init_field(o, o->oMoveAngleYaw);
+                sync_object_init_field(o, o->oFaceAngleYaw);
+                sync_object_init_field(o, o->oGraphYOffset);
             }
         }
-        return; 
+        return;
     }
-    
+
     obj_mark_for_deletion(o);
     if (gSecondCameraFocus == o) { gSecondCameraFocus = other; }
 }
 
 void bhv_grand_star_loop(void) {
     if (o->activeFlags == ACTIVE_FLAG_DEACTIVATED) { return; }
-    
+
     if (o->oAction == 0) {
         if (o->oTimer == 0) {
             obj_set_angle(o, 0, 0, 0);
@@ -73,7 +73,7 @@ void bhv_grand_star_loop(void) {
         if (o->oTimer == 0) {
             Vec3f empty;
             empty[0] = empty[1] = empty[2] = 0.0f;
-            
+
             cur_obj_play_sound_2(SOUND_GENERAL_GRAND_STAR);
             cutscene_object(CUTSCENE_STAR_SPAWN, o);
             o->oGrandStarUnk108 = arc_to_goal_pos(empty, &o->oPosX, 80.0f, -2.0f);

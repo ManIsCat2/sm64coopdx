@@ -1,0 +1,2 @@
+rootProject.name = "sm64coopdx"
+include ':platform:app'

@@ -3,6 +3,7 @@
 #ifdef __cplusplus
 
 #include "dynos.h"
+#include <vector>
 
 extern "C" {
 #include "engine/behavior_script.h"
@@ -21,7 +22,8 @@ extern "C" {
 #define FUNCTION_BHV    2
 #define FUNCTION_LVL    3
 
-#define MOD_PACK_INDEX 99
+#define MOD_PACK_INDEX -1 // the pack index for actors loaded from mods
+#define PACK_MOD_INDEX -1 // the mod index for actors loaded from packs
 
 //
 // Enums
@@ -158,6 +160,9 @@ public:
 
     template <typename T>
     T *Read(T *aBuffer, s32 aCount) const {
+        if (aCount <= 0 || aBuffer == NULL) {
+            return aBuffer;
+        }
         if (mOffset + aCount * sizeof(T) <= mSize) {
             memcpy(aBuffer, mData + mOffset, aCount * sizeof(T));
             mOffset += aCount * sizeof(T);
@@ -176,6 +181,9 @@ public:
 
     template <typename T>
     void Write(const T *aBuffer, s32 aCount) {
+        if (aCount <= 0 || aBuffer == NULL) {
+            return;
+        }
         if (!mReadOnly) {
             Grow(mOffset + aCount * sizeof(T));
             memcpy(mData + mOffset, aBuffer, aCount * sizeof(T));
@@ -203,6 +211,10 @@ private:
 
 template <typename T>
 class Array {
+    static_assert(
+        std::is_trivially_destructible_v<T>,
+        "DynOS Array can only be used with types that have trivial destructors."
+    );
 public:
     inline Array() : mBuffer(NULL), mCount(0), mCapacity(0) {
     }
@@ -304,6 +316,10 @@ public:
 public:
     void Read(BinFile *aFile) {
         s32 _Length = aFile->Read<s32>();
+        if (_Length <= 0) {
+            Resize(0);
+            return;
+        }
         Resize(_Length);
         aFile->Read<T>(mBuffer, _Length);
     }
@@ -526,12 +542,52 @@ struct DataNode : NoCopy {
     T* mData = NULL;
     u32 mSize = 0;
     Array<String> mTokens;
-    u64 mModelIdentifier = 0;
+    u64 mDataIdentifier = 0;
     u64 mLoadIndex = 0;
     u8 mFlags = 0;
 };
+
 template <typename T>
-using DataNodes = Array<DataNode<T>*>;
+class DataNodes : public Array<DataNode<T>*> {
+public:
+
+    // Find a node given a name.
+    // Return the first node found, ignoring the data identifier.
+    DataNode<T> *Find(const String &aName) {
+        for (auto &node : *this) {
+            if (aName == node->mName) {
+                return node;
+            }
+        }
+        return NULL;
+    }
+
+    // Find a node given a name and a data identifier.
+    // If a node with the same name and data identifier is not found,
+    // return the last loaded node with the same name.
+    DataNode<T> *Find(const String &aName, u64 aDataIdentifier) {
+        DataNode<T> *best = NULL;
+        for (auto &node : *this) {
+            if (aName == node->mName) {
+                if (aDataIdentifier == node->mDataIdentifier) {
+                    return node;
+                }
+                best = node;
+            }
+        }
+        return best;
+    }
+
+    // Find a node given a name and a data identifier.
+    DataNode<T> *FindExact(const String &aName, u64 aDataIdentifier) {
+        for (auto &node : *this) {
+            if (aName == node->mName && aDataIdentifier == node->mDataIdentifier) {
+                return node;
+            }
+        }
+        return NULL;
+    }
+};
 
 struct GfxContext {
     DataNode<TexData>* mCurrentTexture = NULL;
@@ -574,7 +630,7 @@ struct GfxData : NoCopy {
     // Current
     u64 mLoadIndex = 0;
     s32 mErrorCount = 0;
-    u32 mModelIdentifier = 0;
+    u64 mDataIdentifier = 0;
     s32 mModIndex = 0;
     s32 mModFileIndex = 0;
     SysPath mPackFolder;
@@ -597,61 +653,10 @@ struct PackData {
     bool mEnabled;
     SysPath mPath;
     String mDisplayName;
-    Array<Pair<const char *, GfxData *>> mGfxData;
-    Array<DataNode<TexData>*> mTextures;
+    std::vector<std::pair<std::string, GfxData *>> mGfxData;
+    std::vector<DataNode<TexData>*> mTextures;
     bool mLoaded;
 };
-
-typedef Pair<String, const u8 *> Label;
-struct DynosOption : NoCopy {
-    String mName;
-    String mConfigName; // Name used in the config file
-    Label mLabel;
-    Label mTitle; // Full caps label, displayed with colored font
-    DynosOption *mPrev;
-    DynosOption *mNext;
-    DynosOption *mParent;
-    bool mDynos; // true from create, false from convert
-    u8 mType;
-
-    // TOGGLE
-    struct Toggle : NoCopy {
-        bool *mTog;
-    } mToggle;
-
-    // CHOICE
-    struct Choice : NoCopy {
-        Array<Label> mChoices;
-        s32 *mIndex;
-    } mChoice;
-
-    // SCROLL
-    struct Scroll : NoCopy {
-        s32 mMin;
-        s32 mMax;
-        s32 mStep;
-        s32 *mValue;
-    } mScroll;
-
-    // BIND
-    struct Bind : NoCopy {
-        u32 mMask;
-        u32 *mBinds;
-        s32 mIndex;
-    } mBind;
-
-    // BUTTON
-    struct Button : NoCopy {
-        String mFuncName;
-    } mButton;
-
-    // SUBMENU
-    struct Submenu : NoCopy {
-        DynosOption *mChild;
-        bool mEmpty;
-    } mSubMenu;
-};
-typedef bool (*DynosLoopFunc)(DynosOption *, void *);
 
 struct LvlCmd {
     u8 mType;
@@ -878,7 +883,7 @@ void DynOS_Pack_SetEnabled(PackData* aPack, bool aEnabled);
 PackData* DynOS_Pack_GetFromIndex(s32 aIndex);
 PackData* DynOS_Pack_GetFromPath(const SysPath& aPath);
 PackData* DynOS_Pack_Add(const SysPath& aPath);
-Pair<const char *, GfxData *>* DynOS_Pack_GetActor(PackData* aPackData, const char* aActorName);
+std::pair<std::string, GfxData *>* DynOS_Pack_GetActor(PackData* aPackData, const char* aActorName);
 void DynOS_Pack_AddActor(PackData* aPackData, const char* aActorName, GfxData* aGfxData);
 DataNode<TexData>* DynOS_Pack_GetTex(PackData* aPackData, const char* aTexName);
 void DynOS_Pack_AddTex(PackData* aPackData, DataNode<TexData>* aTexData);
@@ -927,7 +932,7 @@ void DynOS_Tex_ModShutdown();
 // Lvl Manager
 //
 
-Array<Pair<const char*, GfxData*>> &DynOS_Lvl_GetArray();
+std::vector<std::pair<std::string, GfxData *>> &DynOS_Lvl_GetArray();
 LevelScript* DynOS_Lvl_GetScript(const char* aScriptEntryName);
 void  DynOS_Lvl_Activate(s32 modIndex, const SysPath &aFilePath, const char *aLevelName);
 GfxData* DynOS_Lvl_GetActiveGfx(void);
@@ -942,7 +947,7 @@ void DynOS_Lvl_ModShutdown();
 // Bhv Manager
 //
 
-Array<Pair<const char *, GfxData *>> &DynOS_Bhv_GetArray();
+std::vector<std::pair<std::string, GfxData *>> &DynOS_Bhv_GetArray();
 void DynOS_Bhv_Activate(s32 modIndex, const SysPath &aFilename, const char *aBehaviorName);
 GfxData *DynOS_Bhv_GetActiveGfx(BehaviorScript *bhvScript);
 bool DynOS_Bhv_GetActiveModIndex(BehaviorScript *bhvScript, s32 *modIndex, s32 *modFileIndex);
@@ -1016,6 +1021,8 @@ u32 DynOS_Lua_RememberVariable(GfxData* aGfxData, void* aPtr, const String& toke
 void DynOS_Gfx_GenerateModPacks(char* modPath);
 void DynOS_Gfx_GeneratePacks(const char* directory);
 s64 DynOS_RecursiveDescent_Parse(const char* expr, bool* success, RDConstantFunc func);
+
+u64 DynOS_NewDataIdentifier();
 void DynOS_Read_Source(GfxData *aGfxData, const SysPath &aFilename);
 char *DynOS_Read_Buffer(FILE* aFile, GfxData* aGfxData);
 

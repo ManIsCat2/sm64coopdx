@@ -308,6 +308,49 @@ IN_OUT_BOUNCE  = function (x) return x < 0.5 and (1 - OUT_BOUNCE(1 - 2 * x)) / 2
 ---@return number
 OUT_IN_BOUNCE  = function (x) return x < 0.5 and 0.5 * OUT_BOUNCE(x * 2) or 0.5 + 0.5 * IN_BOUNCE(2 * x - 1) end
 
+--- @alias EasingFunction
+--- | `IN_SINE`
+--- | `OUT_SINE`
+--- | `IN_OUT_SINE`
+--- | `OUT_IN_SINE`
+--- | `IN_QUAD`
+--- | `OUT_QUAD`
+--- | `IN_OUT_QUAD`
+--- | `OUT_IN_QUAD`
+--- | `IN_CUBIC`
+--- | `OUT_CUBIC`
+--- | `IN_OUT_CUBIC`
+--- | `OUT_IN_CUBIC`
+--- | `IN_QUART`
+--- | `OUT_QUART`
+--- | `IN_OUT_QUART`
+--- | `OUT_IN_QUART`
+--- | `IN_QUINT`
+--- | `OUT_QUINT`
+--- | `IN_OUT_QUINT`
+--- | `OUT_IN_QUINT`
+--- | `IN_EXPO`
+--- | `OUT_EXPO`
+--- | `IN_OUT_EXPO`
+--- | `OUT_IN_EXPO`
+--- | `IN_CIRC`
+--- | `OUT_CIRC`
+--- | `IN_OUT_CIRC`
+--- | `OUT_IN_CIRC`
+--- | `IN_BACK`
+--- | `OUT_BACK`
+--- | `IN_OUT_BACK`
+--- | `OUT_IN_BACK`
+--- | `IN_ELASTIC`
+--- | `OUT_ELASTIC`
+--- | `IN_OUT_ELASTIC`
+--- | `OUT_IN_ELASTIC`
+--- | `IN_BOUNCE`
+--- | `OUT_BOUNCE`
+--- | `IN_OUT_BOUNCE`
+--- | `OUT_IN_BOUNCE`
+--- | fun(x: number): number
+
 --------------------
 -- math functions --
 --------------------
@@ -387,7 +430,7 @@ function math.round(x)
     return x > 0 and __math_floor(x + 0.5) or __math_ceil(x - 0.5)
 end
 
---- @param t function | number
+--- @param t EasingFunction | number
 --- @param a number
 --- @param b number
 --- @param x number
@@ -2717,6 +2760,42 @@ CONSOLE_MESSAGE_ERROR   = 2 --- @type ConsoleMessageLevel
 --- | `CONSOLE_MESSAGE_WARNING`
 --- | `CONSOLE_MESSAGE_ERROR`
 
+--- @type number
+ROTATION_PIVOT_X_LEFT = 0.0
+
+--- @type number
+ROTATION_PIVOT_X_CENTER = 0.5
+
+--- @type number
+ROTATION_PIVOT_X_RIGHT = 1.0
+
+--- @type number
+ROTATION_PIVOT_Y_TOP = 0.0
+
+--- @type number
+ROTATION_PIVOT_Y_CENTER = 0.5
+
+--- @type number
+ROTATION_PIVOT_Y_BOTTOM = 1.0
+
+--- @type number
+TEXT_HALIGN_LEFT = 0.0
+
+--- @type number
+TEXT_HALIGN_CENTER = 0.5
+
+--- @type number
+TEXT_HALIGN_RIGHT = 1.0
+
+--- @type number
+TEXT_VALIGN_TOP = 0.0
+
+--- @type number
+TEXT_VALIGN_CENTER = 0.5
+
+--- @type number
+TEXT_VALIGN_BOTTOM = 1.0
+
 RESOLUTION_DJUI  = 0 --- @type HudUtilsResolution
 RESOLUTION_N64   = 1 --- @type HudUtilsResolution
 RESOLUTION_COUNT = 2 --- @type HudUtilsResolution
@@ -2735,16 +2814,18 @@ FILTER_COUNT   = 2 --- @type HudUtilsFilter
 --- | `FILTER_LINEAR`
 --- | `FILTER_COUNT`
 
-FONT_NORMAL      = 0 --- @type DjuiFontType
-FONT_MENU        = 1 --- @type DjuiFontType
-FONT_HUD         = 2 --- @type DjuiFontType
-FONT_ALIASED     = 3 --- @type DjuiFontType
-FONT_CUSTOM_HUD  = 4 --- @type DjuiFontType
-FONT_RECOLOR_HUD = 5 --- @type DjuiFontType
-FONT_SPECIAL     = 6 --- @type DjuiFontType
-FONT_COUNT       = 7 --- @type DjuiFontType
+FONT_LEGACY      = -1 --- @type DjuiFontType
+FONT_NORMAL      =  0 --- @type DjuiFontType
+FONT_MENU        =  1 --- @type DjuiFontType
+FONT_HUD         =  2 --- @type DjuiFontType
+FONT_ALIASED     =  3 --- @type DjuiFontType
+FONT_CUSTOM_HUD  =  4 --- @type DjuiFontType
+FONT_RECOLOR_HUD =  5 --- @type DjuiFontType
+FONT_SPECIAL     =  6 --- @type DjuiFontType
+FONT_COUNT       =  7 --- @type DjuiFontType
 
 --- @alias DjuiFontType
+--- | `FONT_LEGACY`
 --- | `FONT_NORMAL`
 --- | `FONT_MENU`
 --- | `FONT_HUD`
@@ -2950,6 +3031,9 @@ G_SETENVRGB = 0xd1
 --- @type integer
 G_PPARTTOCOLOR = 0xd3
 
+--- @type integer
+G_STATE_EXT = 0x10
+
 BACKGROUND_OCEAN_SKY       =  0 --- @type SkyBackgroundParams
 BACKGROUND_FLAMING_SKY     =  1 --- @type SkyBackgroundParams
 BACKGROUND_UNDERWATER_CITY =  2 --- @type SkyBackgroundParams
@@ -2974,6 +3058,27 @@ BACKGROUND_CUSTOM          = 10 --- @type SkyBackgroundParams
 --- | `BACKGROUND_ABOVE_CLOUDS`
 --- | `BACKGROUND_PURPLE_SKY`
 --- | `BACKGROUND_CUSTOM`
+
+SHADER_FLAG_HUE           = 0 --- @type ShaderFlag
+SHADER_FLAG_SATURATION    = 1 --- @type ShaderFlag
+SHADER_FLAG_BRIGHTNESS    = 2 --- @type ShaderFlag
+SHADER_FLAG_CONTRAST      = 3 --- @type ShaderFlag
+SHADER_FLAG_EXPOSURE      = 4 --- @type ShaderFlag
+SHADER_FLAG_DITHERING     = 5 --- @type ShaderFlag
+SHADER_FLAG_POSTERIZATION = 6 --- @type ShaderFlag
+SHADER_FLAG_SCANLINES     = 7 --- @type ShaderFlag
+SHADER_FLAG_MAX           = 8 --- @type ShaderFlag
+
+--- @alias ShaderFlag
+--- | `SHADER_FLAG_HUE`
+--- | `SHADER_FLAG_SATURATION`
+--- | `SHADER_FLAG_BRIGHTNESS`
+--- | `SHADER_FLAG_CONTRAST`
+--- | `SHADER_FLAG_EXPOSURE`
+--- | `SHADER_FLAG_DITHERING`
+--- | `SHADER_FLAG_POSTERIZATION`
+--- | `SHADER_FLAG_SCANLINES`
+--- | `SHADER_FLAG_MAX`
 
 --- @type integer
 GRAPH_RENDER_ACTIVE = (1 << 0)
@@ -3276,7 +3381,7 @@ PVP_ATTACK_KNOCKBACK_TIMER_DEFAULT = 10
 PVP_ATTACK_KNOCKBACK_TIMER_OVERRIDE = -5
 
 --- @type integer
-PVP_ATTACK_OVERRIDE_VANILLA_INVINCIBILITY = 0x0000FFFF
+PVP_ATTACK_KNOCKBACK_ACTION_ARG = 0x10000
 
 --- @type integer
 INT_STATUS_ATTACK_MASK = 0x000000FF
@@ -3635,7 +3740,7 @@ HUD_DISPLAY_DEFAULT               = HUD_DISPLAY_FLAG_LIVES | HUD_DISPLAY_FLAG_CO
 --- | `HUD_DISPLAY_DEFAULT`
 
 --- @type integer
-LE_MAX_LIGHTS = 256
+LE_MAX_LIGHTS = 1024
 
 LE_MODE_AFFECT_ALL_SHADED_AND_COLORED = 0 --- @type LEMode
 LE_MODE_AFFECT_ALL_SHADED             = 1 --- @type LEMode
@@ -4560,6 +4665,15 @@ GRAB_POS_BOWSER    = 3 --- @type MarioGrabPosGSCId
 --- | `GRAB_POS_BOWSER`
 
 --- @type integer
+MOD_FS_COMPRESSION_MIN = 0
+
+--- @type integer
+MOD_FS_COMPRESSION_MAX = 9
+
+--- @type integer
+MOD_FS_COMPRESSION_DEFAULT = 1
+
+--- @type integer
 MOD_FS_MAX_SIZE = 0x2000000
 
 --- @type integer
@@ -4660,6 +4774,15 @@ PLAYER_PVP_REVAMPED = 1 --- @type PvpType
 --- @alias PvpType
 --- | `PLAYER_PVP_CLASSIC`
 --- | `PLAYER_PVP_REVAMPED`
+
+STAR_LEAVE_LEVEL   = 0 --- @type StarExitType
+STAR_STAY_IN_LEVEL = 1 --- @type StarExitType
+STAR_NON_STOP      = 2 --- @type StarExitType
+
+--- @alias StarExitType
+--- | `STAR_LEAVE_LEVEL`
+--- | `STAR_STAY_IN_LEVEL`
+--- | `STAR_NON_STOP`
 
 --- @type integer
 UNKNOWN_LOCAL_INDEX = (-1)
@@ -5544,6 +5667,12 @@ YOSHI_ACT_FINISH_JUMPING_AND_DESPAWN = 4
 
 --- @type integer
 YOSHI_ACT_GIVE_PRESENT = 5
+
+--- @type integer
+YOSHI_ACT_GONE = 6
+
+--- @type integer
+YOSHI_ACT_REAPPEAR = 7
 
 --- @type integer
 YOSHI_ACT_CREDITS = 10
@@ -8066,6 +8195,18 @@ VALID_BUTTONS = (A_BUTTON | B_BUTTON | Z_TRIG | START_BUTTON | U_JPAD | D_JPAD |
 --- @type integer
 C_BUTTONS = (U_CBUTTONS | D_CBUTTONS | L_CBUTTONS | R_CBUTTONS )
 
+--- @type integer
+MOD_AUDIO_CHANNEL_MASTER = 0
+
+--- @type integer
+MOD_AUDIO_CHANNEL_MUSIC = 1
+
+--- @type integer
+MOD_AUDIO_CHANNEL_SFX = 2
+
+--- @type integer
+MOD_AUDIO_CHANNEL_ENV = 3
+
 HOOK_UPDATE                                 =  0 --- @type LuaHookedEventType
 HOOK_MARIO_UPDATE                           =  1 --- @type LuaHookedEventType
 HOOK_BEFORE_MARIO_UPDATE                    =  2 --- @type LuaHookedEventType
@@ -8126,7 +8267,16 @@ HOOK_MARIO_OVERRIDE_FLOOR_CLASS             = 56 --- @type LuaHookedEventType
 HOOK_ON_ADD_SURFACE                         = 57 --- @type LuaHookedEventType
 HOOK_ON_CLEAR_AREAS                         = 58 --- @type LuaHookedEventType
 HOOK_ON_PACKET_BYTESTRING_RECEIVE           = 59 --- @type LuaHookedEventType
-HOOK_MAX                                    = 60 --- @type LuaHookedEventType
+HOOK_ON_FIND_WALL_COLLISION                 = 60 --- @type LuaHookedEventType
+HOOK_ON_FIND_CEIL                           = 61 --- @type LuaHookedEventType
+HOOK_ON_FIND_FLOOR                          = 62 --- @type LuaHookedEventType
+HOOK_ON_FIND_WATER_LEVEL                    = 63 --- @type LuaHookedEventType
+HOOK_ON_FIND_POISON_GAS_LEVEL               = 64 --- @type LuaHookedEventType
+HOOK_ON_FIND_SURFACE_ON_RAY                 = 65 --- @type LuaHookedEventType
+HOOK_ON_DYNOS_PACK_TOGGLED                  = 66 --- @type LuaHookedEventType
+HOOK_BEFORE_PLAY_MODE_UPDATE                = 67 --- @type LuaHookedEventType
+HOOK_ON_PLAY_MODE_UPDATE                    = 68 --- @type LuaHookedEventType
+HOOK_MAX                                    = 69 --- @type LuaHookedEventType
 
 --- @alias LuaHookedEventType
 --- | `HOOK_UPDATE`
@@ -8189,6 +8339,15 @@ HOOK_MAX                                    = 60 --- @type LuaHookedEventType
 --- | `HOOK_ON_ADD_SURFACE`
 --- | `HOOK_ON_CLEAR_AREAS`
 --- | `HOOK_ON_PACKET_BYTESTRING_RECEIVE`
+--- | `HOOK_ON_FIND_WALL_COLLISION`
+--- | `HOOK_ON_FIND_CEIL`
+--- | `HOOK_ON_FIND_FLOOR`
+--- | `HOOK_ON_FIND_WATER_LEVEL`
+--- | `HOOK_ON_FIND_POISON_GAS_LEVEL`
+--- | `HOOK_ON_FIND_SURFACE_ON_RAY`
+--- | `HOOK_ON_DYNOS_PACK_TOGGLED`
+--- | `HOOK_BEFORE_PLAY_MODE_UPDATE`
+--- | `HOOK_ON_PLAY_MODE_UPDATE`
 --- | `HOOK_MAX`
 
 HUD_DISPLAY_LIVES         = 0 --- @type HudDisplayValue
@@ -9523,7 +9682,7 @@ SOUND_PEACH_FOR_MARIO = SOUND_ARG_LOAD(SOUND_BANK_MARIO_VOICE, 0x3E, 0xFF, SOUND
 SOUND_PEACH_MARIO2 = SOUND_ARG_LOAD(SOUND_BANK_MARIO_VOICE, 0x3F, 0xFF, SOUND_NO_PRIORITY_LOSS | SOUND_DISCRETE)
 
 --- @type integer
-SOUND_MARIO_LETS_A_GO = SOUND_MENU_STAR_SOUND_LETS_A_GO
+SOUND_MARIO_LETS_A_GO = SOUND_ARG_LOAD(SOUND_BANK_MENU, 0x24, 0xFF, SOUND_DISCRETE)
 
 --- @type integer
 SOUND_GENERAL_ACTIVATE_CAP_SWITCH = SOUND_ARG_LOAD(SOUND_BANK_GENERAL, 0x00, 0x80, SOUND_DISCRETE)
@@ -10507,6 +10666,15 @@ SOUND_OBJ2_BOSS_DIALOG_GRUNT = SOUND_ARG_LOAD(SOUND_BANK_OBJ2, 0x69, 0x40, SOUND
 SOUND_OBJ2_MRI_SPINNING = SOUND_ARG_LOAD(SOUND_BANK_OBJ2, 0x6B, 0x00, SOUND_DISCRETE)
 
 --- @type integer
+SURFACE_POOL_STATIC = 0
+
+--- @type integer
+SURFACE_POOL_DYNAMIC = 1
+
+--- @type integer
+SURFACE_POOL_SOC = 2
+
+--- @type integer
 SURFACE_DEFAULT = 0x0000
 
 --- @type integer
@@ -11078,6 +11246,9 @@ ANIM_FLAG_7 = (1 << 7)
 ANIM_FLAG_BONE_TRANS = (1 << 8)
 
 --- @type integer
+ANIM_FLAG_BONE_SCALE = (1 << 9)
+
+--- @type integer
 OBJECT_MAX_BHV_STACK = 16
 
 --- @type integer
@@ -11170,13 +11341,13 @@ COOP_OBJ_FLAG_NON_SYNC = (1 << 2)
 COOP_OBJ_FLAG_INITIALIZED = (1 << 3)
 
 --- @type string
-SM64COOPDX_VERSION = "v1.4"
+SM64COOPDX_VERSION = "v1.5"
 
 --- @type string
 VERSION_TEXT = "v"
 
 --- @type integer
-VERSION_NUMBER = 41
+VERSION_NUMBER = 42
 
 --- @type integer
 MINOR_VERSION_NUMBER = 0

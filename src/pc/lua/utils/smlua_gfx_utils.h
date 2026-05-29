@@ -1,6 +1,7 @@
 #ifndef SMLUA_GFX_UTILS_H
 #define SMLUA_GFX_UTILS_H
 
+#include "pc/gfx/gfx_pc.h"
 #include "pc/lua/smlua.h"
 #include "types.h"
 #include "geo_commands.h"
@@ -11,6 +12,33 @@
 Gfx *gfx_allocate_internal(Gfx *gfx, u32 length);
 Vtx *vtx_allocate_internal(Vtx *vtx, u32 count);
 u32 gfx_get_length_no_sentinel(const Gfx *gfx);
+
+/* |description|Gets if a custom shader flag (`SHADER_FLAG_*`) is enabled or not|descriptionEnd| */
+bool get_shader_flag_enabled(enum ShaderFlag flag);
+/* |description|Enables a custom shader flag (`SHADER_FLAG_*`) for the renderer|descriptionEnd| */
+void set_shader_flag_enabled(enum ShaderFlag flag, bool enabled);
+/* |description|Gets a value for one of the custom shader flags (`SHADER_FLAG_*`)|descriptionEnd| */
+f32 get_shader_flag_value(enum ShaderFlag flag);
+/* |description|Sets a value for one of the custom shader flags (`SHADER_FLAG_*`) for the renderer|descriptionEnd| */
+void set_shader_flag_value(enum ShaderFlag flag, f32 value);
+/* |description|Gets if custom shader flags are enabled globally|descriptionEnd| */
+bool get_global_shader_flags_enabled(void);
+/* |description|Enables custom shader flags as a global toggle, useful for disabling without manually going through every effect|descriptionEnd| */
+void set_global_shader_flags_enabled(bool enabled);
+/* |description|Clears all custom shader flags (`SHADER_FLAG_*`) for the renderer|descriptionEnd| */
+void clear_all_shader_flags(void);
+
+/* |description|Gets if fullbright mode is enabled for shaded materials (`G_LIGHTING`)|descriptionEnd| */
+bool get_shading_fullbright_enabled(void);
+/* |description|
+Enables fullbright mode for shaded materials (`G_LIGHTING`.)
+If a light color is completely black, the rendered color will default to the shade color.
+This is for already fullbright materials that set their shade color to something and their light color to black.
+This visually corrects rendering on materials such as Mario's emblem.
+Useful for using the lighting engine and having entirely your own shading without the game's own systems
+and compatibility with most models, not having to used specialized env/prim color approaches for example
+|descriptionEnd| */
+void set_shading_fullbright_enabled(bool enabled);
 
 /* |description|Sets the override FOV|descriptionEnd| */
 void set_override_fov(f32 fov);
@@ -69,6 +97,11 @@ u16 gfx_get_vertex_count(Gfx *cmd);
 /* |description|Gets the texture from a display list command if it has an image related op|descriptionEnd| */
 Texture *gfx_get_texture(Gfx *cmd);
 
+/* |description|
+Gets a display list of the current mod from its name.
+Returns a pointer to the display list and its length
+|descriptionEnd| */
+Gfx *gfx_get_from_name(const char *name, RET u32 *length);
 /* |description|Gets the name of a display list|descriptionEnd| */
 const char *gfx_get_name(Gfx *gfx);
 /* |description|Gets the max length of a display list|descriptionEnd| */
@@ -88,6 +121,12 @@ void gfx_delete(Gfx *gfx);
 /* |description|Deletes all display lists created by `gfx_create`|descriptionEnd| */
 void gfx_delete_all();
 
+
+/* |description|
+Gets a vertex buffer of the current mod from its name.
+Returns a pointer to the vertex buffer and its vertex count
+|descriptionEnd| */
+Vtx *vtx_get_from_name(const char *name, RET u32 *count);
 /* |description|Gets the name of a vertex buffer|descriptionEnd| */
 const char *vtx_get_name(Vtx *vtx);
 /* |description|Gets the max count of vertices of a vertex buffer|descriptionEnd| */

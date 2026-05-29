@@ -103,7 +103,7 @@ static void keyboard_bindkeys(void) {
     keyboard_add_binds(U_JPAD,       configKeyDUp);
     keyboard_add_binds(D_JPAD,       configKeyDDown);
     keyboard_add_binds(L_JPAD,       configKeyDLeft);
-    keyboard_add_binds(R_JPAD,       configKeyDRight);    
+    keyboard_add_binds(R_JPAD,       configKeyDRight);
 }
 
 static void keyboard_init(void) {

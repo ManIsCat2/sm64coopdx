@@ -57,7 +57,7 @@ depending on whether Mario's forward velocity is high enough to be considered a 
 |descriptionEnd| */
 void play_knockback_sound(struct MarioState *m) {
     if (!m) { return; }
-    if (m->actionArg == 0 && (m->forwardVel <= -28.0f || m->forwardVel >= 28.0f)) {
+    if ((m->actionArg & ~PVP_ATTACK_KNOCKBACK_ACTION_ARG) == 0 && (m->forwardVel <= -28.0f || m->forwardVel >= 28.0f)) {
         play_character_sound_if_no_flag(m, CHAR_SOUND_DOH, MARIO_MARIO_SOUND_PLAYED);
     } else {
         play_character_sound_if_no_flag(m, CHAR_SOUND_UH, MARIO_MARIO_SOUND_PLAYED);
@@ -98,7 +98,7 @@ Useful for determining if Mario's fall warrants a health penalty or a special la
 |descriptionEnd| */
 s32 check_fall_damage(struct MarioState *m, u32 hardFallAction) {
     if (!m) { return 0; }
-    
+
     f32 fallHeight;
     f32 damageHeight;
 
@@ -1236,13 +1236,8 @@ u32 common_air_knockback_step(struct MarioState *m, u32 landAction, u32 hardFall
     if (!m) { return 0; }
     u32 stepResult;
 
-    if (m->knockbackTimer == 0) {
-        if (m->interactObj == NULL || !(m->interactObj->oInteractType & INTERACT_PLAYER)) {
-            mario_set_forward_vel(m, speed);
-        }
-    } else if (m->knockbackTimer < 0) {
-        // do nothing
-    } else {
+    // Refresh knockbackTimer
+    if (m->knockbackTimer > 0) {
         m->knockbackTimer = PVP_ATTACK_KNOCKBACK_TIMER_DEFAULT;
     }
 
@@ -1356,7 +1351,7 @@ s32 act_hard_forward_air_kb(struct MarioState *m) {
 s32 act_thrown_backward(struct MarioState *m) {
     if (!m) { return 0; }
     u32 landAction;
-    if (m->actionArg != 0) {
+    if ((m->actionArg & ~PVP_ATTACK_KNOCKBACK_ACTION_ARG) != 0) {
         landAction = ACT_HARD_BACKWARD_GROUND_KB;
     } else {
         landAction = ACT_BACKWARD_GROUND_KB;
@@ -1375,7 +1370,7 @@ s32 act_thrown_forward(struct MarioState *m) {
     s16 pitch;
 
     u32 landAction;
-    if (m->actionArg != 0) {
+    if ((m->actionArg & ~PVP_ATTACK_KNOCKBACK_ACTION_ARG) != 0) {
         landAction = ACT_HARD_FORWARD_GROUND_KB;
     } else {
         landAction = ACT_FORWARD_GROUND_KB;
@@ -1739,7 +1734,7 @@ s32 act_lava_boost(struct MarioState *m) {
                 return FALSE;
             }
 
-            if (mario_can_bubble(m)) {
+            if ((mario_can_bubble(m) && m->numLives > 0)) {
                 m->health = 0xFF;
                 mario_set_bubbled(m);
             } else {
@@ -2328,7 +2323,7 @@ Dispatches to the appropriate action function, such as jump, double jump, freefa
 |descriptionEnd| */
 s32 mario_execute_airborne_action(struct MarioState *m) {
     if (!m) { return FALSE; }
-    u32 cancel;
+    s32 cancel;
 
     if (check_common_airborne_cancels(m)) {
         return TRUE;
@@ -2336,7 +2331,7 @@ s32 mario_execute_airborne_action(struct MarioState *m) {
 
     play_far_fall_sound(m);
 
-    if (!smlua_call_action_hook(ACTION_HOOK_EVERY_FRAME, m, (s32*)&cancel)) {
+    if (!smlua_call_action_hook(ACTION_HOOK_EVERY_FRAME, m, &cancel)) {
         /* clang-format off */
         switch (m->action) {
             case ACT_JUMP:                 cancel = act_jump(m);                 break;
@@ -2385,9 +2380,9 @@ s32 mario_execute_airborne_action(struct MarioState *m) {
             case ACT_TOP_OF_POLE_JUMP:     cancel = act_top_of_pole_jump(m);     break;
             case ACT_VERTICAL_WIND:        cancel = act_vertical_wind(m);        break;
             default:
-                LOG_ERROR("Attempted to execute unimplemented action '%04X'", m->action);
+                LOG_ERROR("Attempted to execute unimplemented action '%08X'", m->action);
                 set_mario_action(m, ACT_FREEFALL, 0);
-                return false;
+                return FALSE;
         }
         /* clang-format on */
     }

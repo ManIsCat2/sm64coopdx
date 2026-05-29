@@ -17,8 +17,8 @@ bool camera_is_frozen(void);
 void camera_romhack_allow_only_mods(u8 allow);
 /* |description|Sets the romhack camera override status|descriptionEnd| */
 void camera_set_romhack_override(enum RomhackCameraOverride rco);
-/* |description|Sets if the romhack camera should allow centering, triggered with the L button|descriptionEnd| */
-void camera_romhack_allow_centering(u8 allow);
+/* |description|Sets if the romhack camera should allow water/flying switching, triggered with the L button|descriptionEnd| */
+void camera_romhack_allow_switchable(u8 allow);
 /* |description|Sets if the romhack camera should fly above poison gas|descriptionEnd| */
 void camera_allow_toxic_gas_camera(u8 allow);
 /* |description|Sets if the romhack camera should allow D-Pad movement|descriptionEnd| */
@@ -27,7 +27,7 @@ void camera_romhack_allow_dpad_usage(u8 allow);
 Toggles collision settings for the ROM hack camera.
 This enables or disables specific collision behaviors in modded levels
 |descriptionEnd| */
-void rom_hack_cam_set_collisions(u8 enable);
+void camera_romhack_set_collisions(u8 enable);
 
 /* |description|Sets the romhack camera's zoomed in distance (Default: 900)|descriptionEnd| */
 void camera_romhack_set_zoomed_in_dist(u32 val);
@@ -49,8 +49,8 @@ u32 camera_romhack_get_zoomed_out_height(void);
 
 /* |description|Gets the current romhack camera override status|descriptionEnd| */
 enum RomhackCameraOverride camera_get_romhack_override(void);
-/* |description|Gets if the romhack camera should allow centering|descriptionEnd| */
-u8 camera_romhack_get_allow_centering(void);
+/* |description|Gets if the romhack camera should allow water/flying switching|descriptionEnd| */
+u8 camera_romhack_get_allow_switchable(void);
 /* |description|Gets if the romhack camera should fly above poison gas|descriptionEnd| */
 u8 camera_get_allow_toxic_gas_camera(void);
 /* |description|Gets if the romhack camera should allow D-Pad movement|descriptionEnd| */

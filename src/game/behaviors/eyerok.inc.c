@@ -32,7 +32,7 @@ static struct Object* eyerok_nearest_targetable_player_to_object(s32 zDist) {
         struct MarioState *m = &gMarioStates[i];
         if (!m->marioObj) { continue; }
         if (m->marioObj == o) { continue; }
-        if (!m->visibleToEnemies) { continue; }
+        if (!m->visibleToObjects) { continue; }
         if (!is_player_active(m)) { continue; }
         f32 dist = dist_between_objects(o, m->marioObj);
         if (m->marioObj->oPosZ - o->oHomeZ < zDist) {
@@ -43,7 +43,7 @@ static struct Object* eyerok_nearest_targetable_player_to_object(s32 zDist) {
             nearestDist = dist;
         }
     }
-    
+
     return nearest;
 }
 
@@ -79,34 +79,34 @@ void bhv_eyerok_boss_init(void) {
     so->minUpdateRate = 1.0f;
     so->maxUpdateRate = 1.0f;
     so->syncDeathEvent = FALSE;
-    sync_object_init_field(o, &o->oEyerokBossNumHands);
-    sync_object_init_field(o, &o->oEyerokBossUnkFC);
-    sync_object_init_field(o, &o->oEyerokBossActiveHand);
-    sync_object_init_field(o, &o->oEyerokBossUnk104);
-    sync_object_init_field(o, &o->oEyerokBossUnk108);
-    sync_object_init_field(o, &o->oEyerokBossUnk10C);
-    sync_object_init_field(o, &o->oEyerokBossUnk110);
-    sync_object_init_field(o, &o->oEyerokBossUnk1AC);
+    sync_object_init_field(o, o->oEyerokBossNumHands);
+    sync_object_init_field(o, o->oEyerokBossUnkFC);
+    sync_object_init_field(o, o->oEyerokBossActiveHand);
+    sync_object_init_field(o, o->oEyerokBossUnk104);
+    sync_object_init_field(o, o->oEyerokBossUnk108);
+    sync_object_init_field(o, o->oEyerokBossUnk10C);
+    sync_object_init_field(o, o->oEyerokBossUnk110);
+    sync_object_init_field(o, o->oEyerokBossUnk1AC);
     for (s32 i = 0; i < 2; i++) {
-        sync_object_init_field(o, &hands[i]->oPosX);
-        sync_object_init_field(o, &hands[i]->oPosY);
-        sync_object_init_field(o, &hands[i]->oPosZ);
-        sync_object_init_field(o, &hands[i]->oVelX);
-        sync_object_init_field(o, &hands[i]->oVelY);
-        sync_object_init_field(o, &hands[i]->oVelZ);
-        sync_object_init_field(o, &hands[i]->oForwardVel);
-        sync_object_init_field(o, &hands[i]->oAction);
-        sync_object_init_field(o, &hands[i]->oPrevAction);
-        sync_object_init_field(o, &hands[i]->oTimer);
-        sync_object_init_field(o, &hands[i]->oHealth);
-        sync_object_init_field(o, &hands[i]->oEyerokHandWakeUpTimer);
-        sync_object_init_field(o, &hands[i]->oEyerokReceivedAttack);
-        sync_object_init_field(o, &hands[i]->oEyerokHandUnkFC);
-        sync_object_init_field(o, &hands[i]->oEyerokHandUnk100);
-        sync_object_init_field(o, &hands[i]->oFaceAngleYaw);
-        sync_object_init_field(o, &hands[i]->oMoveAngleYaw);
-        sync_object_init_field(o, &hands[i]->oGravity);
-        sync_object_init_field(o, &hands[i]->oAnimState);
+        sync_object_init_field(o, hands[i]->oPosX);
+        sync_object_init_field(o, hands[i]->oPosY);
+        sync_object_init_field(o, hands[i]->oPosZ);
+        sync_object_init_field(o, hands[i]->oVelX);
+        sync_object_init_field(o, hands[i]->oVelY);
+        sync_object_init_field(o, hands[i]->oVelZ);
+        sync_object_init_field(o, hands[i]->oForwardVel);
+        sync_object_init_field(o, hands[i]->oAction);
+        sync_object_init_field(o, hands[i]->oPrevAction);
+        sync_object_init_field(o, hands[i]->oTimer);
+        sync_object_init_field(o, hands[i]->oHealth);
+        sync_object_init_field(o, hands[i]->oEyerokHandWakeUpTimer);
+        sync_object_init_field(o, hands[i]->oEyerokReceivedAttack);
+        sync_object_init_field(o, hands[i]->oEyerokHandUnkFC);
+        sync_object_init_field(o, hands[i]->oEyerokHandUnk100);
+        sync_object_init_field(o, hands[i]->oFaceAngleYaw);
+        sync_object_init_field(o, hands[i]->oMoveAngleYaw);
+        sync_object_init_field(o, hands[i]->oGravity);
+        sync_object_init_field(o, hands[i]->oAnimState);
     }
 }
 
@@ -143,7 +143,7 @@ static void eyerok_boss_act_wake_up(void) {
     }
 }
 
-static u8 eyerok_boss_act_show_intro_text_continue_dialog(void) {
+UNUSED static u8 eyerok_boss_act_show_intro_text_continue_dialog(void) {
     return o->oAction == EYEROK_BOSS_ACT_SHOW_INTRO_TEXT;
 }
 

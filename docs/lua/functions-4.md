@@ -67,7 +67,7 @@ Gets the lighting engine mode
 - None
 
 ### Returns
-[enum LEMode](constants.md#enum-LEMode)
+- [enum LEMode](constants.md#enum-LEMode)
 
 ### C Prototype
 `enum LEMode le_get_mode(void);`
@@ -116,7 +116,7 @@ Outputs the lighting engine's ambient color to `out`
 - None
 
 ### C Prototype
-`void le_get_ambient_color(OUT Color out);`
+`void le_get_ambient_color(VEC_OUT Color out);`
 
 [:arrow_up_small:](#)
 
@@ -147,6 +147,52 @@ Sets the lighting engine ambient color
 
 <br />
 
+## [le_set_max_lights_per_vertex](#le_set_max_lights_per_vertex)
+
+### Description
+Sets the max amount of lights that can affect a vertex
+
+### Lua Example
+`le_set_max_lights_per_vertex(count)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| count | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void le_set_max_lights_per_vertex(u8 count);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [le_set_enabled](#le_set_enabled)
+
+### Description
+This will let the user control the lighting engine in real time to disable or enable it.
+
+### Lua Example
+`le_set_enabled(value)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| value | `boolean` |
+
+### Returns
+- None
+
+### C Prototype
+`void le_set_enabled(bool value);`
+
+[:arrow_up_small:](#)
+
+<br />
+
 ## [le_calculate_lighting_color](#le_calculate_lighting_color)
 
 ### Description
@@ -166,7 +212,7 @@ Calculates the lighting with `lightIntensityScalar` at a position and outputs th
 - None
 
 ### C Prototype
-`void le_calculate_lighting_color(Vec3f pos, OUT Color out, f32 lightIntensityScalar);`
+`void le_calculate_lighting_color(Vec3f pos, VEC_OUT Color out, f32 lightIntensityScalar);`
 
 [:arrow_up_small:](#)
 
@@ -192,7 +238,7 @@ Calculates the lighting with `lightIntensityScalar` at a position and with a nor
 - None
 
 ### C Prototype
-`void le_calculate_lighting_color_with_normal(Vec3f pos, Vec3f normal, OUT Color out, f32 lightIntensityScalar);`
+`void le_calculate_lighting_color_with_normal(Vec3f pos, Vec3f normal, VEC_OUT Color out, f32 lightIntensityScalar);`
 
 [:arrow_up_small:](#)
 
@@ -216,7 +262,7 @@ Calculates the lighting direction from a position and outputs the result in `out
 - None
 
 ### C Prototype
-`void le_calculate_lighting_dir(Vec3f pos, OUT Vec3f out);`
+`void le_calculate_lighting_dir(Vec3f pos, VEC_OUT Vec3f out);`
 
 [:arrow_up_small:](#)
 
@@ -337,7 +383,7 @@ Outputs a lighting engine point light's position to `out`
 - None
 
 ### C Prototype
-`void le_get_light_pos(s16 id, OUT Vec3f out);`
+`void le_get_light_pos(s16 id, VEC_OUT Vec3f out);`
 
 [:arrow_up_small:](#)
 
@@ -387,7 +433,7 @@ Outputs a lighting engine point light's color to `out`
 - None
 
 ### C Prototype
-`void le_get_light_color(s16 id, OUT Color out);`
+`void le_get_light_color(s16 id, VEC_OUT Color out);`
 
 [:arrow_up_small:](#)
 
@@ -561,6 +607,35 @@ Sets whether a lighting engine point light will use a surface's normals to deter
 <br />
 
 ---
+# functions from load.h
+
+<br />
+
+
+## [set_sound_bank_override](#set_sound_bank_override)
+
+### Description
+Overrides the soundbank, set to -1 to reset
+
+### Lua Example
+`set_sound_bank_override(bank)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| bank | `integer` |
+
+### Returns
+- None
+
+### C Prototype
+`void set_sound_bank_override(s32 bank);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+---
 # functions from mario.h
 
 <br />
@@ -569,7 +644,8 @@ Sets whether a lighting engine point light will use a surface's normals to deter
 ## [is_anim_at_end](#is_anim_at_end)
 
 ### Description
-Checks if Mario's current animation has reached its final frame (i.e., the last valid frame in the animation). Useful for deciding when to transition out of an animation-driven action
+Checks if Mario's current animation has reached its final frame (i.e., the last valid frame in the animation).
+Useful for deciding when to transition out of an animation-driven action
 
 ### Lua Example
 `local integerValue = is_anim_at_end(m)`
@@ -592,7 +668,8 @@ Checks if Mario's current animation has reached its final frame (i.e., the last 
 ## [is_anim_past_end](#is_anim_past_end)
 
 ### Description
-Checks if Mario's current animation has passed the second-to-last valid frame (i.e., effectively at or beyond its final frames). Useful for advanced checks where slightly early transitions or timing are needed before the final frame
+Checks if Mario's current animation has passed the second-to-last valid frame (i.e., effectively at or beyond its final frames).
+Useful for advanced checks where slightly early transitions or timing are needed before the final frame
 
 ### Lua Example
 `local integerValue = is_anim_past_end(m)`
@@ -639,7 +716,8 @@ Sets Mario's current animation to `targetAnimID` at a default acceleration (no s
 ## [set_mario_anim_with_accel](#set_mario_anim_with_accel)
 
 ### Description
-Sets Mario's current animation to `targetAnimID` with a custom `accel` value to speed up or slow down the animation. Useful for controlling animation timing, e.g., slow-motion or fast-forward effects
+Sets Mario's current animation to `targetAnimID` with a custom `accel` value to speed up or slow down the animation.
+Useful for controlling animation timing, e.g., slow-motion or fast-forward effects
 
 ### Lua Example
 `local integerValue = set_mario_anim_with_accel(m, targetAnimID, accel)`
@@ -688,7 +766,8 @@ Sets the character-specific animation at its default rate (no acceleration)
 ## [set_character_anim_with_accel](#set_character_anim_with_accel)
 
 ### Description
-Sets a character-specific animation where the animation speed is adjusted by `accel`. Useful for varying animation speeds based on context or dynamic conditions (e.g., slow-motion)
+Sets a character-specific animation where the animation speed is adjusted by `accel`.
+Useful for varying animation speeds based on context or dynamic conditions (e.g., slow-motion)
 
 ### Lua Example
 `local integerValue = set_character_anim_with_accel(m, targetAnimID, accel)`
@@ -737,7 +816,8 @@ Sets the current animation frame to a specific `animFrame`
 ## [is_anim_past_frame](#is_anim_past_frame)
 
 ### Description
-Checks if Mario's current animation is past a specified `animFrame`. Useful for conditional logic where an action can branch after reaching a specific point in the animation
+Checks if Mario's current animation is past a specified `animFrame`.
+Useful for conditional logic where an action can branch after reaching a specific point in the animation
 
 ### Lua Example
 `local integerValue = is_anim_past_frame(m, animFrame)`
@@ -761,7 +841,8 @@ Checks if Mario's current animation is past a specified `animFrame`. Useful for 
 ## [find_mario_anim_flags_and_translation](#find_mario_anim_flags_and_translation)
 
 ### Description
-Retrieves the current animation flags and calculates the translation for Mario's animation, rotating it into the global coordinate system based on `yaw`. Useful for determining positional offsets from animations (e.g., stepping forward in a walk animation) and applying them to Mario's position
+Retrieves the current animation flags and calculates the translation for Mario's animation, rotating it into the global coordinate system based on `yaw`.
+Useful for determining positional offsets from animations (e.g., stepping forward in a walk animation) and applying them to Mario's position
 
 ### Lua Example
 `local integerValue = find_mario_anim_flags_and_translation(o, yaw, translation)`
@@ -777,7 +858,7 @@ Retrieves the current animation flags and calculates the translation for Mario's
 - `integer`
 
 ### C Prototype
-`s16 find_mario_anim_flags_and_translation(struct Object *o, s32 yaw, OUT Vec3s translation);`
+`s16 find_mario_anim_flags_and_translation(struct Object *o, s32 yaw, VEC_OUT Vec3s translation);`
 
 [:arrow_up_small:](#)
 
@@ -809,7 +890,8 @@ Applies the translation from Mario's current animation to his world position. Co
 ## [return_mario_anim_y_translation](#return_mario_anim_y_translation)
 
 ### Description
-Determines the vertical translation from Mario's animation (how much the animation moves Mario up or down). Returns the y-component of the animation's translation. Useful for adjusting Mario's vertical position based on an ongoing animation (e.g., a bounce or jump)
+Determines the vertical translation from Mario's animation (how much the animation moves Mario up or down). Returns the y-component of the animation's translation.
+Useful for adjusting Mario's vertical position based on an ongoing animation (e.g., a bounce or jump)
 
 ### Lua Example
 `local integerValue = return_mario_anim_y_translation(m)`
@@ -880,7 +962,8 @@ Plays Mario's jump sound if it hasn't been played yet since the last action chan
 ## [adjust_sound_for_speed](#adjust_sound_for_speed)
 
 ### Description
-Adjusts the pitch/volume of Mario's movement-based sounds according to his forward velocity (`m.forwardVel`). Useful for adding dynamic audio feedback based on Mario's running or walking speed
+Adjusts the pitch/volume of Mario's movement-based sounds according to his forward velocity (`m.forwardVel`).
+Useful for adding dynamic audio feedback based on Mario's running or walking speed
 
 ### Lua Example
 `adjust_sound_for_speed(m)`
@@ -1001,7 +1084,8 @@ A variant of `play_mario_landing_sound` that ensures the sound is only played on
 ## [play_mario_heavy_landing_sound](#play_mario_heavy_landing_sound)
 
 ### Description
-Plays a heavier, more forceful landing sound, possibly for ground pounds or large impacts. Takes into account whether Mario has a metal cap equipped. Useful for making big impact landings stand out aurally
+Plays a heavier, more forceful landing sound, possibly for ground pounds or large impacts. Takes into account whether Mario has a metal cap equipped.
+Useful for making big impact landings stand out aurally
 
 ### Lua Example
 `play_mario_heavy_landing_sound(m, soundBits)`
@@ -1025,7 +1109,8 @@ Plays a heavier, more forceful landing sound, possibly for ground pounds or larg
 ## [play_mario_heavy_landing_sound_once](#play_mario_heavy_landing_sound_once)
 
 ### Description
-A variant of `play_mario_heavy_landing_sound` that ensures the sound is only played once per action (using `play_mario_action_sound` internally). Useful for consistent heavy landing effects without repetition
+A variant of `play_mario_heavy_landing_sound` that ensures the sound is only played once per action (using `play_mario_action_sound` internally).
+Useful for consistent heavy landing effects without repetition
 
 ### Lua Example
 `play_mario_heavy_landing_sound_once(m, soundBits)`
@@ -1166,7 +1251,8 @@ Transitions Mario into a bubbled state (if available in multiplayer), decrementi
 ## [mario_set_forward_vel](#mario_set_forward_vel)
 
 ### Description
-Sets Mario's forward velocity (`m.forwardVel`) and updates `slideVelX/Z` and `m.vel` accordingly, based on `m.faceAngle.y`. Useful for controlling Mario's speed and direction in various actions (jumping, walking, sliding, etc.)
+Sets Mario's forward velocity (`m.forwardVel`) and updates `slideVelX/Z` and `m.vel` accordingly, based on `m.faceAngle.y`.
+Useful for controlling Mario's speed and direction in various actions (jumping, walking, sliding, etc.)
 
 ### Lua Example
 `mario_set_forward_vel(m, speed)`
@@ -1190,7 +1276,8 @@ Sets Mario's forward velocity (`m.forwardVel`) and updates `slideVelX/Z` and `m.
 ## [mario_get_floor_class](#mario_get_floor_class)
 
 ### Description
-Retrieves the slipperiness class of Mario's current floor, ranging from not slippery to very slippery. Considers terrain types and special surfaces. Useful for controlling friction, movement speed adjustments, and whether Mario slips or walks
+Retrieves the slipperiness class of Mario's current floor, ranging from not slippery to very slippery. Considers terrain types and special surfaces.
+Useful for controlling friction, movement speed adjustments, and whether Mario slips or walks
 
 ### Lua Example
 `local integerValue = mario_get_floor_class(m)`
@@ -1213,7 +1300,8 @@ Retrieves the slipperiness class of Mario's current floor, ranging from not slip
 ## [mario_get_terrain_sound_addend](#mario_get_terrain_sound_addend)
 
 ### Description
-Computes a value added to terrain sounds, depending on the floor's type (sand, snow, water, etc.) and slipperiness. This returns a sound 'addend' used with sound effects. Useful for playing context-specific footstep or movement sounds
+Computes a value added to terrain sounds, depending on the floor's type (sand, snow, water, etc.) and slipperiness. This returns a sound 'addend' used with sound effects.
+Useful for playing context-specific footstep or movement sounds
 
 ### Lua Example
 `local integerValue = mario_get_terrain_sound_addend(m)`
@@ -1236,10 +1324,11 @@ Computes a value added to terrain sounds, depending on the floor's type (sand, s
 ## [resolve_and_return_wall_collisions](#resolve_and_return_wall_collisions)
 
 ### Description
-Checks for and resolves wall collisions at a given position `pos`, returning the last wall encountered. Primarily used to prevent Mario from going through walls. Useful for collision detection when updating Mario's movement or adjusting his position
+Checks for and resolves wall collisions at a given position `pos`, returning the last wall encountered. Primarily used to prevent Mario from going through walls.
+Useful for collision detection when updating Mario's movement or adjusting his position
 
 ### Lua Example
-`local SurfaceValue = resolve_and_return_wall_collisions(pos, offset, radius)`
+`local surfaceValue = resolve_and_return_wall_collisions(pos, offset, radius)`
 
 ### Parameters
 | Field | Type |
@@ -1249,10 +1338,10 @@ Checks for and resolves wall collisions at a given position `pos`, returning the
 | radius | `number` |
 
 ### Returns
-[Surface](structs.md#Surface)
+- [Surface](structs.md#Surface)
 
 ### C Prototype
-`struct Surface *resolve_and_return_wall_collisions(OUT Vec3f pos, f32 offset, f32 radius);`
+`struct Surface *resolve_and_return_wall_collisions(VEC_OUT Vec3f pos, f32 offset, f32 radius);`
 
 [:arrow_up_small:](#)
 
@@ -1278,7 +1367,60 @@ Similar to `resolve_and_return_wall_collisions` but also returns detailed collis
 - None
 
 ### C Prototype
-`void resolve_and_return_wall_collisions_data(OUT Vec3f pos, f32 offset, f32 radius, struct WallCollisionData* collisionData);`
+`void resolve_and_return_wall_collisions_data(VEC_OUT Vec3f pos, f32 offset, f32 radius, struct WallCollisionData* collisionData);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3f_find_ceil](#vec3f_find_ceil)
+
+### Description
+Finds the ceiling from a vec3f horizontally and a height (with 80 vertical buffer).
+Returns the ceiling height and surface
+
+### Lua Example
+`local numberValue, ceil = vec3f_find_ceil(pos, height)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| pos | [Vec3f](structs.md#Vec3f) |
+| height | `number` |
+
+### Returns
+- `number`
+- [Surface](structs.md#Surface)
+
+### C Prototype
+`f32 vec3f_find_ceil(Vec3f pos, f32 height, RET struct Surface **ceil);`
+
+[:arrow_up_small:](#)
+
+<br />
+
+## [vec3f_mario_ceil](#vec3f_mario_ceil)
+
+### Description
+Finds the ceiling from a vec3f horizontally and a height (with 80 vertical buffer).
+Prevents exposed ceiling bug.
+Returns the ceiling height and surface
+
+### Lua Example
+`local numberValue, ceil = vec3f_mario_ceil(pos, height)`
+
+### Parameters
+| Field | Type |
+| ----- | ---- |
+| pos | [Vec3f](structs.md#Vec3f) |
+| height | `number` |
+
+### Returns
+- `number`
+- [Surface](structs.md#Surface)
+
+### C Prototype
+`f32 vec3f_mario_ceil(Vec3f pos, f32 height, RET struct Surface **ceil);`
 
 [:arrow_up_small:](#)
 
@@ -1287,7 +1429,8 @@ Similar to `resolve_and_return_wall_collisions` but also returns detailed collis
 ## [mario_facing_downhill](#mario_facing_downhill)
 
 ### Description
-Determines if Mario is facing downhill relative to his floor angle, optionally accounting for forward velocity direction. Returns true if he is oriented down the slope. Useful for deciding if Mario will walk or slide on sloped floors
+Determines if Mario is facing downhill relative to his floor angle, optionally accounting for forward velocity direction. Returns true if he is oriented down the slope.
+Useful for deciding if Mario will walk or slide on sloped floors
 
 ### Lua Example
 `local integerValue = mario_facing_downhill(m, turnYaw)`
@@ -1311,7 +1454,8 @@ Determines if Mario is facing downhill relative to his floor angle, optionally a
 ## [mario_floor_is_slippery](#mario_floor_is_slippery)
 
 ### Description
-Checks whether Mario's current floor is slippery based on both the floor's surface class and Mario's environment (e.g., special slides). Useful for deciding if Mario should transition to sliding or maintain normal traction
+Checks whether Mario's current floor is slippery based on both the floor's surface class and Mario's environment (e.g., special slides).
+Useful for deciding if Mario should transition to sliding or maintain normal traction
 
 ### Lua Example
 `local integerValue = mario_floor_is_slippery(m)`
@@ -1357,7 +1501,8 @@ Checks whether Mario's floor is a slope, i.e., not flat but not necessarily stee
 ## [mario_floor_is_steep](#mario_floor_is_steep)
 
 ### Description
-Checks whether Mario's floor is steep enough to cause special behavior, such as forcing slides or preventing certain actions. Returns true if the slope is too steep. Useful for restricting normal movement on surfaces with extreme angles
+Checks whether Mario's floor is steep enough to cause special behavior, such as forcing slides or preventing certain actions. Returns true if the slope is too steep.
+Useful for restricting normal movement on surfaces with extreme angles
 
 ### Lua Example
 `local integerValue = mario_floor_is_steep(m)`
@@ -1380,7 +1525,8 @@ Checks whether Mario's floor is steep enough to cause special behavior, such as 
 ## [find_floor_height_relative_polar](#find_floor_height_relative_polar)
 
 ### Description
-Finds the floor height relative to Mario's current position given a polar displacement (`angleFromMario`, `distFromMario`). Useful for determining height differentials ahead or behind Mario, e.g. for slope checks or collision logic
+Finds the floor height relative to Mario's current position given a polar displacement (`angleFromMario`, `distFromMario`).
+Useful for determining height differentials ahead or behind Mario, e.g. for slope checks or collision logic
 
 ### Lua Example
 `local numberValue = find_floor_height_relative_polar(m, angleFromMario, distFromMario)`
@@ -1405,7 +1551,8 @@ Finds the floor height relative to Mario's current position given a polar displa
 ## [find_floor_slope](#find_floor_slope)
 
 ### Description
-Returns a slope angle based on comparing the floor heights slightly in front and behind Mario. It essentially calculates how steep the ground is in a specific yaw direction. Useful for slope-based calculations such as setting walking or sliding behaviors
+Returns a slope angle based on comparing the floor heights slightly in front and behind Mario. It essentially calculates how steep the ground is in a specific yaw direction.
+Useful for slope-based calculations such as setting walking or sliding behaviors
 
 ### Lua Example
 `local integerValue = find_floor_slope(m, yawOffset)`
@@ -1429,7 +1576,8 @@ Returns a slope angle based on comparing the floor heights slightly in front and
 ## [update_mario_sound_and_camera](#update_mario_sound_and_camera)
 
 ### Description
-Updates the background noise and camera modes based on Mario's action. Especially relevant for actions like first-person view or sleeping. Useful for synchronizing camera behavior and ambient sounds with Mario's state changes
+Updates the background noise and camera modes based on Mario's action. Especially relevant for actions like first-person view or sleeping.
+Useful for synchronizing camera behavior and ambient sounds with Mario's state changes
 
 ### Lua Example
 `update_mario_sound_and_camera(m)`
@@ -1452,7 +1600,8 @@ Updates the background noise and camera modes based on Mario's action. Especiall
 ## [set_steep_jump_action](#set_steep_jump_action)
 
 ### Description
-Transitions Mario into ACT_STEEP_JUMP if the floor is too steep, adjusting his forward velocity and orientation accordingly. Useful for forcing special jump states on surfaces exceeding normal slope limits
+Transitions Mario into ACT_STEEP_JUMP if the floor is too steep, adjusting his forward velocity and orientation accordingly.
+Useful for forcing special jump states on surfaces exceeding normal slope limits
 
 ### Lua Example
 `set_steep_jump_action(m)`
@@ -1624,7 +1773,8 @@ Increments Mario's `hurtCounter` and immediately sets a new action. Often used w
 ## [check_common_action_exits](#check_common_action_exits)
 
 ### Description
-Checks for inputs that cause common action transitions (jump, freefall, walking, sliding). Useful for quickly exiting certain stationary actions when Mario begins moving or leaves the floor
+Checks for inputs that cause common action transitions (jump, freefall, walking, sliding).
+Useful for quickly exiting certain stationary actions when Mario begins moving or leaves the floor
 
 ### Lua Example
 `local integerValue = check_common_action_exits(m)`
@@ -1670,7 +1820,8 @@ Checks for inputs that cause common hold-action transitions (hold jump, hold fre
 ## [transition_submerged_to_walking](#transition_submerged_to_walking)
 
 ### Description
-Transitions Mario from being underwater to a walking state. Resets camera to the default mode and can handle object-holding states. Useful for restoring standard ground movement when emerging from water
+Transitions Mario from being underwater to a walking state. Resets camera to the default mode and can handle object-holding states.
+Useful for restoring standard ground movement when emerging from water
 
 ### Lua Example
 `local integerValue = transition_submerged_to_walking(m)`
@@ -1739,7 +1890,8 @@ Main driver for Mario's behavior. Executes the current action group (stationary,
 ## [force_idle_state](#force_idle_state)
 
 ### Description
-Forces Mario into an idle state, either `ACT_IDLE` or `ACT_WATER_IDLE` depending on whether he is submerged. Useful for quickly resetting Mario's state to an idle pose under special conditions (e.g., cutscene triggers)
+Forces Mario into an idle state, either `ACT_IDLE` or `ACT_WATER_IDLE` depending on whether he is submerged.
+Useful for quickly resetting Mario's state to an idle pose under special conditions (e.g., cutscene triggers)
 
 ### Lua Example
 `local integerValue = force_idle_state(m)`
@@ -1837,7 +1989,7 @@ Updates Mario's wall information based on wall collisions (`WallCollisionData`).
 Gets the MarioState corresponding to the provided object if the object is a Mario object
 
 ### Lua Example
-`local MarioStateValue = get_mario_state_from_object(o)`
+`local marioStateValue = get_mario_state_from_object(o)`
 
 ### Parameters
 | Field | Type |
@@ -1845,7 +1997,7 @@ Gets the MarioState corresponding to the provided object if the object is a Mari
 | o | [Object](structs.md#Object) |
 
 ### Returns
-[MarioState](structs.md#MarioState)
+- [MarioState](structs.md#MarioState)
 
 ### C Prototype
 `struct MarioState *get_mario_state_from_object(struct Object *o);`
@@ -1863,7 +2015,8 @@ Gets the MarioState corresponding to the provided object if the object is a Mari
 ## [play_flip_sounds](#play_flip_sounds)
 
 ### Description
-Plays a spinning sound at specific animation frames for flips (usually side flips or certain jump flips). If the current animation frame matches any of the specified frames, it triggers `SOUND_ACTION_SPIN`
+Plays a spinning sound at specific animation frames for flips (usually side flips or certain jump flips).
+If the current animation frame matches any of the specified frames, it triggers `SOUND_ACTION_SPIN`
 
 ### Lua Example
 `play_flip_sounds(m, frame1, frame2, frame3)`
@@ -1889,7 +2042,8 @@ Plays a spinning sound at specific animation frames for flips (usually side flip
 ## [play_far_fall_sound](#play_far_fall_sound)
 
 ### Description
-Plays a unique sound when Mario has fallen a significant distance without being invulnerable, twirling, or flying. If the fall exceeds a threshold, triggers a "long fall" exclamation. Also sets a flag to prevent repeated triggering
+Plays a unique sound when Mario has fallen a significant distance without being invulnerable, twirling, or flying.
+If the fall exceeds a threshold, triggers a "long fall" exclamation. Also sets a flag to prevent repeated triggering
 
 ### Lua Example
 `play_far_fall_sound(m)`
@@ -1912,7 +2066,8 @@ Plays a unique sound when Mario has fallen a significant distance without being 
 ## [play_knockback_sound](#play_knockback_sound)
 
 ### Description
-Plays a knockback sound effect if Mario is hit or knocked back with significant velocity. The specific sound differs depending on whether Mario's forward velocity is high enough to be considered a strong knockback
+Plays a knockback sound effect if Mario is hit or knocked back with significant velocity. The specific sound differs
+depending on whether Mario's forward velocity is high enough to be considered a strong knockback
 
 ### Lua Example
 `play_knockback_sound(m)`
@@ -1935,7 +2090,9 @@ Plays a knockback sound effect if Mario is hit or knocked back with significant 
 ## [lava_boost_on_wall](#lava_boost_on_wall)
 
 ### Description
-Allows Mario to 'lava boost' off a lava wall, reorienting him to face away from the wall and adjusting forward velocity. Increases Mario's hurt counter if he's not metal, plays a burning sound, and transitions his action to `ACT_LAVA_BOOST`. Useful for handling collisions with lava walls, giving Mario a strong upward/forward boost at the cost of health
+Allows Mario to 'lava boost' off a lava wall, reorienting him to face away from the wall and adjusting forward velocity.
+Increases Mario's hurt counter if he's not metal, plays a burning sound, and transitions his action to `ACT_LAVA_BOOST`.
+Useful for handling collisions with lava walls, giving Mario a strong upward/forward boost at the cost of health
 
 ### Lua Example
 `local integerValue = lava_boost_on_wall(m)`
@@ -1958,7 +2115,10 @@ Allows Mario to 'lava boost' off a lava wall, reorienting him to face away from 
 ## [check_fall_damage](#check_fall_damage)
 
 ### Description
-Evaluates whether Mario should take fall damage based on the height difference between his peak and current position. If the fall is large enough and does not occur over burning surfaces or while twirling, Mario may get hurt or enter a hard fall action. If the fall is significant but not extreme, minimal damage and a squish effect may be applied. Useful for determining if Mario's fall warrants a health penalty or a special landing action
+Evaluates whether Mario should take fall damage based on the height difference between his peak and current position.
+If the fall is large enough and does not occur over burning surfaces or while twirling, Mario may get hurt or enter
+a hard fall action. If the fall is significant but not extreme, minimal damage and a squish effect may be applied.
+Useful for determining if Mario's fall warrants a health penalty or a special landing action
 
 ### Lua Example
 `local integerValue = check_fall_damage(m, hardFallAction)`
@@ -1982,7 +2142,8 @@ Evaluates whether Mario should take fall damage based on the height difference b
 ## [check_kick_or_dive_in_air](#check_kick_or_dive_in_air)
 
 ### Description
-Checks if Mario should perform a kick or a dive while in mid-air, depending on his current forward velocity. Pressing the B button in the air can trigger a jump kick (at lower speeds) or a dive (at higher speeds)
+Checks if Mario should perform a kick or a dive while in mid-air, depending on his current forward velocity.
+Pressing the B button in the air can trigger a jump kick (at lower speeds) or a dive (at higher speeds)
 
 ### Lua Example
 `local integerValue = check_kick_or_dive_in_air(m)`
@@ -2005,7 +2166,9 @@ Checks if Mario should perform a kick or a dive while in mid-air, depending on h
 ## [should_get_stuck_in_ground](#should_get_stuck_in_ground)
 
 ### Description
-Determines whether Mario should become stuck in the ground after landing, specifically for soft terrain such as snow or sand, provided certain conditions are met (height of the fall, normal of the floor, etc.). Returns true if Mario should be stuck, false otherwise
+Determines whether Mario should become stuck in the ground after landing, specifically for soft terrain such as snow
+or sand, provided certain conditions are met (height of the fall, normal of the floor, etc.).
+Returns true if Mario should be stuck, false otherwise
 
 ### Lua Example
 `local integerValue = should_get_stuck_in_ground(m)`
@@ -2028,7 +2191,9 @@ Determines whether Mario should become stuck in the ground after landing, specif
 ## [check_fall_damage_or_get_stuck](#check_fall_damage_or_get_stuck)
 
 ### Description
-Checks if Mario should get stuck in the ground after a large fall onto soft terrain (like snow or sand) or if he should just proceed with regular fall damage calculations. If the terrain and height conditions are met, Mario's action changes to being stuck in the ground. Otherwise, normal fall damage logic applies
+Checks if Mario should get stuck in the ground after a large fall onto soft terrain (like snow or sand) or if he
+should just proceed with regular fall damage calculations. If the terrain and height conditions are met, Mario's
+action changes to being stuck in the ground. Otherwise, normal fall damage logic applies
 
 ### Lua Example
 `local integerValue = check_fall_damage_or_get_stuck(m, hardFallAction)`
@@ -2052,7 +2217,8 @@ Checks if Mario should get stuck in the ground after a large fall onto soft terr
 ## [check_horizontal_wind](#check_horizontal_wind)
 
 ### Description
-Checks for the presence of a horizontal wind surface under Mario. If found, applies a push force to Mario's horizontal velocity. Caps speed at certain thresholds, updates Mario's forward velocity and yaw for sliding/wind movement
+Checks for the presence of a horizontal wind surface under Mario. If found, applies a push force to Mario's horizontal
+velocity. Caps speed at certain thresholds, updates Mario's forward velocity and yaw for sliding/wind movement
 
 ### Lua Example
 `local integerValue = check_horizontal_wind(m)`
@@ -2075,7 +2241,8 @@ Checks for the presence of a horizontal wind surface under Mario. If found, appl
 ## [update_air_with_turn](#update_air_with_turn)
 
 ### Description
-Updates Mario's air movement while allowing him to turn. Checks horizontal wind and applies a moderate amount of drag, approaches the forward velocity toward zero if no input is pressed, and modifies forward velocity/angle based on stick input
+Updates Mario's air movement while allowing him to turn. Checks horizontal wind and applies a moderate amount of drag,
+approaches the forward velocity toward zero if no input is pressed, and modifies forward velocity/angle based on stick input
 
 ### Lua Example
 `update_air_with_turn(m)`
@@ -2098,7 +2265,8 @@ Updates Mario's air movement while allowing him to turn. Checks horizontal wind 
 ## [update_air_without_turn](#update_air_without_turn)
 
 ### Description
-Updates Mario's air movement without directly turning his facing angle to match his intended yaw. Instead, Mario can move sideways relative to his current facing direction. Also checks horizontal wind and applies drag
+Updates Mario's air movement without directly turning his facing angle to match his intended yaw. Instead, Mario can
+move sideways relative to his current facing direction. Also checks horizontal wind and applies drag
 
 ### Lua Example
 `update_air_without_turn(m)`
@@ -2121,7 +2289,8 @@ Updates Mario's air movement without directly turning his facing angle to match 
 ## [update_lava_boost_or_twirling](#update_lava_boost_or_twirling)
 
 ### Description
-Updates Mario's movement when in actions like lava boost or twirling in mid-air. Applies player input to adjust forward velocity and facing angle, but in a more restricted manner compared to standard jump movement. Used by `ACT_LAVA_BOOST` and `ACT_TWIRLING`
+Updates Mario's movement when in actions like lava boost or twirling in mid-air. Applies player input to adjust forward velocity
+and facing angle, but in a more restricted manner compared to standard jump movement. Used by `ACT_LAVA_BOOST` and `ACT_TWIRLING`
 
 ### Lua Example
 `update_lava_boost_or_twirling(m)`
@@ -2144,7 +2313,8 @@ Updates Mario's movement when in actions like lava boost or twirling in mid-air.
 ## [update_flying_yaw](#update_flying_yaw)
 
 ### Description
-Calculates and applies a change in Mario's yaw while flying, based on horizontal stick input. Approaches a target yaw velocity and sets Mario's roll angle to simulate banking turns. This results in a more natural, curved flight path
+Calculates and applies a change in Mario's yaw while flying, based on horizontal stick input. Approaches a target yaw velocity
+and sets Mario's roll angle to simulate banking turns. This results in a more natural, curved flight path
 
 ### Lua Example
 `update_flying_yaw(m)`
@@ -2167,7 +2337,8 @@ Calculates and applies a change in Mario's yaw while flying, based on horizontal
 ## [update_flying_pitch](#update_flying_pitch)
 
 ### Description
-Calculates and applies a change in Mario's pitch while flying, based on vertical stick input. Approaches a target pitch velocity and clamps the final pitch angle to a certain range, simulating a smooth flight control
+Calculates and applies a change in Mario's pitch while flying, based on vertical stick input. Approaches a target pitch velocity
+and clamps the final pitch angle to a certain range, simulating a smooth flight control
 
 ### Lua Example
 `update_flying_pitch(m)`
@@ -2190,7 +2361,8 @@ Calculates and applies a change in Mario's pitch while flying, based on vertical
 ## [update_flying](#update_flying)
 
 ### Description
-Handles the complete flying logic for Mario (usually with the wing cap). Continuously updates pitch and yaw based on controller input, applies drag, and adjusts forward velocity. Also updates Mario's model angles for flight animations
+Handles the complete flying logic for Mario (usually with the wing cap). Continuously updates pitch and yaw based on controller input,
+applies drag, and adjusts forward velocity. Also updates Mario's model angles for flight animations
 
 ### Lua Example
 `update_flying(m)`
@@ -2213,7 +2385,9 @@ Handles the complete flying logic for Mario (usually with the wing cap). Continu
 ## [common_air_action_step](#common_air_action_step)
 
 ### Description
-Performs a standard step update for air actions without knockback, typically used for jumps or freefalls. Updates Mario's velocity (and possibly checks horizontal wind), then calls `perform_air_step` with given `stepArg`. Handles how Mario lands, hits walls, grabs ledges, or grabs ceilings. Optionally sets an animation
+Performs a standard step update for air actions without knockback, typically used for jumps or freefalls.
+Updates Mario's velocity (and possibly checks horizontal wind), then calls `perform_air_step` with given `stepArg`.
+Handles how Mario lands, hits walls, grabs ledges, or grabs ceilings. Optionally sets an animation
 
 ### Lua Example
 `local integerValue = common_air_action_step(m, landAction, animation, stepArg)`
@@ -2239,7 +2413,8 @@ Performs a standard step update for air actions without knockback, typically use
 ## [common_air_knockback_step](#common_air_knockback_step)
 
 ### Description
-A shared step update used for airborne knockback states (both forward and backward). Updates velocity, calls `perform_air_step`, and handles wall collisions or landing transitions to appropriate ground knockback actions. Also sets animation and speed
+A shared step update used for airborne knockback states (both forward and backward). Updates velocity, calls `perform_air_step`,
+and handles wall collisions or landing transitions to appropriate ground knockback actions. Also sets animation and speed
 
 ### Lua Example
 `local integerValue = common_air_knockback_step(m, landAction, hardFallAction, animation, speed)`
@@ -2266,7 +2441,8 @@ A shared step update used for airborne knockback states (both forward and backwa
 ## [check_wall_kick](#check_wall_kick)
 
 ### Description
-Checks if Mario should wall kick after performing an air hit against a wall. If the input conditions (e.g., pressing A) and the `wallKickTimer` allow, Mario transitions to `ACT_WALL_KICK_AIR`
+Checks if Mario should wall kick after performing an air hit against a wall. If the input conditions (e.g., pressing A)
+and the `wallKickTimer` allow, Mario transitions to `ACT_WALL_KICK_AIR`
 
 ### Lua Example
 `local integerValue = check_wall_kick(m)`
@@ -2289,7 +2465,9 @@ Checks if Mario should wall kick after performing an air hit against a wall. If 
 ## [check_common_airborne_cancels](#check_common_airborne_cancels)
 
 ### Description
-Checks for and handles common conditions that would cancel Mario's current air action. This includes transitioning to a water plunge if below the water level, becoming squished if appropriate, or switching to vertical wind action if on certain wind surfaces. Also resets `m.quicksandDepth`
+Checks for and handles common conditions that would cancel Mario's current air action. This includes transitioning
+to a water plunge if below the water level, becoming squished if appropriate, or switching to vertical wind action
+if on certain wind surfaces. Also resets `m.quicksandDepth`
 
 ### Lua Example
 `local integerValue = check_common_airborne_cancels(m)`
@@ -2312,7 +2490,8 @@ Checks for and handles common conditions that would cancel Mario's current air a
 ## [mario_execute_airborne_action](#mario_execute_airborne_action)
 
 ### Description
-Executes Mario's current airborne action by first checking common airborne cancels, then playing a far-fall sound if needed. Dispatches to the appropriate action function, such as jump, double jump, freefall, etc
+Executes Mario's current airborne action by first checking common airborne cancels, then playing a far-fall sound if needed.
+Dispatches to the appropriate action function, such as jump, double jump, freefall, etc
 
 ### Lua Example
 `local integerValue = mario_execute_airborne_action(m)`
@@ -2341,7 +2520,8 @@ Executes Mario's current airborne action by first checking common airborne cance
 ## [add_tree_leaf_particles](#add_tree_leaf_particles)
 
 ### Description
-Spawns leaf particles when Mario climbs a tree, if he is sufficiently high above the floor. In Shifting Sand Land, the leaf effect spawns higher due to the taller palm trees
+Spawns leaf particles when Mario climbs a tree, if he is sufficiently high above the floor.
+In Shifting Sand Land, the leaf effect spawns higher due to the taller palm trees
 
 ### Lua Example
 `add_tree_leaf_particles(m)`
@@ -2388,7 +2568,8 @@ Plays the appropriate climbing sound effect depending on whether Mario is on a t
 ## [set_pole_position](#set_pole_position)
 
 ### Description
-Sets Mario's position and alignment while he is on a climbable pole or tree. This function checks collisions with floors and ceilings, and updates Mario's action if he leaves the pole or touches the floor. Useful for ensuring Mario's correct placement and transitions when climbing poles or trees
+Sets Mario's position and alignment while he is on a climbable pole or tree. This function checks collisions with floors and ceilings, and updates Mario's action if he leaves the pole or touches the floor.
+Useful for ensuring Mario's correct placement and transitions when climbing poles or trees
 
 ### Lua Example
 `local integerValue = set_pole_position(m, offsetY)`
@@ -2427,7 +2608,7 @@ Performs a single step of movement while Mario is hanging from a ceiling. It han
 - `integer`
 
 ### C Prototype
-`s32 perform_hanging_step(struct MarioState *m, OUT Vec3f nextPos);`
+`s32 perform_hanging_step(struct MarioState *m, VEC_OUT Vec3f nextPos);`
 
 [:arrow_up_small:](#)
 
@@ -2622,7 +2803,8 @@ Checks if Mario should cancel his current automatic action, primarily by detecti
 ## [mario_execute_automatic_action](#mario_execute_automatic_action)
 
 ### Description
-Executes Mario's current automatic action (e.g., climbing a pole, hanging, ledge-grabbing) by calling the corresponding function. It also checks for common cancellations, like falling into water. Returns true if the action was canceled and a new action was set, or false otherwise
+Executes Mario's current automatic action (e.g., climbing a pole, hanging, ledge-grabbing) by calling the corresponding function. It also checks for common cancellations, like falling into water.
+Returns true if the action was canceled and a new action was set, or false otherwise
 
 ### Lua Example
 `local integerValue = mario_execute_automatic_action(m)`
@@ -3013,7 +3195,8 @@ Executes Mario's current cutscene action based on his `action` field. Includes v
 ## [tilt_body_running](#tilt_body_running)
 
 ### Description
-Tilts Mario's body according to his running speed and slope angle. Calculates a pitch offset used while running to simulate leaning forward at higher speeds or on slopes
+Tilts Mario's body according to his running speed and slope angle.
+Calculates a pitch offset used while running to simulate leaning forward at higher speeds or on slopes
 
 ### Lua Example
 `local integerValue = tilt_body_running(m)`
@@ -3036,7 +3219,8 @@ Tilts Mario's body according to his running speed and slope angle. Calculates a 
 ## [play_step_sound](#play_step_sound)
 
 ### Description
-Checks the current animation frame against two specified frames to trigger footstep sounds. Also chooses specific sounds if Mario is wearing Metal Cap or is in quicksand
+Checks the current animation frame against two specified frames to trigger footstep sounds.
+Also chooses specific sounds if Mario is wearing Metal Cap or is in quicksand
 
 ### Lua Example
 `play_step_sound(m, frame1, frame2)`
@@ -3110,7 +3294,8 @@ Sets Mario's facing yaw to his intended yaw, applies a specified forward velocit
 ## [check_ledge_climb_down](#check_ledge_climb_down)
 
 ### Description
-Checks if Mario is near an edge while moving slowly and the floor below that edge is significantly lower. If the conditions are met, transitions Mario into a ledge-climb-down action and positions him accordingly on the edge
+Checks if Mario is near an edge while moving slowly and the floor below that edge is significantly lower.
+If the conditions are met, transitions Mario into a ledge-climb-down action and positions him accordingly on the edge
 
 ### Lua Example
 `check_ledge_climb_down(m)`
@@ -3183,7 +3368,9 @@ Determines the proper triple jump action based on Mario's forward velocity and t
 ## [update_sliding_angle](#update_sliding_angle)
 
 ### Description
-Adjusts Mario's slide velocity and facing angle when on a slope. Calculates slope direction and steepness, then modifies velocity accordingly (speed up downhill, slow uphill). Handles facing-direction changes and maximum speed limits
+Adjusts Mario's slide velocity and facing angle when on a slope.
+Calculates slope direction and steepness, then modifies velocity accordingly (speed up downhill, slow uphill).
+Handles facing-direction changes and maximum speed limits
 
 ### Lua Example
 `update_sliding_angle(m, accel, lossFactor)`
@@ -3208,7 +3395,9 @@ Adjusts Mario's slide velocity and facing angle when on a slope. Calculates slop
 ## [update_sliding](#update_sliding)
 
 ### Description
-Updates Mario's sliding state each frame, applying additional friction or acceleration based on the surface's slipperiness. Also checks if speed has slowed below a threshold to end the slide. Returns `true` if sliding has stopped
+Updates Mario's sliding state each frame, applying additional friction or acceleration based on the surface's slipperiness.
+Also checks if speed has slowed below a threshold to end the slide.
+Returns `true` if sliding has stopped
 
 ### Lua Example
 `local integerValue = update_sliding(m, stopSpeed)`
@@ -3232,7 +3421,8 @@ Updates Mario's sliding state each frame, applying additional friction or accele
 ## [apply_slope_accel](#apply_slope_accel)
 
 ### Description
-Applies acceleration or deceleration based on the slope of the floor. On downward slopes, Mario gains speed, while on upward slopes, Mario loses speed
+Applies acceleration or deceleration based on the slope of the floor.
+On downward slopes, Mario gains speed, while on upward slopes, Mario loses speed
 
 ### Lua Example
 `apply_slope_accel(m)`
@@ -3255,7 +3445,8 @@ Applies acceleration or deceleration based on the slope of the floor. On downwar
 ## [apply_landing_accel](#apply_landing_accel)
 
 ### Description
-Applies friction-like deceleration if the floor is flat, or slope-based acceleration if the floor is sloped. Capped in such a way that Mario eventually stops or stabilizes on flatter ground
+Applies friction-like deceleration if the floor is flat, or slope-based acceleration if the floor is sloped.
+Capped in such a way that Mario eventually stops or stabilizes on flatter ground
 
 ### Lua Example
 `local integerValue = apply_landing_accel(m, frictionFactor)`
@@ -3302,7 +3493,8 @@ Controls Mario's speed when riding a Koopa Shell on the ground.
 ## [apply_slope_decel](#apply_slope_decel)
 
 ### Description
-Approaches Mario's forward velocity toward zero at a rate dependent on the floor's slipperiness. This function can completely stop Mario if the slope is gentle enough or if friction is high
+Approaches Mario's forward velocity toward zero at a rate dependent on the floor's slipperiness.
+This function can completely stop Mario if the slope is gentle enough or if friction is high
 
 ### Lua Example
 `local integerValue = apply_slope_decel(m, decelCoef)`
@@ -3326,7 +3518,8 @@ Approaches Mario's forward velocity toward zero at a rate dependent on the floor
 ## [update_decelerating_speed](#update_decelerating_speed)
 
 ### Description
-Gradually reduces Mario's forward speed to zero over time on level ground, unless otherwise influenced by slope or friction. Returns true if Mario's speed reaches zero, meaning he has stopped
+Gradually reduces Mario's forward speed to zero over time on level ground, unless otherwise influenced by slope or friction.
+Returns true if Mario's speed reaches zero, meaning he has stopped
 
 ### Lua Example
 `local integerValue = update_decelerating_speed(m)`
@@ -3349,7 +3542,8 @@ Gradually reduces Mario's forward speed to zero over time on level ground, unles
 ## [update_walking_speed](#update_walking_speed)
 
 ### Description
-Updates Mario's walking speed based on player input and floor conditions (e.g., a slow floor or quicksand). Caps speed at a certain value and may reduce it slightly on steep slopes
+Updates Mario's walking speed based on player input and floor conditions (e.g., a slow floor or quicksand).
+Caps speed at a certain value and may reduce it slightly on steep slopes
 
 ### Lua Example
 `update_walking_speed(m)`
@@ -3372,7 +3566,8 @@ Updates Mario's walking speed based on player input and floor conditions (e.g., 
 ## [should_begin_sliding](#should_begin_sliding)
 
 ### Description
-Checks if Mario should begin sliding, based on player input (facing downhill, pressing the analog stick backward, or on a slide terrain), and current floor steepness. Returns true if conditions to slide are met.
+Checks if Mario should begin sliding, based on player input (facing downhill, pressing the analog stick backward, or on a slide terrain), and current floor steepness.
+Returns true if conditions to slide are met.
 
 ### Lua Example
 `local integerValue = should_begin_sliding(m)`
@@ -3395,7 +3590,8 @@ Checks if Mario should begin sliding, based on player input (facing downhill, pr
 ## [analog_stick_held_back](#analog_stick_held_back)
 
 ### Description
-Checks if the analog stick is held significantly behind Mario's current facing angle. Returns true if the stick is far enough in the opposite direction, indicating Mario wants to move backward
+Checks if the analog stick is held significantly behind Mario's current facing angle.
+Returns true if the stick is far enough in the opposite direction, indicating Mario wants to move backward
 
 ### Lua Example
 `local integerValue = analog_stick_held_back(m)`
@@ -3418,7 +3614,8 @@ Checks if the analog stick is held significantly behind Mario's current facing a
 ## [check_ground_dive_or_punch](#check_ground_dive_or_punch)
 
 ### Description
-Checks if the B button was pressed to either initiate a dive (if moving fast enough) or a punch (if moving slowly). Returns `true` if the action was changed to either a dive or a punching attack
+Checks if the B button was pressed to either initiate a dive (if moving fast enough) or a punch (if moving slowly).
+Returns `true` if the action was changed to either a dive or a punching attack
 
 ### Lua Example
 `local integerValue = check_ground_dive_or_punch(m)`
@@ -3441,7 +3638,8 @@ Checks if the B button was pressed to either initiate a dive (if moving fast eno
 ## [begin_braking_action](#begin_braking_action)
 
 ### Description
-Begins a braking action if Mario's forward velocity is high enough or transitions to a decelerating action otherwise. Also handles the scenario where Mario is up against a wall, transitioning to a standing state
+Begins a braking action if Mario's forward velocity is high enough or transitions to a decelerating action otherwise.
+Also handles the scenario where Mario is up against a wall, transitioning to a standing state
 
 ### Lua Example
 `local integerValue = begin_braking_action(m)`
@@ -3464,7 +3662,8 @@ Begins a braking action if Mario's forward velocity is high enough or transition
 ## [anim_and_audio_for_walk](#anim_and_audio_for_walk)
 
 ### Description
-Handles the animation and audio (footstep sounds) for normal walking or running. The specific animation used (tiptoe, walk, or run) depends on Mario's current speed
+Handles the animation and audio (footstep sounds) for normal walking or running.
+The specific animation used (tiptoe, walk, or run) depends on Mario's current speed
 
 ### Lua Example
 `anim_and_audio_for_walk(m)`
@@ -3487,7 +3686,8 @@ Handles the animation and audio (footstep sounds) for normal walking or running.
 ## [anim_and_audio_for_hold_walk](#anim_and_audio_for_hold_walk)
 
 ### Description
-Plays the appropriate animation and footstep sounds for walking while carrying a lighter object (like a small box). Adjusts the animation speed dynamically based on Mario's velocity
+Plays the appropriate animation and footstep sounds for walking while carrying a lighter object (like a small box).
+Adjusts the animation speed dynamically based on Mario's velocity
 
 ### Lua Example
 `anim_and_audio_for_hold_walk(m)`
@@ -3510,7 +3710,8 @@ Plays the appropriate animation and footstep sounds for walking while carrying a
 ## [anim_and_audio_for_heavy_walk](#anim_and_audio_for_heavy_walk)
 
 ### Description
-Plays the appropriate animation and footstep sounds for walking while carrying a heavy object. Sets the character animation speed based on Mario's intended movement speed
+Plays the appropriate animation and footstep sounds for walking while carrying a heavy object.
+Sets the character animation speed based on Mario's intended movement speed
 
 ### Lua Example
 `anim_and_audio_for_heavy_walk(m)`
@@ -3557,7 +3758,8 @@ When Mario hits a wall during movement, decides whether he's pushing against the
 ## [tilt_body_walking](#tilt_body_walking)
 
 ### Description
-Applies a left/right tilt to Mario's torso (and some pitch if running fast) while walking or running. The tilt is based on his change in yaw and current speed, giving a leaning appearance when turning
+Applies a left/right tilt to Mario's torso (and some pitch if running fast) while walking or running.
+The tilt is based on his change in yaw and current speed, giving a leaning appearance when turning
 
 ### Lua Example
 `tilt_body_walking(m, startYaw)`
@@ -3581,7 +3783,8 @@ Applies a left/right tilt to Mario's torso (and some pitch if running fast) whil
 ## [tilt_body_ground_shell](#tilt_body_ground_shell)
 
 ### Description
-Tilts Mario's torso and head while riding a shell on the ground to reflect turning. Similar to other tilt functions but tuned for shell-riding speeds and angles
+Tilts Mario's torso and head while riding a shell on the ground to reflect turning.
+Similar to other tilt functions but tuned for shell-riding speeds and angles
 
 ### Lua Example
 `tilt_body_ground_shell(m, startYaw)`
@@ -3605,7 +3808,8 @@ Tilts Mario's torso and head while riding a shell on the ground to reflect turni
 ## [tilt_body_butt_slide](#tilt_body_butt_slide)
 
 ### Description
-Tilts Mario's torso while butt sliding based on analog input direction and magnitude. Gives the appearance that Mario is balancing or leaning into a turn
+Tilts Mario's torso while butt sliding based on analog input direction and magnitude.
+Gives the appearance that Mario is balancing or leaning into a turn
 
 ### Lua Example
 `tilt_body_butt_slide(m)`
@@ -3654,7 +3858,8 @@ Applies shared logic for sliding-related actions while playing sliding sounds, m
 ## [common_slide_action_with_jump](#common_slide_action_with_jump)
 
 ### Description
-Builds on `common_slide_action` by also allowing Mario to jump out of a slide if A is pressed after a short delay. If the sliding slows enough, Mario transitions to a specified stopping action
+Builds on `common_slide_action` by also allowing Mario to jump out of a slide if A is pressed after a short delay.
+If the sliding slows enough, Mario transitions to a specified stopping action
 
 ### Lua Example
 `local integerValue = common_slide_action_with_jump(m, stopAction, jumpAction, airAction, animation)`
@@ -3681,7 +3886,8 @@ Builds on `common_slide_action` by also allowing Mario to jump out of a slide if
 ## [stomach_slide_action](#stomach_slide_action)
 
 ### Description
-Updates Mario's sliding state where he is on his stomach. Similar to other slide actions but has a chance to roll out if A or B is pressed. Uses `common_slide_action` for the core movement logic
+Updates Mario's sliding state where he is on his stomach. Similar to other slide actions but has a chance to roll out if A or B is pressed.
+Uses `common_slide_action` for the core movement logic
 
 ### Lua Example
 `local integerValue = stomach_slide_action(m, stopAction, airAction, animation)`
@@ -3759,7 +3965,8 @@ Applies movement upon landing from a jump or fall. Adjusts velocity based on slo
 ## [quicksand_jump_land_action](#quicksand_jump_land_action)
 
 ### Description
-Handles a special landing in quicksand after a jump. Over several frames, Mario emerges from the quicksand. First part of the animation reduces his quicksand depth. Ends with a normal landing action or transitions back to air if he leaves the ground
+Handles a special landing in quicksand after a jump. Over several frames, Mario emerges from the quicksand.
+First part of the animation reduces his quicksand depth. Ends with a normal landing action or transitions back to air if he leaves the ground
 
 ### Lua Example
 `local integerValue = quicksand_jump_land_action(m, animation1, animation2, endAction, airAction)`
@@ -3886,7 +4093,9 @@ Updates Mario's punching state
 ## [check_common_object_cancels](#check_common_object_cancels)
 
 ### Description
-Checks for and handles common conditions that would cancel Mario's current object action. This includes transitioning to a water plunge if below the water level, becoming squished if appropriate, or switching to standing death action if Mario is dead
+Checks for and handles common conditions that would cancel Mario's current object action. This includes transitioning
+to a water plunge if below the water level, becoming squished if appropriate, or switching to standing death action
+if Mario is dead
 
 ### Lua Example
 `local integerValue = check_common_object_cancels(m)`
@@ -3909,7 +4118,8 @@ Checks for and handles common conditions that would cancel Mario's current objec
 ## [mario_execute_object_action](#mario_execute_object_action)
 
 ### Description
-Executes Mario's current object action by first checking common object cancels, then updating quicksand state. Dispatches to the appropriate action function, such as punching, throwing, picking up Bowser, etc
+Executes Mario's current object action by first checking common object cancels, then updating quicksand state.
+Dispatches to the appropriate action function, such as punching, throwing, picking up Bowser, etc
 
 ### Lua Example
 `local integerValue = mario_execute_object_action(m)`
@@ -4128,7 +4338,8 @@ Checks for and handles common conditions that would cancel Mario's current stati
 ## [mario_execute_stationary_action](#mario_execute_stationary_action)
 
 ### Description
-Executes Mario's current object action by first checking common stationary cancels, then updating quicksand state. Dispatches to the appropriate action function, such as idle, sleeping, crouching, ect
+Executes Mario's current object action by first checking common stationary cancels, then updating quicksand state.
+Dispatches to the appropriate action function, such as idle, sleeping, crouching, ect
 
 ### Lua Example
 `local integerValue = mario_execute_stationary_action(m)`
@@ -4196,7 +4407,7 @@ Performs a full water movement step where ceilings, floors, and walls are handle
 - `integer`
 
 ### C Prototype
-`u32 perform_water_full_step(struct MarioState *m, OUT Vec3f nextPos);`
+`u32 perform_water_full_step(struct MarioState *m, VEC_OUT Vec3f nextPos);`
 
 [:arrow_up_small:](#)
 
@@ -4220,7 +4431,7 @@ Calculates a water current and outputs it in `step`
 - None
 
 ### C Prototype
-`void apply_water_current(struct MarioState *m, OUT Vec3f step);`
+`void apply_water_current(struct MarioState *m, VEC_OUT Vec3f step);`
 
 [:arrow_up_small:](#)
 
@@ -4275,7 +4486,8 @@ Controls the bobbing that happens when you swim near the water surface
 ## [mario_execute_submerged_action](#mario_execute_submerged_action)
 
 ### Description
-Executes Mario's current submerged action by first checking common submerged cancels, then setting quicksand depth and head angles to 0. Dispatches to the appropriate action function, such as breaststroke, flutterkick, water punch, ect
+Executes Mario's current submerged action by first checking common submerged cancels, then setting quicksand depth and head angles to 0.
+Dispatches to the appropriate action function, such as breaststroke, flutterkick, water punch, ect
 
 ### Lua Example
 `local integerValue = mario_execute_submerged_action(m)`
@@ -4391,13 +4603,13 @@ Behavior loop function for Star Door unlock object
 When used in a geo function, retrieve the MarioState associated to the current processed object
 
 ### Lua Example
-`local MarioStateValue = geo_get_mario_state()`
+`local marioStateValue = geo_get_mario_state()`
 
 ### Parameters
 - None
 
 ### Returns
-[MarioState](structs.md#MarioState)
+- [MarioState](structs.md#MarioState)
 
 ### C Prototype
 `struct MarioState *geo_get_mario_state(void);`
@@ -4412,13 +4624,13 @@ When used in a geo function, retrieve the MarioState associated to the current p
 When used in a geo function, retrieve the MarioBodyState associated to the current processed object
 
 ### Lua Example
-`local MarioBodyStateValue = geo_get_body_state()`
+`local marioBodyStateValue = geo_get_body_state()`
 
 ### Parameters
 - None
 
 ### Returns
-[MarioBodyState](structs.md#MarioBodyState)
+- [MarioBodyState](structs.md#MarioBodyState)
 
 ### C Prototype
 `struct MarioBodyState *geo_get_body_state(void);`
@@ -4861,7 +5073,7 @@ Computes spline interpolation weights for a given parameter `t` and stores these
 - None
 
 ### C Prototype
-`void spline_get_weights(struct MarioState* m, OUT Vec4f result, f32 t, UNUSED s32 c);`
+`void spline_get_weights(struct MarioState* m, VEC_OUT Vec4f result, f32 t, UNUSED s32 c);`
 
 [:arrow_up_small:](#)
 
@@ -4909,7 +5121,7 @@ Advances the spline-based animation associated with `m` and stores the current i
 - `integer`
 
 ### C Prototype
-`s32 anim_spline_poll(struct MarioState* m, OUT Vec3f result);`
+`s32 anim_spline_poll(struct MarioState* m, VEC_OUT Vec3f result);`
 
 [:arrow_up_small:](#)
 
@@ -4921,7 +5133,7 @@ Advances the spline-based animation associated with `m` and stores the current i
 Rotates the 3D floating-point vector `v` by the angles specified in the 3D signed-integer vector `rotate`, applying the rotations in the order Z, then X, then Y. The rotated vector replaces `v`
 
 ### Lua Example
-`local Vec3fValue = vec3f_rotate_zxy(v, rotate)`
+`local vec3fValue = vec3f_rotate_zxy(v, rotate)`
 
 ### Parameters
 | Field | Type |
@@ -4930,10 +5142,10 @@ Rotates the 3D floating-point vector `v` by the angles specified in the 3D signe
 | rotate | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_rotate_zxy(OUT Vec3f v, Vec3s rotate);`
+`Vec3fp vec3f_rotate_zxy(VEC_OUT Vec3f v, Vec3s rotate);`
 
 [:arrow_up_small:](#)
 
@@ -4945,7 +5157,7 @@ Rotates the 3D floating-point vector `v` by the angles specified in the 3D signe
 Rotates the 3D floating-point vector `v` around the vector `n`, given a rotation `r` (in sm64 angle units), and stores the result in `dest`
 
 ### Lua Example
-`local Vec3fValue = vec3f_rotate_around_n(dest, v, n, r)`
+`local vec3fValue = vec3f_rotate_around_n(dest, v, n, r)`
 
 ### Parameters
 | Field | Type |
@@ -4956,10 +5168,10 @@ Rotates the 3D floating-point vector `v` around the vector `n`, given a rotation
 | r | `integer` |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_rotate_around_n(OUT Vec3f dest, Vec3f v, Vec3f n, s16 r);`
+`Vec3fp vec3f_rotate_around_n(VEC_OUT Vec3f dest, Vec3f v, Vec3f n, s16 r);`
 
 [:arrow_up_small:](#)
 
@@ -4971,7 +5183,7 @@ Rotates the 3D floating-point vector `v` around the vector `n`, given a rotation
 Projects the 3D floating-point vector `v` onto another 3D floating-point vector `onto`. The resulting projection, stored in `dest`, represents how much of `v` lies along the direction of `onto`
 
 ### Lua Example
-`local Vec3fValue = vec3f_project(dest, v, onto)`
+`local vec3fValue = vec3f_project(dest, v, onto)`
 
 ### Parameters
 | Field | Type |
@@ -4981,10 +5193,10 @@ Projects the 3D floating-point vector `v` onto another 3D floating-point vector 
 | onto | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_project(OUT Vec3f dest, Vec3f v, Vec3f onto);`
+`Vec3fp vec3f_project(VEC_OUT Vec3f dest, Vec3f v, Vec3f onto);`
 
 [:arrow_up_small:](#)
 
@@ -4996,7 +5208,7 @@ Projects the 3D floating-point vector `v` onto another 3D floating-point vector 
 Scales the 3D floating-point vector `v` by the vector `scale`, then rotates it by the rotation vector `rotation`, and finally translates it by the vector `translation`. The resulting vector is stored in `dest`
 
 ### Lua Example
-`local Vec3fValue = vec3f_transform(dest, v, translation, rotation, scale)`
+`local vec3fValue = vec3f_transform(dest, v, translation, rotation, scale)`
 
 ### Parameters
 | Field | Type |
@@ -5008,10 +5220,10 @@ Scales the 3D floating-point vector `v` by the vector `scale`, then rotates it b
 | scale | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_transform(OUT Vec3f dest, Vec3f v, Vec3f translation, Vec3s rotation, Vec3f scale);`
+`Vec3fp vec3f_transform(VEC_OUT Vec3f dest, Vec3f v, Vec3f translation, Vec3s rotation, Vec3f scale);`
 
 [:arrow_up_small:](#)
 
@@ -5020,25 +5232,24 @@ Scales the 3D floating-point vector `v` by the vector `scale`, then rotates it b
 ## [vec3f_get_dist_and_angle](#vec3f_get_dist_and_angle)
 
 ### Description
-Calculates the distance between two points in 3D space (`from` and `to`), as well as the pitch and yaw angles that describe the direction from `from` to `to`. The results are stored in `dist`, `pitch`, and `yaw`
+Calculates the distance between two points in 3D space (`from` and `to`), as well as the pitch and yaw angles that describe the direction from `from` to `to`. Returns the calculated distance, pitch and yaw
 
 ### Lua Example
-`vec3f_get_dist_and_angle(from, to, dist, pitch, yaw)`
+`local dist, pitch, yaw = vec3f_get_dist_and_angle(from, to)`
 
 ### Parameters
 | Field | Type |
 | ----- | ---- |
 | from | [Vec3f](structs.md#Vec3f) |
 | to | [Vec3f](structs.md#Vec3f) |
-| dist | `Pointer` <`number`> |
-| pitch | `Pointer` <`integer`> |
-| yaw | `Pointer` <`integer`> |
 
 ### Returns
-- None
+- `number`
+- `integer`
+- `integer`
 
 ### C Prototype
-`void vec3f_get_dist_and_angle(Vec3f from, Vec3f to, f32 *dist, s16 *pitch, s16 *yaw);`
+`void vec3f_get_dist_and_angle(Vec3f from, Vec3f to, RET f32 *dist, RET s16 *pitch, RET s16 *yaw);`
 
 [:arrow_up_small:](#)
 
@@ -5065,7 +5276,7 @@ Positions the point `to` at a given `dist`, `pitch`, and `yaw` relative to the p
 - None
 
 ### C Prototype
-`void vec3f_set_dist_and_angle(Vec3f from, OUT Vec3f to, f32 dist, s16 pitch, s16 yaw);`
+`void vec3f_set_dist_and_angle(Vec3f from, VEC_OUT Vec3f to, f32 dist, s16 pitch, s16 yaw);`
 
 [:arrow_up_small:](#)
 
@@ -5077,7 +5288,7 @@ Positions the point `to` at a given `dist`, `pitch`, and `yaw` relative to the p
 Determines a vector that is perpendicular (normal) to the plane defined by three given 3D floating-point points `a`, `b`, and `c`. The resulting perpendicular vector is stored in `dest`
 
 ### Lua Example
-`local Vec3fValue = find_vector_perpendicular_to_plane(dest, a, b, c)`
+`local vec3fValue = find_vector_perpendicular_to_plane(dest, a, b, c)`
 
 ### Parameters
 | Field | Type |
@@ -5088,10 +5299,10 @@ Determines a vector that is perpendicular (normal) to the plane defined by three
 | c | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp find_vector_perpendicular_to_plane(OUT Vec3f dest, Vec3f a, Vec3f b, Vec3f c);`
+`Vec3fp find_vector_perpendicular_to_plane(VEC_OUT Vec3f dest, Vec3f a, Vec3f b, Vec3f c);`
 
 [:arrow_up_small:](#)
 
@@ -5117,7 +5328,7 @@ Adjusts the 4x4 floating-point matrix `mtx` so that it represents a viewing tran
 - None
 
 ### C Prototype
-`void mtxf_lookat(OUT Mat4 mtx, Vec3f from, Vec3f to, s16 roll);`
+`void mtxf_lookat(VEC_OUT Mat4 mtx, Vec3f from, Vec3f to, s16 roll);`
 
 [:arrow_up_small:](#)
 
@@ -5142,7 +5353,7 @@ Rotates `dest` according to the angles in `rotate` using ZXY order, and then tra
 - None
 
 ### C Prototype
-`void mtxf_rotate_zxy_and_translate(OUT Mat4 dest, Vec3f translate, Vec3s rotate);`
+`void mtxf_rotate_zxy_and_translate(VEC_OUT Mat4 dest, Vec3f translate, Vec3s rotate);`
 
 [:arrow_up_small:](#)
 
@@ -5167,7 +5378,7 @@ Rotates `dest` using angles in XYZ order, and then translates it by the 3D float
 - None
 
 ### C Prototype
-`void mtxf_rotate_xyz_and_translate(OUT Mat4 dest, Vec3f b, Vec3s c);`
+`void mtxf_rotate_xyz_and_translate(VEC_OUT Mat4 dest, Vec3f b, Vec3s c);`
 
 [:arrow_up_small:](#)
 
@@ -5193,7 +5404,7 @@ Transforms a 4x4 floating-point matrix `mtx` into a "billboard" oriented toward 
 - None
 
 ### C Prototype
-`void mtxf_billboard(OUT Mat4 dest, Mat4 mtx, Vec3f position, s16 angle);`
+`void mtxf_billboard(VEC_OUT Mat4 dest, Mat4 mtx, Vec3f position, s16 angle);`
 
 [:arrow_up_small:](#)
 
@@ -5219,7 +5430,7 @@ Creates a "cylindrical billboard" transformation from the 4x4 matrix `mtx` place
 - None
 
 ### C Prototype
-`void mtxf_cylboard(OUT Mat4 dest, Mat4 mtx, Vec3f position, s16 angle);`
+`void mtxf_cylboard(VEC_OUT Mat4 dest, Mat4 mtx, Vec3f position, s16 angle);`
 
 [:arrow_up_small:](#)
 
@@ -5245,7 +5456,7 @@ Aligns `dest` so that it fits the orientation of a terrain surface defined by it
 - None
 
 ### C Prototype
-`void mtxf_align_terrain_normal(OUT Mat4 dest, Vec3f upDir, Vec3f pos, s16 yaw);`
+`void mtxf_align_terrain_normal(VEC_OUT Mat4 dest, Vec3f upDir, Vec3f pos, s16 yaw);`
 
 [:arrow_up_small:](#)
 
@@ -5271,7 +5482,7 @@ Aligns `mtx` to fit onto a terrain triangle at `pos`, applying a given `yaw` and
 - None
 
 ### C Prototype
-`void mtxf_align_terrain_triangle(OUT Mat4 mtx, Vec3f pos, s16 yaw, f32 radius);`
+`void mtxf_align_terrain_triangle(VEC_OUT Mat4 mtx, Vec3f pos, s16 yaw, f32 radius);`
 
 [:arrow_up_small:](#)
 
@@ -5296,7 +5507,7 @@ Multiplies two 4x4 floating-point matrices `a` and `b` (in that order), storing 
 - None
 
 ### C Prototype
-`void mtxf_mul(OUT Mat4 dest, Mat4 a, Mat4 b);`
+`void mtxf_mul(VEC_OUT Mat4 dest, Mat4 a, Mat4 b);`
 
 [:arrow_up_small:](#)
 
@@ -5308,7 +5519,7 @@ Multiplies two 4x4 floating-point matrices `a` and `b` (in that order), storing 
 Multiplies the 3D signed-integer vector `b` with the 4x4 floating-point matrix `mtx`, which applies the transformation to the point
 
 ### Lua Example
-`local Vec3sValue = mtxf_mul_vec3s(mtx, b)`
+`local vec3sValue = mtxf_mul_vec3s(mtx, b)`
 
 ### Parameters
 | Field | Type |
@@ -5317,10 +5528,10 @@ Multiplies the 3D signed-integer vector `b` with the 4x4 floating-point matrix `
 | b | [Vec3s](structs.md#Vec3s) |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp mtxf_mul_vec3s(Mat4 mtx, OUT Vec3s b);`
+`Vec3sp mtxf_mul_vec3s(Mat4 mtx, VEC_OUT Vec3s b);`
 
 [:arrow_up_small:](#)
 
@@ -5344,7 +5555,7 @@ Rotates the matrix `mtx` in the XY plane by the given `angle`. Rotating in the X
 - None
 
 ### C Prototype
-`void mtxf_rotate_xy(OUT Mat4 mtx, s16 angle);`
+`void mtxf_rotate_xy(VEC_OUT Mat4 mtx, s16 angle);`
 
 [:arrow_up_small:](#)
 
@@ -5368,7 +5579,7 @@ Inverts the 4x4 floating-point matrix `src` and stores the inverse in `dest`. Ap
 - None
 
 ### C Prototype
-`void mtxf_inverse(OUT Mat4 dest, Mat4 src);`
+`void mtxf_inverse(VEC_OUT Mat4 dest, Mat4 src);`
 
 [:arrow_up_small:](#)
 
@@ -5392,7 +5603,7 @@ Inverts the 4x4 floating-point matrix `src` and stores the inverse in `dest`. Ap
 - `boolean`
 
 ### C Prototype
-`bool mtxf_inverse_non_affine(OUT Mat4 dest, Mat4 src);`
+`bool mtxf_inverse_non_affine(VEC_OUT Mat4 dest, Mat4 src);`
 
 [:arrow_up_small:](#)
 
@@ -5404,7 +5615,7 @@ Inverts the 4x4 floating-point matrix `src` and stores the inverse in `dest`. Ap
 Extracts the position (translation component) from the transformation matrix `objMtx` relative to the coordinate system defined by `camMtx` and stores that 3D position in `dest`. This can be used to get the object's coordinates in camera space
 
 ### Lua Example
-`local Vec3fValue = get_pos_from_transform_mtx(dest, objMtx, camMtx)`
+`local vec3fValue = get_pos_from_transform_mtx(dest, objMtx, camMtx)`
 
 ### Parameters
 | Field | Type |
@@ -5414,10 +5625,10 @@ Extracts the position (translation component) from the transformation matrix `ob
 | camMtx | [Mat4](structs.md#Mat4) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp get_pos_from_transform_mtx(OUT Vec3f dest, Mat4 objMtx, Mat4 camMtx);`
+`Vec3fp get_pos_from_transform_mtx(VEC_OUT Vec3f dest, Mat4 objMtx, Mat4 camMtx);`
 
 [:arrow_up_small:](#)
 
@@ -5554,7 +5765,8 @@ Converts an angle from degrees to SM64 format
 ## [mtxf_zero](#mtxf_zero)
 
 ### Description
-Sets the 4x4 floating-point matrix `mtx` to all zeros. Unless you really need this-It's reccomended to use mtxf_identity instead.
+Sets the 4x4 floating-point matrix `mtx` to all zeros.
+Unless you really need this-It's reccomended to use mtxf_identity instead.
 
 ### Lua Example
 `mtxf_zero(mtx)`
@@ -5568,7 +5780,7 @@ Sets the 4x4 floating-point matrix `mtx` to all zeros. Unless you really need th
 - None
 
 ### C Prototype
-`void mtxf_zero(OUT Mat4 mtx);`
+`void mtxf_zero(VEC_OUT Mat4 mtx);`
 
 [:arrow_up_small:](#)
 
@@ -5592,7 +5804,7 @@ Copies the 4x4 floating-point matrix `src` into `dest`. After this operation, `d
 - None
 
 ### C Prototype
-`void mtxf_copy(OUT Mat4 dest, Mat4 src);`
+`void mtxf_copy(VEC_OUT Mat4 dest, Mat4 src);`
 
 [:arrow_up_small:](#)
 
@@ -5615,7 +5827,7 @@ Sets the 4x4 floating-point matrix `mtx` to the identity matrix. The identity ma
 - None
 
 ### C Prototype
-`void mtxf_identity(OUT Mat4 mtx);`
+`void mtxf_identity(VEC_OUT Mat4 mtx);`
 
 [:arrow_up_small:](#)
 
@@ -5639,7 +5851,7 @@ Sets the 4x4 floating-point matrix `dest` to the translation matrix decribed by 
 - None
 
 ### C Prototype
-`void mtxf_translate(OUT Mat4 dest, Vec3f b);`
+`void mtxf_translate(VEC_OUT Mat4 dest, Vec3f b);`
 
 [:arrow_up_small:](#)
 
@@ -5664,7 +5876,7 @@ Scales the 4x4 floating-point matrix `mtx` by the scaling factors found in the 3
 - None
 
 ### C Prototype
-`void mtxf_scale_vec3f(OUT Mat4 dest, Mat4 mtx, Vec3f s);`
+`void mtxf_scale_vec3f(VEC_OUT Mat4 dest, Mat4 mtx, Vec3f s);`
 
 [:arrow_up_small:](#)
 
@@ -5682,7 +5894,7 @@ Scales the 4x4 floating-point matrix `mtx` by the scaling factors found in the 3
 Sets the components of the 3D floating-point vector `v` to 0
 
 ### Lua Example
-`local Vec3fValue = vec3f_zero(v)`
+`local vec3fValue = vec3f_zero(v)`
 
 ### Parameters
 | Field | Type |
@@ -5690,10 +5902,10 @@ Sets the components of the 3D floating-point vector `v` to 0
 | v | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_zero(OUT Vec3f v);`
+`Vec3fp vec3f_zero(VEC_OUT Vec3f v);`
 
 [:arrow_up_small:](#)
 
@@ -5705,7 +5917,7 @@ Sets the components of the 3D floating-point vector `v` to 0
 Copies the contents of a 3D floating-point vector (`src`) into another 3D floating-point vector (`dest`)
 
 ### Lua Example
-`local Vec3fValue = vec3f_copy(dest, src)`
+`local vec3fValue = vec3f_copy(dest, src)`
 
 ### Parameters
 | Field | Type |
@@ -5714,10 +5926,10 @@ Copies the contents of a 3D floating-point vector (`src`) into another 3D floati
 | src | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_copy(OUT Vec3f dest, Vec3f src);`
+`Vec3fp vec3f_copy(VEC_OUT Vec3f dest, Vec3f src);`
 
 [:arrow_up_small:](#)
 
@@ -5729,7 +5941,7 @@ Copies the contents of a 3D floating-point vector (`src`) into another 3D floati
 Sets the values of the 3D floating-point vector `dest` to the given x, y, and z values
 
 ### Lua Example
-`local Vec3fValue = vec3f_set(dest, x, y, z)`
+`local vec3fValue = vec3f_set(dest, x, y, z)`
 
 ### Parameters
 | Field | Type |
@@ -5740,10 +5952,10 @@ Sets the values of the 3D floating-point vector `dest` to the given x, y, and z 
 | z | `number` |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_set(OUT Vec3f dest, f32 x, f32 y, f32 z);`
+`Vec3fp vec3f_set(VEC_OUT Vec3f dest, f32 x, f32 y, f32 z);`
 
 [:arrow_up_small:](#)
 
@@ -5755,7 +5967,7 @@ Sets the values of the 3D floating-point vector `dest` to the given x, y, and z 
 Adds the components of the 3D floating-point vector `a` to `dest`
 
 ### Lua Example
-`local Vec3fValue = vec3f_add(dest, a)`
+`local vec3fValue = vec3f_add(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -5764,10 +5976,10 @@ Adds the components of the 3D floating-point vector `a` to `dest`
 | a | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_add(OUT Vec3f dest, Vec3f a);`
+`Vec3fp vec3f_add(VEC_OUT Vec3f dest, Vec3f a);`
 
 [:arrow_up_small:](#)
 
@@ -5779,7 +5991,7 @@ Adds the components of the 3D floating-point vector `a` to `dest`
 Adds the components of two 3D floating-point vectors `a` and `b` and stores the result in `dest`
 
 ### Lua Example
-`local Vec3fValue = vec3f_sum(dest, a, b)`
+`local vec3fValue = vec3f_sum(dest, a, b)`
 
 ### Parameters
 | Field | Type |
@@ -5789,10 +6001,10 @@ Adds the components of two 3D floating-point vectors `a` and `b` and stores the 
 | b | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_sum(OUT Vec3f dest, Vec3f a, Vec3f b);`
+`Vec3fp vec3f_sum(VEC_OUT Vec3f dest, Vec3f a, Vec3f b);`
 
 [:arrow_up_small:](#)
 
@@ -5804,7 +6016,7 @@ Adds the components of two 3D floating-point vectors `a` and `b` and stores the 
 Subtracts the components of the 3D floating-point vector `a` from `dest`
 
 ### Lua Example
-`local Vec3fValue = vec3f_sub(dest, a)`
+`local vec3fValue = vec3f_sub(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -5813,10 +6025,10 @@ Subtracts the components of the 3D floating-point vector `a` from `dest`
 | a | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_sub(OUT Vec3f dest, Vec3f a);`
+`Vec3fp vec3f_sub(VEC_OUT Vec3f dest, Vec3f a);`
 
 [:arrow_up_small:](#)
 
@@ -5828,7 +6040,7 @@ Subtracts the components of the 3D floating-point vector `a` from `dest`
 Subtracts the components of the 3D floating-point vector `b` from the components of `a` and stores the result in `dest`
 
 ### Lua Example
-`local Vec3fValue = vec3f_dif(dest, a, b)`
+`local vec3fValue = vec3f_dif(dest, a, b)`
 
 ### Parameters
 | Field | Type |
@@ -5838,10 +6050,10 @@ Subtracts the components of the 3D floating-point vector `b` from the components
 | b | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_dif(OUT Vec3f dest, Vec3f a, Vec3f b);`
+`Vec3fp vec3f_dif(VEC_OUT Vec3f dest, Vec3f a, Vec3f b);`
 
 [:arrow_up_small:](#)
 
@@ -5853,7 +6065,7 @@ Subtracts the components of the 3D floating-point vector `b` from the components
 Multiplies each component of the 3D floating-point vector `dest` by the scalar value `a`
 
 ### Lua Example
-`local Vec3fValue = vec3f_mul(dest, a)`
+`local vec3fValue = vec3f_mul(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -5862,10 +6074,10 @@ Multiplies each component of the 3D floating-point vector `dest` by the scalar v
 | a | `number` |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_mul(OUT Vec3f dest, f32 a);`
+`Vec3fp vec3f_mul(VEC_OUT Vec3f dest, f32 a);`
 
 [:arrow_up_small:](#)
 
@@ -5877,7 +6089,7 @@ Multiplies each component of the 3D floating-point vector `dest` by the scalar v
 Multiplies the components of the 3D floating-point vector `dest` with the components of `a`
 
 ### Lua Example
-`local Vec3fValue = vec3f_mult(dest, a)`
+`local vec3fValue = vec3f_mult(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -5886,10 +6098,10 @@ Multiplies the components of the 3D floating-point vector `dest` with the compon
 | a | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_mult(OUT Vec3f dest, Vec3f a);`
+`Vec3fp vec3f_mult(VEC_OUT Vec3f dest, Vec3f a);`
 
 [:arrow_up_small:](#)
 
@@ -5901,7 +6113,7 @@ Multiplies the components of the 3D floating-point vector `dest` with the compon
 Multiplies the components of two 3D floating-point vectors `a` and `b` and stores the result in `dest`
 
 ### Lua Example
-`local Vec3fValue = vec3f_prod(dest, a, b)`
+`local vec3fValue = vec3f_prod(dest, a, b)`
 
 ### Parameters
 | Field | Type |
@@ -5911,10 +6123,10 @@ Multiplies the components of two 3D floating-point vectors `a` and `b` and store
 | b | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_prod(OUT Vec3f dest, Vec3f a, Vec3f b);`
+`Vec3fp vec3f_prod(VEC_OUT Vec3f dest, Vec3f a, Vec3f b);`
 
 [:arrow_up_small:](#)
 
@@ -5926,7 +6138,7 @@ Multiplies the components of two 3D floating-point vectors `a` and `b` and store
 Divides each component of the 3D floating-point vector `dest` by the scalar value `a`
 
 ### Lua Example
-`local Vec3fValue = vec3f_div(dest, a)`
+`local vec3fValue = vec3f_div(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -5935,10 +6147,10 @@ Divides each component of the 3D floating-point vector `dest` by the scalar valu
 | a | `number` |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_div(OUT Vec3f dest, f32 a);`
+`Vec3fp vec3f_div(VEC_OUT Vec3f dest, f32 a);`
 
 [:arrow_up_small:](#)
 
@@ -5973,7 +6185,7 @@ Calculates the length (magnitude) of the 3D floating-point vector `a`
 Normalizes the 3D floating-point vector `v` so that its length (magnitude) becomes 1, while retaining its direction
 
 ### Lua Example
-`local Vec3fValue = vec3f_normalize(v)`
+`local vec3fValue = vec3f_normalize(v)`
 
 ### Parameters
 | Field | Type |
@@ -5981,10 +6193,10 @@ Normalizes the 3D floating-point vector `v` so that its length (magnitude) becom
 | v | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_normalize(OUT Vec3f v);`
+`Vec3fp vec3f_normalize(VEC_OUT Vec3f v);`
 
 [:arrow_up_small:](#)
 
@@ -5996,7 +6208,7 @@ Normalizes the 3D floating-point vector `v` so that its length (magnitude) becom
 Sets the length (magnitude) of 3D floating-point vector `v`, while retaining its direction
 
 ### Lua Example
-`local Vec3fValue = vec3f_set_magnitude(v, mag)`
+`local vec3fValue = vec3f_set_magnitude(v, mag)`
 
 ### Parameters
 | Field | Type |
@@ -6005,10 +6217,10 @@ Sets the length (magnitude) of 3D floating-point vector `v`, while retaining its
 | mag | `number` |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_set_magnitude(OUT Vec3f v, f32 mag);`
+`Vec3fp vec3f_set_magnitude(VEC_OUT Vec3f v, f32 mag);`
 
 [:arrow_up_small:](#)
 
@@ -6044,7 +6256,7 @@ Computes the dot product of the two 3D floating-point vectors `a` and `b`
 Computes the cross product of two 3D floating-point vectors `a` and `b` and stores the result in `dest`
 
 ### Lua Example
-`local Vec3fValue = vec3f_cross(dest, a, b)`
+`local vec3fValue = vec3f_cross(dest, a, b)`
 
 ### Parameters
 | Field | Type |
@@ -6054,10 +6266,10 @@ Computes the cross product of two 3D floating-point vectors `a` and `b` and stor
 | b | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_cross(OUT Vec3f dest, Vec3f a, Vec3f b);`
+`Vec3fp vec3f_cross(VEC_OUT Vec3f dest, Vec3f a, Vec3f b);`
 
 [:arrow_up_small:](#)
 
@@ -6069,7 +6281,7 @@ Computes the cross product of two 3D floating-point vectors `a` and `b` and stor
 Takes two 3D floating-point vectors `vecA` and `vecB`, multiplies them by `sclA` and `sclB` respectively, adds the scaled vectors together and stores the result in `dest`
 
 ### Lua Example
-`local Vec3fValue = vec3f_combine(dest, vecA, vecB, sclA, sclB)`
+`local vec3fValue = vec3f_combine(dest, vecA, vecB, sclA, sclB)`
 
 ### Parameters
 | Field | Type |
@@ -6081,10 +6293,10 @@ Takes two 3D floating-point vectors `vecA` and `vecB`, multiplies them by `sclA`
 | sclB | `number` |
 
 ### Returns
-[Vec3f](structs.md#Vec3f)
+- [Vec3f](structs.md#Vec3f)
 
 ### C Prototype
-`Vec3fp vec3f_combine(OUT Vec3f dest, Vec3f vecA, Vec3f vecB, f32 sclA, f32 sclB);`
+`Vec3fp vec3f_combine(VEC_OUT Vec3f dest, Vec3f vecA, Vec3f vecB, f32 sclA, f32 sclB);`
 
 [:arrow_up_small:](#)
 
@@ -6167,7 +6379,7 @@ Returns `true` if all components of the 3D floating-point vector `v` are zero
 Converts a 3D floating-point vector `a` into a 3D integer vector and stores the result in `dest`
 
 ### Lua Example
-`local Vec3iValue = vec3f_to_vec3i(dest, a)`
+`local vec3iValue = vec3f_to_vec3i(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -6176,10 +6388,10 @@ Converts a 3D floating-point vector `a` into a 3D integer vector and stores the 
 | a | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3i](structs.md#Vec3i)
+- [Vec3i](structs.md#Vec3i)
 
 ### C Prototype
-`Vec3ip vec3f_to_vec3i(OUT Vec3i dest, Vec3f a);`
+`Vec3ip vec3f_to_vec3i(VEC_OUT Vec3i dest, Vec3f a);`
 
 [:arrow_up_small:](#)
 
@@ -6191,7 +6403,7 @@ Converts a 3D floating-point vector `a` into a 3D integer vector and stores the 
 Converts a 3D floating-point vector `a` into a 3D short integer vector and stores the result in `dest`
 
 ### Lua Example
-`local Vec3sValue = vec3f_to_vec3s(dest, a)`
+`local vec3sValue = vec3f_to_vec3s(dest, a)`
 
 ### Parameters
 | Field | Type |
@@ -6200,549 +6412,10 @@ Converts a 3D floating-point vector `a` into a 3D short integer vector and store
 | a | [Vec3f](structs.md#Vec3f) |
 
 ### Returns
-[Vec3s](structs.md#Vec3s)
+- [Vec3s](structs.md#Vec3s)
 
 ### C Prototype
-`Vec3sp vec3f_to_vec3s(OUT Vec3s dest, Vec3f a);`
-
-[:arrow_up_small:](#)
-
-<br />
-
----
-# functions from math_util_vec3i.inl
-
-<br />
-
-
-## [vec3i_zero](#vec3i_zero)
-
-### Description
-Sets the components of the 3D integer vector `v` to 0
-
-### Lua Example
-`local Vec3iValue = vec3i_zero(v)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| v | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_zero(OUT Vec3i v);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_copy](#vec3i_copy)
-
-### Description
-Copies the contents of a 3D integer vector (`src`) into another 3D integer vector (`dest`)
-
-### Lua Example
-`local Vec3iValue = vec3i_copy(dest, src)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3i](structs.md#Vec3i) |
-| src | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_copy(OUT Vec3i dest, Vec3i src);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_set](#vec3i_set)
-
-### Description
-Sets the values of the 3D integer vector `dest` to the given x, y, and z values
-
-### Lua Example
-`local Vec3iValue = vec3i_set(dest, x, y, z)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3i](structs.md#Vec3i) |
-| x | `integer` |
-| y | `integer` |
-| z | `integer` |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_set(OUT Vec3i dest, s32 x, s32 y, s32 z);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_add](#vec3i_add)
-
-### Description
-Adds the components of the 3D integer vector `a` to `dest`
-
-### Lua Example
-`local Vec3iValue = vec3i_add(dest, a)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3i](structs.md#Vec3i) |
-| a | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_add(OUT Vec3i dest, Vec3i a);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_sum](#vec3i_sum)
-
-### Description
-Adds the components of two 3D integer vectors `a` and `b` and stores the result in `dest`
-
-### Lua Example
-`local Vec3iValue = vec3i_sum(dest, a, b)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3i](structs.md#Vec3i) |
-| a | [Vec3i](structs.md#Vec3i) |
-| b | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_sum(OUT Vec3i dest, Vec3i a, Vec3i b);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_sub](#vec3i_sub)
-
-### Description
-Subtracts the components of the 3D integer vector `a` from `dest`
-
-### Lua Example
-`local Vec3iValue = vec3i_sub(dest, a)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3i](structs.md#Vec3i) |
-| a | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_sub(OUT Vec3i dest, Vec3i a);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_dif](#vec3i_dif)
-
-### Description
-Subtracts the components of the 3D integer vector `b` from the components of `a` and stores the result in `dest`
-
-### Lua Example
-`local Vec3iValue = vec3i_dif(dest, a, b)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3i](structs.md#Vec3i) |
-| a | [Vec3i](structs.md#Vec3i) |
-| b | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_dif(OUT Vec3i dest, Vec3i a, Vec3i b);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_mul](#vec3i_mul)
-
-### Description
-Multiplies each component of the 3D integer vector `dest` by the scalar value `a`
-
-### Lua Example
-`local Vec3iValue = vec3i_mul(dest, a)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3i](structs.md#Vec3i) |
-| a | `number` |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_mul(OUT Vec3i dest, f32 a);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_mult](#vec3i_mult)
-
-### Description
-Multiplies the components of the 3D integer vector `dest` with the components of `a`
-
-### Lua Example
-`local Vec3iValue = vec3i_mult(dest, a)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3i](structs.md#Vec3i) |
-| a | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_mult(OUT Vec3i dest, Vec3i a);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_prod](#vec3i_prod)
-
-### Description
-Multiplies the components of two 3D integer vectors `a` and `b` and stores the result in `dest`
-
-### Lua Example
-`local Vec3iValue = vec3i_prod(dest, a, b)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3i](structs.md#Vec3i) |
-| a | [Vec3i](structs.md#Vec3i) |
-| b | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_prod(OUT Vec3i dest, Vec3i a, Vec3i b);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_div](#vec3i_div)
-
-### Description
-Divides each component of the 3D integer vector `dest` by the scalar value `a`
-
-### Lua Example
-`local Vec3iValue = vec3i_div(dest, a)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3i](structs.md#Vec3i) |
-| a | `number` |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_div(OUT Vec3i dest, f32 a);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_length](#vec3i_length)
-
-### Description
-Calculates the length (magnitude) of the 3D integer vector `a`
-
-### Lua Example
-`local numberValue = vec3i_length(a)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| a | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-- `number`
-
-### C Prototype
-`f32 vec3i_length(Vec3i a);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_normalize](#vec3i_normalize)
-
-### Description
-Normalizes the 3D integer vector `v` so that its length (magnitude) becomes 1, while retaining its direction
-
-### Lua Example
-`local Vec3iValue = vec3i_normalize(v)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| v | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_normalize(OUT Vec3i v);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_set_magnitude](#vec3i_set_magnitude)
-
-### Description
-Sets the length (magnitude) of 3D integer vector `v`, while retaining its direction
-
-### Lua Example
-`local Vec3iValue = vec3i_set_magnitude(v, mag)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| v | [Vec3i](structs.md#Vec3i) |
-| mag | `number` |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_set_magnitude(OUT Vec3i v, f32 mag);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_dot](#vec3i_dot)
-
-### Description
-Computes the dot product of the two 3D integer vectors `a` and `b`
-
-### Lua Example
-`local numberValue = vec3i_dot(a, b)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| a | [Vec3i](structs.md#Vec3i) |
-| b | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-- `number`
-
-### C Prototype
-`f32 vec3i_dot(Vec3i a, Vec3i b);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_cross](#vec3i_cross)
-
-### Description
-Computes the cross product of two 3D integer vectors `a` and `b` and stores the result in `dest`
-
-### Lua Example
-`local Vec3iValue = vec3i_cross(dest, a, b)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3i](structs.md#Vec3i) |
-| a | [Vec3i](structs.md#Vec3i) |
-| b | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_cross(OUT Vec3i dest, Vec3i a, Vec3i b);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_combine](#vec3i_combine)
-
-### Description
-Takes two 3D integer vectors `vecA` and `vecB`, multiplies them by `sclA` and `sclB` respectively, adds the scaled vectors together and stores the result in `dest`
-
-### Lua Example
-`local Vec3iValue = vec3i_combine(dest, vecA, vecB, sclA, sclB)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3i](structs.md#Vec3i) |
-| vecA | [Vec3i](structs.md#Vec3i) |
-| vecB | [Vec3i](structs.md#Vec3i) |
-| sclA | `number` |
-| sclB | `number` |
-
-### Returns
-[Vec3i](structs.md#Vec3i)
-
-### C Prototype
-`Vec3ip vec3i_combine(OUT Vec3i dest, Vec3i vecA, Vec3i vecB, f32 sclA, f32 sclB);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_dist](#vec3i_dist)
-
-### Description
-Calculates the distance between two 3D integer vectors `v1` and `v2`
-
-### Lua Example
-`local numberValue = vec3i_dist(v1, v2)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| v1 | [Vec3i](structs.md#Vec3i) |
-| v2 | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-- `number`
-
-### C Prototype
-`f32 vec3i_dist(Vec3i v1, Vec3i v2);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_hdist](#vec3i_hdist)
-
-### Description
-Calculates the horizontal distance between two 3D integer vectors `v1` and `v2`, as if their y component was 0
-
-### Lua Example
-`local numberValue = vec3i_hdist(v1, v2)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| v1 | [Vec3i](structs.md#Vec3i) |
-| v2 | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-- `number`
-
-### C Prototype
-`f32 vec3i_hdist(Vec3i v1, Vec3i v2);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_is_zero](#vec3i_is_zero)
-
-### Description
-Returns `true` if all components of the 3D integer vector `v` are zero
-
-### Lua Example
-`local booleanValue = vec3i_is_zero(v)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| v | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-- `boolean`
-
-### C Prototype
-`bool vec3i_is_zero(Vec3i v);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_to_vec3f](#vec3i_to_vec3f)
-
-### Description
-Converts a 3D integer vector `a` into a 3D floating-point vector and stores the result in `dest`
-
-### Lua Example
-`local Vec3fValue = vec3i_to_vec3f(dest, a)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3f](structs.md#Vec3f) |
-| a | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-[Vec3f](structs.md#Vec3f)
-
-### C Prototype
-`Vec3fp vec3i_to_vec3f(OUT Vec3f dest, Vec3i a);`
-
-[:arrow_up_small:](#)
-
-<br />
-
-## [vec3i_to_vec3s](#vec3i_to_vec3s)
-
-### Description
-Converts a 3D integer vector `a` into a 3D short integer vector and stores the result in `dest`
-
-### Lua Example
-`local Vec3sValue = vec3i_to_vec3s(dest, a)`
-
-### Parameters
-| Field | Type |
-| ----- | ---- |
-| dest | [Vec3s](structs.md#Vec3s) |
-| a | [Vec3i](structs.md#Vec3i) |
-
-### Returns
-[Vec3s](structs.md#Vec3s)
-
-### C Prototype
-`Vec3sp vec3i_to_vec3s(OUT Vec3s dest, Vec3i a);`
+`Vec3sp vec3f_to_vec3s(VEC_OUT Vec3s dest, Vec3f a);`
 
 [:arrow_up_small:](#)
 

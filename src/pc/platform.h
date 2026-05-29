@@ -10,6 +10,14 @@
 #define ANDROID_APPNAME "com.maniscat2.sm64coopdx"
 #endif
 
+#ifdef _WIN32
+#define PATH_SEPARATOR      "\\"
+#define PATH_SEPARATOR_ALT  "/"
+#else
+#define PATH_SEPARATOR      "/"
+#define PATH_SEPARATOR_ALT  "\\"
+#endif
+
 #define SYS_MAX_PATH 4096
 
 // crossplatform impls of misc stuff
@@ -20,6 +28,8 @@ int sys_strcasecmp(const char *s1, const char *s2);
 // path stuff
 #ifdef TARGET_ANDROID
 const char* get_gamedir(void);
+void open_file_picker(void);
+bool is_file_picker_open(void);
 #endif
 #ifdef _WIN32
 bool sys_windows_short_path_from_wcs(char *destPath, size_t destSize, const wchar_t *wcsLongPath);

@@ -88,6 +88,7 @@ bool smlua_to_boolean(lua_State* L, int index) {
         gSmLuaConvertSuccess = false;
         return 0;
     }
+    gSmLuaConvertSuccess = true;
     return lua_toboolean(L, index) ? true : false;
 }
 
@@ -102,7 +103,7 @@ lua_Integer smlua_to_integer(lua_State* L, int index) {
     }
     gSmLuaConvertSuccess = true;
     lua_Integer val = lua_tointeger(L, index);
-    return (val == 0) ? lua_tonumber(L, index) : val;
+    return (val == 0) ? (lua_Integer) lua_tonumber(L, index) : val;
 }
 
 lua_Number smlua_to_number(lua_State* L, int index) {
@@ -221,7 +222,7 @@ void* smlua_to_cpointer(lua_State* L, int index, u16 lvt) {
     CPointer *cpointer = luaL_checkudata(L, index, "CPointer");
 
     if (lvt != cpointer->lvt) {
-        LOG_LUA_LINE("smlua_to_cpointer received improper LOT. Expected '%s', received '%s'", smlua_get_lvt_name(lvt), smlua_get_lvt_name(cpointer->lvt));
+        LOG_LUA_LINE("smlua_to_cpointer received improper LVT. Expected '%s', received '%s'", smlua_get_lvt_name(lvt), smlua_get_lvt_name(cpointer->lvt));
         gSmLuaConvertSuccess = false;
         return NULL;
     }
@@ -849,7 +850,7 @@ void smlua_logline(void) {
         if (strlen(src) < SYS_MAX_PATH) {
             int slashCount = 0;
             for (const char* p = src + strlen(src); p > src; --p) {
-                if (*p == '/' || *p == '\\') {
+                if (*p == *PATH_SEPARATOR || *p == *PATH_SEPARATOR_ALT) {
                     if (++slashCount == 2) {
                         folderStart = p + 1;
                         break;
@@ -869,7 +870,7 @@ void smlua_logline(void) {
     }
 }
 
-void smlua_free(void *ptr, u16 lot) {
+static void smlua_cobject_invalidate_internal(void *ptr, u16 lot) {
     if (ptr && gLuaState) {
         lua_State *L = gLuaState;
         LUA_STACK_CHECK_BEGIN(L);
@@ -890,5 +891,13 @@ void smlua_free(void *ptr, u16 lot) {
         lua_pop(L, 1);
         LUA_STACK_CHECK_END(L);
     }
+}
+
+void smlua_free(void *ptr, u16 lot) {
+    smlua_cobject_invalidate_internal(ptr, lot);
     free(ptr);
+}
+
+void smlua_cobject_invalidate(void *ptr, u16 lot) {
+    smlua_cobject_invalidate_internal(ptr, lot);
 }

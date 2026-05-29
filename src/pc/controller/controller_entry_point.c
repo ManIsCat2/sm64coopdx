@@ -14,9 +14,7 @@
 // moved these from sdl controller implementations
 
 static struct ControllerAPI *controller_implementations[] = {
-#if defined(CAPI_SDL2) || defined(CAPI_SDL1)
     &controller_sdl,
-#endif
     &controller_keyboard,
 #ifdef TOUCH_CONTROLS
     &controller_touchscreen,

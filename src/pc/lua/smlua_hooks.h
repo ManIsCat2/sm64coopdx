@@ -11,6 +11,8 @@
 // forward declare
 struct Camera;
 struct WarpDest;
+struct WallCollisionData;
+struct Surface;
 
 // ! Hooks must be added at the end
 enum LuaHookedEventType {
@@ -74,6 +76,15 @@ enum LuaHookedEventType {
     HOOK_ON_ADD_SURFACE,
     HOOK_ON_CLEAR_AREAS,
     HOOK_ON_PACKET_BYTESTRING_RECEIVE,
+    HOOK_ON_FIND_WALL_COLLISION,
+    HOOK_ON_FIND_CEIL,
+    HOOK_ON_FIND_FLOOR,
+    HOOK_ON_FIND_WATER_LEVEL,
+    HOOK_ON_FIND_POISON_GAS_LEVEL,
+    HOOK_ON_FIND_SURFACE_ON_RAY,
+    HOOK_ON_DYNOS_PACK_TOGGLED,
+    HOOK_BEFORE_PLAY_MODE_UPDATE,
+    HOOK_ON_PLAY_MODE_UPDATE,
     HOOK_MAX,
 };
 
@@ -94,6 +105,8 @@ static const char* LuaActionHookTypeArgName[] = {
     "gravity",
     "max (dummy)",
 };
+
+#define ACTION_HOOK_CONTINUE_EXECUTION -1
 
 #define MAX_HOOKED_MOD_MENU_ELEMENTS 256
 
@@ -125,6 +138,36 @@ extern u32 gLuaMarioActionIndex[];
 extern struct LuaHookedModMenuElement gHookedModMenuElements[];
 extern int gHookedModMenuElementsCount;
 
+#define LUA_BEHAVIOR_START    (1 << 15)
+#define LUA_BEHAVIOR_NEW_ID   (UINT16_MAX) // behavior id is 2-bytes long
+#define MAX_HOOKED_BEHAVIORS  (LUA_BEHAVIOR_NEW_ID - LUA_BEHAVIOR_START)
+
+enum LuaHookedBehaviorType {
+    LUA_BEHAVIOR_TYPE_CALLBACKS, // Lua callbacks on top of an existing behavior
+    LUA_BEHAVIOR_TYPE_LUA,       // Full Lua custom behavior
+    LUA_BEHAVIOR_TYPE_CUSTOM,    // DynOS custom behavior (with or without callbacks)
+};
+
+struct LuaHookedBehaviorCallback {
+    int ref;
+    struct Mod *mod;
+    struct ModFile *modFile;
+};
+
+struct LuaHookedBehavior {
+    enum BehaviorId behaviorId; // the original behavior id
+    enum BehaviorId customId; // unique Lua/custom behavior id
+
+    enum LuaHookedBehaviorType type;
+    BehaviorScript *script; // Lua/custom behavior script
+
+    struct GrowingArray *bhvNames;      // const char *
+    struct GrowingArray *initCallbacks; // struct LuaHookedBehaviorCallback *
+    struct GrowingArray *loopCallbacks; // struct LuaHookedBehaviorCallback *
+};
+
+extern struct GrowingArray *gHookedBehaviors;
+
 #define OUTPUT
 #define SMLUA_EVENT_HOOK(hookEventType, hookReturn, ...) bool smlua_call_event_hooks_##hookEventType(__VA_ARGS__);
 #include "smlua_hook_events.inl"
@@ -135,15 +178,14 @@ extern int gHookedModMenuElementsCount;
     smlua_call_event_hooks_##hookEventType(__VA_ARGS__)
 
 int smlua_hook_custom_bhv(BehaviorScript *bhvScript, const char *bhvName);
-enum BehaviorId smlua_get_original_behavior_id(const BehaviorScript* behavior);
-const BehaviorScript* smlua_override_behavior(const BehaviorScript* behavior);
-const BehaviorScript* smlua_get_hooked_behavior_from_id(enum BehaviorId id, bool returnOriginal);
-bool smlua_is_behavior_hooked(const BehaviorScript *behavior);
-const char* smlua_get_name_from_hooked_behavior_id(enum BehaviorId id);
-bool smlua_call_behavior_hook(const BehaviorScript** behavior, struct Object* object, bool before);
+const BehaviorScript *smlua_override_behavior(const BehaviorScript *behavior);
+const BehaviorScript *smlua_get_original_behavior_from_id(enum BehaviorId id);
+const BehaviorScript *smlua_get_behavior_command(const BehaviorScript *behavior);
+const char *smlua_get_behavior_name_from_id(enum BehaviorId id);
+void smlua_call_behavior_hook(struct Object *object);
 
 int smlua_call_hook(lua_State* L, int nargs, int nresults, int errfunc, struct Mod* activeMod, struct ModFile* activeModFile);
-bool smlua_call_action_hook(enum LuaActionHookType hookType, struct MarioState* m, s32* returnValue);
+bool smlua_call_action_hook(enum LuaActionHookType hookType, struct MarioState* m, s32* cancel);
 u32 smlua_get_action_interaction_type(struct MarioState* m);
 
 bool smlua_call_chat_command_hook(char* command);

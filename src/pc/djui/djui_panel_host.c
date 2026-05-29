@@ -45,8 +45,10 @@ static bool djui_panel_host_port_valid(void) {
 
 static void djui_panel_host_port_text_change(struct DjuiBase* caller) {
     struct DjuiInputbox* sInputboxPort = (struct DjuiInputbox*)caller;
+    struct DjuiTheme* theme = gDjuiThemes[configDjuiTheme];
+    struct DjuiColor* textColor = &theme->interactables.textColor;
     if (djui_panel_host_port_valid()) {
-        djui_inputbox_set_text_color(sInputboxPort, 0, 0, 0, 255);
+        djui_inputbox_set_text_color(sInputboxPort, textColor->r, textColor->g, textColor->b, textColor->a);
     } else {
         djui_inputbox_set_text_color(sInputboxPort, 255, 0, 0, 255);
     }
@@ -78,7 +80,7 @@ static void djui_panel_host_do_host(struct DjuiBase* caller) {
 
     if (gNetworkType == NT_SERVER) {
         network_rehost_begin();
-    } else if (configNetworkSystem == NS_COOPNET || configAmountOfPlayers == 1) {
+    } else if (configNetworkSystem == NS_COOPNET || configAmountOfPlayers == 1 || configHideSocketWarning) {
         network_reset_reconnect_and_rehost();
         djui_panel_do_host(false, true);
     } else {

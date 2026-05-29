@@ -168,24 +168,6 @@ int smlua_func_init_mario_after_warp(lua_State* L) {
     return 1;
 }
 
-int smlua_func_initiate_warp(lua_State* L) {
-    if(!smlua_functions_valid_param_count(L, 4)) { return 0; }
-
-    s16 destLevel = smlua_to_number(L, 1);
-    if (!gSmLuaConvertSuccess) { LOG_LUA("initiate_warp: Failed to convert parameter 1"); return 0; }
-    s16 destArea = smlua_to_number(L, 2);
-    if (!gSmLuaConvertSuccess) { LOG_LUA("initiate_warp: Failed to convert parameter 2"); return 0; }
-    s16 destWarpNode = smlua_to_number(L, 3);
-    if (!gSmLuaConvertSuccess) { LOG_LUA("initiate_warp: Failed to convert parameter 3"); return 0; }
-    s32 arg3 = smlua_to_number(L, 4);
-    if (!gSmLuaConvertSuccess) { LOG_LUA("initiate_warp: Failed to convert parameter 4"); return 0; }
-
-    extern void initiate_warp(s16 destLevel, s16 destArea, s16 destWarpNode, s32 arg3);
-    initiate_warp(destLevel, destArea, destWarpNode, arg3);
-
-    return 1;
-}
-
 int smlua_func_reset_level(lua_State* L) {
     if (network_player_connected_count() >= 2) {
         LOG_LUA_LINE("reset_level() can only be used in singleplayer");
@@ -239,21 +221,32 @@ int smlua_func_network_init_object(lua_State* L) {
             struct LuaObjectField* data = smlua_get_object_field(LOT_OBJECT, fieldIdentifier);
             if (data == NULL) {
                 data = smlua_get_custom_field(L, LOT_OBJECT, lua_gettop(L));
+                if (data == NULL) {
+                    LOG_LUA_LINE("Unknown field passed to network_init_object(): %s", fieldIdentifier);
+                    lua_pop(L, 1); // pop value
+                    continue;
+                }
             }
 
-            u8 lvtSize = 0;
-            if ((data->valueType == LVT_U32) || (data->valueType == LVT_S32) || (data->valueType == LVT_F32)) { lvtSize = 32; }
-            if ((data->valueType == LVT_U16) || (data->valueType == LVT_S16)) { lvtSize = 16; }
-            if ((data->valueType == LVT_U8) || (data->valueType == LVT_S8)) { lvtSize = 8; }
-
-            if (data == NULL || lvtSize == 0) {
-                LOG_LUA_LINE("Invalid field passed to network_init_object(): %s", fieldIdentifier);
-                lua_pop(L, 1); // pop value
-                continue;
+            // These types are the only ones allowed for `network_init_object`
+            u8 lvtSizeBytes = 0;
+            switch (data->valueType) {
+                case LVT_U8: lvtSizeBytes = sizeof(u8); break;
+                case LVT_U16: lvtSizeBytes = sizeof(u16); break;
+                case LVT_U32: lvtSizeBytes = sizeof(u32); break;
+                case LVT_S8: lvtSizeBytes = sizeof(s8); break;
+                case LVT_S16: lvtSizeBytes = sizeof(s16); break;
+                case LVT_S32: lvtSizeBytes = sizeof(s32); break;
+                case LVT_F32: lvtSizeBytes = sizeof(f32); break;
+                default: {
+                    LOG_LUA_LINE("Invalid field passed to network_init_object(): %s", fieldIdentifier);
+                    lua_pop(L, 1); // pop value
+                    continue;
+                }
             }
 
             u8* field = ((u8*)(intptr_t)obj) + data->valueOffset;
-            sync_object_init_field_with_size(obj, field, lvtSize);
+            sync_object_init_field_with_size(obj, field, lvtSizeBytes);
 
             lua_pop(L, 1); // pop value
         }
@@ -348,7 +341,7 @@ int smlua_func_set_exclamation_box_contents(lua_State* L) {
             else if (strcmp(key, "model") == 0) { exclamationBoxNewContents[exclamationBoxIndex].model = value; confirm[3] = true; }
             else if (strcmp(key, "behavior") == 0) { exclamationBoxNewContents[exclamationBoxIndex].behavior = value; confirm[4] = true; }
             else {
-                LOG_LUA_LINE_WARNING("set_exclamation_box: Invalid key passed (Subtable %d)", exclamationBoxIndex);
+                LOG_LUA_WARNING_ONCE("set_exclamation_box: Invalid key passed (Subtable %d)", exclamationBoxIndex);
             }
 
             lua_pop(L, 1); // Pop value
@@ -364,7 +357,7 @@ int smlua_func_set_exclamation_box_contents(lua_State* L) {
         if (++exclamationBoxIndex == EXCLAMATION_BOX_MAX_SIZE) { // There is an edge case where the 254th element will warn even though it works just fine
             // Immediately exit if at risk for out of bounds array access.
             lua_pop(L, 1);
-            LOG_LUA_LINE_WARNING("set_exclamation_box: Too many items have been set for the exclamation box. Some content spawns may be lost.");
+            LOG_LUA_WARNING_ONCE("set_exclamation_box: Too many items have been set for the exclamation box. Some content spawns may be lost.");
             break;
         }
         lua_pop(L, 1); // Pop subtable
@@ -822,9 +815,17 @@ int smlua_func_log_to_console(lua_State* L) {
 ////////////////////
 
 int smlua_func_add_scroll_target(lua_State* L) {
+    if (gLuaLoadingMod == NULL) {
+        LOG_LUA_LINE("add_scroll_target() can only be called on load.");
+        return 0;
+    }
+
     // add_scroll_target used to require offset and size of the vertex buffer to be used
-    if (!smlua_functions_valid_param_range(L, 2, 4)) { return 0; }
     int paramCount = lua_gettop(L);
+    if (paramCount < 2 || paramCount > 4) {
+        LOG_LUA_LINE("Improper param count: Expected (2 - 4), Received %u", paramCount);
+        return 0;
+    }
 
     u32 index = smlua_to_integer(L, 1);
     if (!gSmLuaConvertSuccess) { LOG_LUA("add_scroll_target: Failed to convert parameter 1 for function"); return 0; }
@@ -899,6 +900,7 @@ static GraphNodeLot graphNodeLots[] = {
     { GRAPH_NODE_TYPE_ROOT, LOT_GRAPHNODE },
     { GRAPH_NODE_TYPE_ROTATION, LOT_GRAPHNODEROTATION },
     { GRAPH_NODE_TYPE_SCALE, LOT_GRAPHNODESCALE },
+    { GRAPH_NODE_TYPE_SCALE_XYZ, LOT_GRAPHNODESCALEXYZ },
     { GRAPH_NODE_TYPE_SHADOW, LOT_GRAPHNODESHADOW },
     { GRAPH_NODE_TYPE_START, LOT_GRAPHNODESTART },
     { GRAPH_NODE_TYPE_SWITCH_CASE, LOT_GRAPHNODESWITCHCASE },
@@ -952,7 +954,7 @@ int smlua_func_get_uncolored_string(lua_State* L) {
     const char *str = smlua_to_string(L, 1);
     if (!gSmLuaConvertSuccess) { LOG_LUA("get_uncolored_string: Failed to convert parameter 1"); return 0; }
 
-    char *strNoColor = str_remove_color_codes(str);
+    char *strNoColor = djui_text_get_uncolored_string(NULL, strlen(str) + 1, str);
     lua_pushstring(L, strNoColor);
     free(strNoColor);
 
@@ -997,7 +999,7 @@ int smlua_func_gfx_set_command(lua_State* L) {
     }
 
     // Parse the command
-    const u32 errorSize = 0x400;
+    u32 errorSize = 0x400;
     char errorMsg[errorSize];
     if (!dynos_smlua_parse_gfx_command(L, gfx, command, specifiersCount != 0, errorMsg, errorSize)) {
         LOG_LUA_LINE("gfx_set_command: Command \"%s\": %s", command, errorMsg);
@@ -1007,34 +1009,75 @@ int smlua_func_gfx_set_command(lua_State* L) {
     return 1;
 }
 
-int smlua_func_gfx_get_from_name(lua_State *L) {
-    if (!smlua_functions_valid_param_count(L, 1)) { return 0; }
+  /////////
+ // hud //
+/////////
 
-    const char *name = smlua_to_string(L, 1);
-    if (!gSmLuaConvertSuccess) { LOG_LUA("gfx_get_from_name: Failed to convert parameter 1"); return 0; }
 
-    u32 length = 0;
-    Gfx *gfx = dynos_gfx_get(name, &length);
+int smlua_func_djui_hud_print_text(lua_State* L) {
+    if (L == NULL) { return 0; }
 
-    smlua_push_object(L, LOT_GFX, gfx, NULL);
-    lua_pushinteger(L, length);
+    int top = lua_gettop(L);
+    if (top != 4 && top != 5) {
+        LOG_LUA_LINE("Improper param count for '%s': Expected %u, Received %u", "djui_hud_print_text", 4, top);
+        return 0;
+    }
 
-    return 2;
+    const char* message = smlua_to_string(L, 1);
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 1, "djui_hud_print_text"); return 0; }
+    f32 x = smlua_to_number(L, 2);
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 2, "djui_hud_print_text"); return 0; }
+    f32 y = smlua_to_number(L, 3);
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 3, "djui_hud_print_text"); return 0; }
+    f32 scaleX = smlua_to_number(L, 4);
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 4, "djui_hud_print_text"); return 0; }
+    f32 scaleY = top == 5 ? smlua_to_number(L, 5) : scaleX; // Copy Scale + Backwards Compatibility
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 5, "djui_hud_print_text"); return 0; }
+
+    djui_hud_print_text(message, x, y, scaleX, scaleY);
+
+    return 1;
 }
 
-int smlua_func_vtx_get_from_name(lua_State *L) {
+int smlua_func_djui_hud_print_text_interpolated(lua_State* L) {
+    if (L == NULL) { return 0; }
+
+    int top = lua_gettop(L);
+    if (top != 7 && top != 9) {
+        LOG_LUA_LINE("Improper param count for '%s': Expected %u, Received %u", "djui_hud_print_text_interpolated", 7, top);
+        return 0;
+    }
+
+    const char* message = smlua_to_string(L, 1);
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 1, "djui_hud_print_text_interpolated"); return 0; }
+    f32 prevX = smlua_to_number(L, 2);
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 2, "djui_hud_print_text_interpolated"); return 0; }
+    f32 prevY = smlua_to_number(L, 3);
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 3, "djui_hud_print_text_interpolated"); return 0; }
+    f32 prevScaleX = smlua_to_number(L, 4);
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 4, "djui_hud_print_text_interpolated"); return 0; }
+    f32 prevScaleY = top == 9 ? smlua_to_number(L, 5) : prevScaleX; // Copy Scale + Backwards Compatibility
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 5, "djui_hud_print_text_interpolated"); return 0; }
+    f32 x = top == 9 ? smlua_to_number(L, 6) : smlua_to_number(L, 5); // Backwards Compatibility
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 6, "djui_hud_print_text_interpolated"); return 0; }
+    f32 y = top == 9 ? smlua_to_number(L, 7) : smlua_to_number(L, 6); // Backwards Compatibility
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 7, "djui_hud_print_text_interpolated"); return 0; }
+    f32 scaleX = top == 9 ? smlua_to_number(L, 8) : smlua_to_number(L, 7); // Backwards Compatibility
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 8, "djui_hud_print_text_interpolated"); return 0; }
+    f32 scaleY = top == 9 ? smlua_to_number(L, 9) : scaleX; // Copy Scale + Backwards Compatibility
+    if (!gSmLuaConvertSuccess) { LOG_LUA("Failed to convert parameter %u for function '%s'", 9, "djui_hud_print_text_interpolated"); return 0; }
+
+    djui_hud_print_text_interpolated(message, prevX, prevY, prevScaleX, prevScaleY, x, y, scaleX, scaleY);
+
+    return 1;
+}
+
+// compatibility band-aid
+int smlua_func_return_self(lua_State* L) {
     if (!smlua_functions_valid_param_count(L, 1)) { return 0; }
 
-    const char *name = smlua_to_string(L, 1);
-    if (!gSmLuaConvertSuccess) { LOG_LUA("vtx_get_from_name: Failed to convert parameter 1"); return 0; }
-
-    u32 count = 0;
-    Vtx *vtx = dynos_vtx_get(name, &count);
-
-    smlua_push_object(L, LOT_VTX, vtx, NULL);
-    lua_pushinteger(L, count);
-
-    return 2;
+    lua_pushvalue(L, 1);
+    return 1;
 }
 
   //////////
@@ -1048,7 +1091,6 @@ void smlua_bind_functions(void) {
     smlua_bind_function(L, "table_copy", smlua_func_table_copy);
     smlua_bind_function(L, "table_deepcopy", smlua_func_table_deepcopy);
     smlua_bind_function(L, "init_mario_after_warp", smlua_func_init_mario_after_warp);
-    smlua_bind_function(L, "initiate_warp", smlua_func_initiate_warp);
     smlua_bind_function(L, "network_init_object", smlua_func_network_init_object);
     smlua_bind_function(L, "network_send_object", smlua_func_network_send_object);
     smlua_bind_function(L, "reset_level", smlua_func_reset_level);
@@ -1069,6 +1111,7 @@ void smlua_bind_functions(void) {
     smlua_bind_function(L, "cast_graph_node", smlua_func_cast_graph_node);
     smlua_bind_function(L, "get_uncolored_string", smlua_func_get_uncolored_string);
     smlua_bind_function(L, "gfx_set_command", smlua_func_gfx_set_command);
-    smlua_bind_function(L, "gfx_get_from_name", smlua_func_gfx_get_from_name);
-    smlua_bind_function(L, "vtx_get_from_name", smlua_func_vtx_get_from_name);
+    smlua_bind_function(L, "djui_hud_print_text", smlua_func_djui_hud_print_text);
+    smlua_bind_function(L, "djui_hud_print_text_interpolated", smlua_func_djui_hud_print_text_interpolated);
+    smlua_bind_function(L, "return_self", smlua_func_return_self); // compatibility band-aid
 }

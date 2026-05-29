@@ -94,22 +94,22 @@ struct Object *obj_get_collided_object(struct Object *o, s16 index);
 // Object fields
 //
 
-/* |description|Gets the unsigned 32-bit integer value from the field corresponding to `fieldIndex`|descriptionEnd| */
+/* |description|Gets the unsigned 32-bit integer value of the object field corresponding to `fieldIndex`|descriptionEnd| */
 u32 obj_get_field_u32(struct Object *o, s32 fieldIndex);
-/* |description|Gets the signed 32-bit integer value from the field corresponding to `fieldIndex`|descriptionEnd| */
+/* |description|Gets the signed 32-bit integer value of the object field corresponding to `fieldIndex`|descriptionEnd| */
 s32 obj_get_field_s32(struct Object *o, s32 fieldIndex);
-/* |description|Sets the float value from the field corresponding to `fieldIndex`|descriptionEnd| */
+/* |description|Gets the float value of the object field corresponding to `fieldIndex`|descriptionEnd| */
 f32 obj_get_field_f32(struct Object *o, s32 fieldIndex);
-/* |description|Gets the signed 32-bit integer value from the sub field corresponding to `fieldSubIndex` from the field corresponding to `fieldIndex`|descriptionEnd| */
+/* |description|Gets the signed 16-bit integer value of the object field and sub field corresponding to `fieldSubIndex` and `fieldIndex`|descriptionEnd| */
 s16 obj_get_field_s16(struct Object *o, s32 fieldIndex, s32 fieldSubIndex);
 
-/* |description|Sets the unsigned 32-bit integer value from the field corresponding to `fieldIndex`|descriptionEnd| */
+/* |description|Sets the unsigned 32-bit integer value of the object field corresponding to `fieldIndex`|descriptionEnd| */
 void obj_set_field_u32(struct Object *o, s32 fieldIndex, u32 value);
-/* |description|Sets the signed 32-bit integer value from the field corresponding to `fieldIndex`|descriptionEnd| */
+/* |description|Sets the signed 32-bit integer value of the object field corresponding to `fieldIndex`|descriptionEnd| */
 void obj_set_field_s32(struct Object *o, s32 fieldIndex, s32 value);
-/* |description|Sets the float value from the field corresponding to `fieldIndex`|descriptionEnd| */
+/* |description|Sets the float value of the object field corresponding to `fieldIndex`|descriptionEnd| */
 void obj_set_field_f32(struct Object *o, s32 fieldIndex, f32 value);
-/* |description|Sets the signed 32-bit integer value from the sub field corresponding to `fieldSubIndex` from the field corresponding to `fieldIndex`|descriptionEnd| */
+/* |description|Sets the signed 16-bit integer value of the object field and sub field corresponding to `fieldSubIndex` and `fieldIndex`|descriptionEnd| */
 void obj_set_field_s16(struct Object *o, s32 fieldIndex, s32 fieldSubIndex, s16 value);
 
 //
@@ -154,5 +154,10 @@ void obj_move_xyz(struct Object *o, f32 dx, f32 dy, f32 dz);
 
 /* |description|Sets the parameters of one of the two whirlpools (0-indexed) in an area|descriptionEnd| */
 void set_whirlpools(f32 x, f32 y, f32 z, s16 strength, s16 area, s32 index);
+
+/* |description|Skips object interpolation for a frame|descriptionEnd|*/
+void obj_skip_interpolation(struct Object *o);
+/* |description|Skips animation interpolation for a frame|descriptionEnd| */
+void obj_anim_skip_interpolation(struct Object *o);
 
 #endif

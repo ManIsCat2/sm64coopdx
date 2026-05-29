@@ -4,7 +4,7 @@
 #include <filesystem>
 #include <sstream>
 
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
 #include <windows.h>
 #endif
 
@@ -41,7 +41,7 @@ inline static void rename_tmp_folder() {
     std::string oldPath = userPath + "tmp";
     std::string newPath = userPath + TMP_DIRECTORY;
     if (fs::exists(oldPath) && !fs::exists(newPath)) {
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
         SetFileAttributesA(oldPath.c_str(), FILE_ATTRIBUTE_HIDDEN);
 #endif
         fs::rename(oldPath, newPath);
@@ -99,13 +99,15 @@ bool main_rom_handler(void) {
     return gRomIsValid;
 }
 
-#ifdef LOADING_SCREEN_SUPPORTED
 void rom_on_drop_file(const char *path) {
     static bool hasDroppedInvalidFile = false;
     if (strlen(path) > 0 && !is_rom_valid(path) && !hasDroppedInvalidFile) {
         hasDroppedInvalidFile = true;
+#ifdef TARGET_ANDROID
+        strcat(gCurrLoadingSegment.str, "\n\\#ffc000\\The file you last selected was not a valid, vanilla SM64 rom.");
+#else
         strcat(gCurrLoadingSegment.str, "\n\\#ffc000\\The file you last dropped was not a valid, vanilla SM64 rom.");
+#endif
     }
 }
-#endif
 }

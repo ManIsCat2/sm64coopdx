@@ -97,10 +97,9 @@ gServerSettings = {}
 --- Struct containing the settings for Nametags
 gNametagsSettings = {}
 
---- @type Camera
---- Struct contaning camera fields
---- - This camera is the same as `gMarioStates[i].area.camera` or `gCurrentArea.camera`
-gCamera = {}
+--- @type HudDisplay
+--- Struct containing the flags for the hud display
+gHudDisplay = {}
 
 -----------
 -- hooks --
@@ -108,10 +107,10 @@ gCamera = {}
 
 --- @param behaviorId BehaviorId | integer?  The behavior id of the object to modify. Pass in as `nil` to create a custom object
 --- @param objectList ObjectList | integer Object list
---- @param replaceBehavior boolean Whether or not to completely replace the behavior
+--- @param replaceBehavior boolean Whether or not to completely replace the behavior (ignored for non-vanilla behaviors, which are always replaced)
 --- @param initFunction? fun(obj:Object) Run on object creation
 --- @param loopFunction? fun(obj:Object) Run every frame
---- @param behaviorName? string Optional
+--- @param behaviorName? string Optional, name to give to the behavior to be able to retrieve it with `get_id_from_behavior_name`
 --- @return BehaviorId BehaviorId Use if creating a custom object, otherwise can be ignored
 --- Modify an object's behavior or create a new custom object
 function hook_behavior(behaviorId, objectList, replaceBehavior, initFunction, loopFunction, behaviorName)
@@ -132,7 +131,7 @@ function update_chat_command_description(command, description)
 end
 
 --- @param hookEventType LuaHookedEventType When a function should run
---- @param func fun(...: any): any The function to run
+--- @param func fun(...: any): any?, any? The function to run
 --- Different hooks can pass in different parameters and have different return values. Be sure to read the hooks guide for more information.
 function hook_event(hookEventType, func)
     -- ...
@@ -412,13 +411,13 @@ end
 --- @param command string
 --- @vararg integer | string | Gfx | Texture | Vtx Parameters for the command
 --- Sets a display list command on the display list given.
---- 
+---
 --- If `command` includes parameter specifiers (subsequences beginning with `%`), the additional arguments
 --- following `command` are converted and inserted in `command` replacing their respective specifiers.
---- 
+---
 --- The number of provided parameters must be equal to the number of specifiers in `command`,
 --- and the order of parameters must be the same as the specifiers.
---- 
+---
 --- The following specifiers are allowed:
 --- - `%i` for an `integer` parameter
 --- - `%s` for a `string` parameter
@@ -444,5 +443,29 @@ end
 --- Gets a vertex buffer of the current mod from its name.
 --- Returns a pointer to the vertex buffering and its vertex count
 function vtx_get_from_name(name)
+    -- ...
+end
+
+--- @param message string
+--- @param x number
+--- @param y number
+--- @param scaleX number
+--- @param scaleY number?
+--- Prints DJUI HUD text onto the screen
+function djui_hud_print_text(message, x, y, scaleX, scaleY)
+    -- ...
+end
+
+--- @param message string
+--- @param prevX number
+--- @param prevY number
+--- @param prevScaleX number
+--- @param prevScaleY number
+--- @param x number
+--- @param y number
+--- @param scaleX number?
+--- @param scaleY number?
+--- Prints interpolated DJUI HUD text onto the screen
+function djui_hud_print_text_interpolated(message, prevX, prevY, prevScaleX, prevScaleY, x, y, scaleX, scaleY)
     -- ...
 end

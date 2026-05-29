@@ -55,6 +55,9 @@ in_files = [
     "src/engine/lighting_engine.h",
     "include/PR/gbi.h",
     "include/PR/gbi_extension.h",
+    "src/pc/gfx/gfx_pc.h",
+    "src/engine/surface_load.h",
+    "src/pc/lua/utils/smlua_audio_utils.h",
 ]
 
 exclude_constants = {
@@ -65,15 +68,18 @@ exclude_constants = {
     "src/game/save_file.h": [ "EEPROM_SIZE" ],
     "src/game/obj_behaviors.c": [ "^o$" ],
     "src/pc/djui/djui_console.h": [ "CONSOLE_MAX_TMP_BUFFER" ],
-    "src/pc/lua/smlua_hooks.h": [ "MAX_HOOKED_MOD_MENU_ELEMENTS", "^HOOK_RETURN_.*", "^ACTION_HOOK_.*", "^MOD_MENU_ELEMENT_.*" ],
+    "src/pc/lua/smlua_hooks.h": [ "^LUA_BEHAVIOR_.*", "MAX_HOOKED_.*", "^HOOK_RETURN_.*", "^ACTION_HOOK_.*", "^MOD_MENU_ELEMENT_.*" ],
     "src/pc/djui/djui_panel_menu.h": [ "RAINBOW_TEXT_LEN" ],
     "src/pc/mods/mod_fs.h": [ "INT_TYPE_MAX", "FLOAT_TYPE_MAX", "FILE_SEEK_MAX" ],
+    "src/engine/surface_load.h": [ "NUM_CELLS" ],
+    "src/pc/network/version.h": [ "VERSION_OFFSET" ],
 }
 
 include_constants = {
     "include/geo_commands.h": [ "BACKGROUND" ],
     "include/level_commands.h": [ "WARP_CHECKPOINT", "WARP_NO_CHECKPOINT" ],
     "src/audio/external.h": [ "SEQ_PLAYER", "DS_" ],
+    "src/pc/lua/utils/smlua_audio_utils.h": ["MOD_AUDIO_CHANNEL"],
     "src/pc/mods/mod_storage.h": [ "MAX_KEYS", "MAX_KEY_VALUE_LENGTH" ],
     "include/PR/gbi.h": [
         "^G_NOOP$",
@@ -113,7 +119,8 @@ include_constants = {
     "include/PR/gbi_extension.h": [
         "^G_VTX_EXT$",
         "^G_PPARTTOCOLOR$",
-        "^G_SETENVRGB$"
+        "^G_SETENVRGB$",
+        "^G_STATE_EXT$",
     ],
 }
 
@@ -141,6 +148,8 @@ defined_values = {
     'VERSION_SH': False,
     'F3DEX_GBI_2': True,
     'DEVELOPMENT': False,
+    '__ANDROID__': False,
+    'TARGET_ANDROID': False,
 }
 
 ############################################################################
@@ -444,7 +453,8 @@ def doc_constant_index(processed_files):
         s += '- [%s](#%s)\n' % (processed_file['filename'], processed_file['filename'].replace('.', ''))
         constants = [x for x in processed_file['constants'] if 'identifier' in x]
         for c in constants:
-            s += '    - [enum %s](#enum-%s)\n' % (c['identifier'], c['identifier'])
+            if len(c['constants']) > 0:
+                s += '    - [enum %s](#enum-%s)\n' % (c['identifier'], c['identifier'])
     s += '\n<br />\n\n'
     return s
 
@@ -535,6 +545,8 @@ def def_constant(fname, processed_constant, skip_constant):
             continue
         if '"' in c[1]:
             s += '\n--- @type string\n'
+        elif "." in c[1]:
+            s += '\n--- @type number\n'
         else:
             s += '\n--- @type integer\n'
         s += '%s = %s\n' % (c[0], c[1])

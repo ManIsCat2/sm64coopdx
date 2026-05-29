@@ -33,7 +33,7 @@ static void enemy_lakitu_act_uninitialized(void) {
         cur_obj_unhide();
         o->oAction = ENEMY_LAKITU_ACT_MAIN;
     }
-}   
+}
 
 /**
  * Accelerate toward mario vertically.
@@ -245,9 +245,9 @@ void bhv_enemy_lakitu_update(void) {
     // PARTIAL_UPDATE
     if (!sync_object_is_initialized(o->oSyncID)) {
         sync_object_init(o, 4000.0f);
-        sync_object_init_field(o, &o->oEnemyLakituBlinkTimer);
-        sync_object_init_field(o, &o->oEnemyLakituSpinyCooldown);
-        sync_object_init_field(o, &o->oEnemyLakituFaceForwardCountdown);
+        sync_object_init_field(o, o->oEnemyLakituBlinkTimer);
+        sync_object_init_field(o, o->oEnemyLakituSpinyCooldown);
+        sync_object_init_field(o, o->oEnemyLakituFaceForwardCountdown);
     }
 
     treat_far_home_as_mario(2000.0f, NULL, NULL);

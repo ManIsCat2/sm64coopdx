@@ -73,13 +73,13 @@ static s8 sOrientObjWithFloor = TRUE;
 s16 sPrevCheckMarioRoom = 0;
 
 /**
- * Tracks whether or not Yoshi has walked/jumped off the roof.
+ * Override for whether or not Yoshi has walked/jumped off the roof.
  */
-s8 sYoshiDead = FALSE;
+s8 sOverrideYoshiAlive = FALSE;
 
-/* |description|Resets Yoshi as being alive|descriptionEnd| */
+/* |description|Marks Yoshi as alive|descriptionEnd| */
 void set_yoshi_as_not_dead(void) {
-    sYoshiDead = FALSE;
+    sOverrideYoshiAlive = FALSE;
 }
 
 /**
@@ -251,10 +251,8 @@ void obj_orient_graph(struct Object *obj, f32 normalX, f32 normalY, f32 normalZ)
     obj->header.gfx.throwMatrix = throwMatrix;
 }
 
-/**
- * Determines an object's forward speed multiplier.
- */
-void calc_obj_friction(f32 *objFriction, f32 floor_nY) {
+/* |description|Determines an object's forward speed multiplier.|descriptionEnd| */
+void calc_obj_friction(RET f32 *objFriction, f32 floor_nY) {
     if (!o) { return; }
     if (!objFriction) { return; }
     if (floor_nY < 0.2 && o->oFriction < 0.9999) {
@@ -489,24 +487,23 @@ s16 object_step_without_floor_orient(void) {
 }
 
 /* |description|
-Don't use this function outside of of a context where the current object and `obj` are the same.
-Moves `obj` based on a seemingly random mix of using either the current obj or `obj`'s fields
+Updates the object `obj` horizontal velocity using its forward vel and move angle yaw, then moves it
 |descriptionEnd| */
 void obj_move_xyz_using_fvel_and_yaw(struct Object *obj) {
-    if (!o || !obj) { return; }
-    o->oVelX = obj->oForwardVel * sins(obj->oMoveAngleYaw);
-    o->oVelZ = obj->oForwardVel * coss(obj->oMoveAngleYaw);
+    if (!obj) { return; }
+    obj->oVelX = obj->oForwardVel * sins(obj->oMoveAngleYaw);
+    obj->oVelZ = obj->oForwardVel * coss(obj->oMoveAngleYaw);
 
-    obj->oPosX += o->oVelX;
+    obj->oPosX += obj->oVelX;
     obj->oPosY += obj->oVelY;
-    obj->oPosZ += o->oVelZ;
+    obj->oPosZ += obj->oVelZ;
 }
 
-/* |description|Checks if a point is within distance from any active Mario visible to enemies' graphical position|descriptionEnd| */
+/* |description|Checks if a point is within distance from any active Mario visible to objects' graphical position|descriptionEnd| */
 s8 is_point_within_radius_of_mario(f32 x, f32 y, f32 z, s32 dist) {
     for (s32 i = 0; i < MAX_PLAYERS; i++) {
         if (!is_player_active(&gMarioStates[i])) { continue; }
-        if (!gMarioStates[i].visibleToEnemies) { continue; }
+        if (!gMarioStates[i].visibleToObjects) { continue; }
         struct Object* player = gMarioStates[i].marioObj;
         if (!player) { continue; }
         f32 mGfxX = player->header.gfx.pos[0];
@@ -597,7 +594,7 @@ struct MarioState* nearest_mario_state_to_object(struct Object *obj) {
     for (s32 i = 0; i < MAX_PLAYERS; i++) {
         if (!gMarioStates[i].marioObj) { continue; }
         if (gMarioStates[i].marioObj == obj) { continue; }
-        if (!gMarioStates[i].visibleToEnemies) { continue; }
+        if (!gMarioStates[i].visibleToObjects) { continue; }
         if (!is_player_active(&gMarioStates[i])) { continue; }
         float dist = dist_between_objects(obj, gMarioStates[i].marioObj);
         if (nearest == NULL || dist < nearestDist) {
@@ -646,7 +643,7 @@ struct MarioState *nearest_interacting_mario_state_to_object(struct Object *obj)
         if (!gMarioStates[i].marioObj) { continue; }
         if (gMarioStates[i].marioObj == obj) { continue; }
         if (gMarioStates[i].interactObj != obj) { continue; }
-        if (!gMarioStates[i].visibleToEnemies) { continue; }
+        if (!gMarioStates[i].visibleToObjects) { continue; }
         if (!is_player_active(&gMarioStates[i])) { continue; }
         float dist = dist_between_objects(obj, gMarioStates[i].marioObj);
         if (nearest == NULL || dist < nearestDist) {
@@ -703,6 +700,10 @@ s8 is_point_close_to_object(struct Object *obj, f32 x, f32 y, f32 z, s32 dist) {
 /* |description|Sets an object as visible if within a certain distance of Mario's graphical position|descriptionEnd| */
 void set_object_visibility(struct Object *obj, s32 dist) {
     if (!obj) { return; }
+    if (draw_distance_scalar_is_infinite()) {
+        obj->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
+        return;
+    }
     s32 distanceToPlayer = dist_between_objects(obj, gMarioStates[0].marioObj);
     if (distanceToPlayer < dist * draw_distance_scalar()) {
         obj->header.gfx.node.flags &= ~GRAPH_RENDER_INVISIBLE;
@@ -760,7 +761,7 @@ s8 obj_check_if_facing_toward_angle(u32 base, u32 goal, s16 range) {
 }
 
 /* |description|Finds any wall collisions and returns what the displacement vector would be.|descriptionEnd| */
-s8 obj_find_wall_displacement(OUT Vec3f dist, f32 x, f32 y, f32 z, f32 radius) {
+s8 obj_find_wall_displacement(VEC_OUT Vec3f dist, f32 x, f32 y, f32 z, f32 radius) {
     struct WallCollisionData hitbox;
     UNUSED u8 filler[0x20];
 
@@ -784,12 +785,11 @@ s8 obj_find_wall_displacement(OUT Vec3f dist, f32 x, f32 y, f32 z, f32 radius) {
 Spawns a number of coins at the location of an object with a random forward velocity, y velocity, and direction
 |descriptionEnd| */
 void obj_spawn_yellow_coins(struct Object *obj, s8 nCoins) {
-    if (!o) { return; }
     if (!obj) { return; }
     struct Object *coin;
     s8 count;
 
-    rng_position_init(o->oPosX, o->oPosY, o->oPosZ);
+    rng_position_init(obj->oPosX, obj->oPosY, obj->oPosZ);
     for (count = 0; count < nCoins; count++) {
         coin = spawn_object(obj, MODEL_YELLOW_COIN, bhvMovingYellowCoin);
         if (coin != NULL) {

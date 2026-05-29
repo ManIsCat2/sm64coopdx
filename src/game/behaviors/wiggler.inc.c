@@ -63,19 +63,19 @@ static f32 sWigglerSpeeds[] = { 2.0f, 40.0f, 30.0f, 16.0f };
  */
 void bhv_wiggler_body_part_update(void) {
     if (o == NULL) { return; }
-    
+
     struct Object *parent = o->parentObj;
-    
+
     if (parent == NULL) { return; }
-    
+
     // Sanity check the array size of our segments,
     // This should never be higher then 3
     // in normal circumstances.
     if (o->oBehParams2ndByte > 3 || o->oBehParams2ndByte < 0) { return; }
     if (!parent->oWigglerSegments) { return; }
-    
+
     struct ChainSegment *segment = &parent->oWigglerSegments[o->oBehParams2ndByte];
-    
+
     if (segment == NULL) { return; }
 
     cur_obj_scale(parent->header.gfx.scale[0]);
@@ -378,13 +378,13 @@ static void wiggler_act_shrink(void) {
 
             f32* starPos = gLevelValues.starPositions.WigglerStarPos;
             struct Object *star = spawn_default_star(starPos[0], starPos[1], starPos[2]);
-            
+
             // If we're not the closet to Wiggler,
             // Don't play this cutscene!
             if (star != NULL && nearest_mario_state_to_object(o) != &gMarioStates[0]) {
                 star->oStarSpawnExtCutsceneFlags = 0;
             }
-            
+
             o->oAction = WIGGLER_ACT_FALL_THROUGH_FLOOR;
         }
 
@@ -468,18 +468,18 @@ void bhv_wiggler_update(void) {
             so->ignore_if_true = bhv_wiggler_ignore_if_true;
             so->on_received_pre = bhv_wiggler_on_received_pre;
             so->on_received_post = bhv_wiggler_on_received_post;
-            sync_object_init_field(o, &o->oFaceAnglePitch);
-            sync_object_init_field(o, &o->oWigglerFallThroughFloorsHeight);
-            sync_object_init_field(o, &o->oWigglerWalkAnimSpeed);
-            sync_object_init_field(o, &o->oWigglerSquishSpeed);
-            sync_object_init_field(o, &o->oWigglerTimeUntilRandomTurn);
-            sync_object_init_field(o, &o->oWigglerTargetYaw);
-            sync_object_init_field(o, &o->oWigglerWalkAwayFromWallTimer);
-            sync_object_init_field(o, &o->oHealth);
-            sync_object_init_field(o, &o->header.gfx.scale[0]);
-            sync_object_init_field(o, &o->header.gfx.scale[1]);
-            sync_object_init_field(o, &o->header.gfx.scale[2]);
-            sync_object_init_field(o, &o->oFaceAngleYaw);
+            sync_object_init_field(o, o->oFaceAnglePitch);
+            sync_object_init_field(o, o->oWigglerFallThroughFloorsHeight);
+            sync_object_init_field(o, o->oWigglerWalkAnimSpeed);
+            sync_object_init_field(o, o->oWigglerSquishSpeed);
+            sync_object_init_field(o, o->oWigglerTimeUntilRandomTurn);
+            sync_object_init_field(o, o->oWigglerTargetYaw);
+            sync_object_init_field(o, o->oWigglerWalkAwayFromWallTimer);
+            sync_object_init_field(o, o->oHealth);
+            sync_object_init_field(o, o->header.gfx.scale[0]);
+            sync_object_init_field(o, o->header.gfx.scale[1]);
+            sync_object_init_field(o, o->header.gfx.scale[2]);
+            sync_object_init_field(o, o->oFaceAngleYaw);
         }
     }
 

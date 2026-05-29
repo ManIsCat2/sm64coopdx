@@ -2,11 +2,10 @@
 #include "crash_handler.h"
 
 char gLastRemoteBhv[256] = "";
-#if (defined(_WIN32) || defined(__linux__)) && !defined(WAPI_DUMMY)
 
-#ifdef HAVE_SDL2
+#if defined(_WIN32) || defined(__linux__)
+
 #include <SDL2/SDL.h>
-#endif
 
 #include <PR/ultratypes.h>
 #include <PR/gbi.h>
@@ -220,12 +219,12 @@ static void crash_handler_produce_one_frame_callback(void) {
     if (font->textBeginDisplayList != NULL) {
         gSPDisplayList(gDisplayListHead++, font->textBeginDisplayList);
     }
+    gDPSetPrimColor(gDisplayListHead++, 0, 0, 255, 255, 255, 255);
 
     for (CrashHandlerText* text = sCrashHandlerText; text->s[0] != 0; ++text) {
         s32 x = GFX_DIMENSIONS_RECT_FROM_LEFT_EDGE(text->x * aspectScale);
         s32 y = SCREEN_HEIGHT - 8 - text->y * aspectScale;
         gDPPipeSync(gDisplayListHead++);
-        gDPSetEnvColor(gDisplayListHead++, text->r, text->g, text->b, 0xFF);
         create_dl_translation_matrix(DJUI_MTX_PUSH, x, y, 0);
 
         // translate scale
@@ -238,6 +237,8 @@ static void crash_handler_produce_one_frame_callback(void) {
         // render the line
         f32 addX = 0;
         char* c = text->s;
+
+        font->render_begin();
         while (*c != '\0') {
             f32 charWidth = 0.4f;
 
@@ -256,6 +257,7 @@ static void crash_handler_produce_one_frame_callback(void) {
             create_dl_translation_matrix(DJUI_MTX_NOPUSH, charWidth, 0, 0);
             c = djui_unicode_next_char(c);
         }
+        font->render_end();
 
         // pop
         gSPPopMatrix(gDisplayListHead++, G_MTX_MODELVIEW);
@@ -283,7 +285,7 @@ static void crash_handler_add_version_str(CrashHandlerText** pTextP, f32 x, f32 
 #else
     crash_handler_add_info_str(&pText, x, y, "Release", SM64COOPDX_VERSION);
 #endif
-    crash_handler_add_info_str(&pText, x, y + 8, "Renderer", RAPI_NAME);
+    crash_handler_add_info_str(&pText, x, y + 8, "Renderer", gRenderApi->get_name());
     *pTextP = pText;
 }
 
@@ -447,7 +449,7 @@ static void crash_handler(const int signalNum, siginfo_t *info, UNUSED ucontext_
         crash_handler_set_text( 8, 62, 0xFF, 0xFF, 0xFF,   "DR0: 0x%016llX", context->uc_mcontext.gregs[REG_RDI]);
         crash_handler_set_text(-1, 62, 0xFF, 0xFF, 0xFF, "  DR1: 0x%016llX", context->uc_mcontext.gregs[REG_RDX]);
 #endif
-#elif __ANDROID__
+#elif defined(__ANDROID__)
 #if defined(__aarch64__)
     if (context->uc_mcontext.sp != 0) {
         crash_handler_set_text( 8, 30, 0xFF, 0xFF, 0xFF,   " SP: 0x%016llX", context->uc_mcontext.sp);
@@ -690,7 +692,6 @@ static void crash_handler(const int signalNum, siginfo_t *info, UNUSED ucontext_
     crash_handler_add_info_str(&pText, 8, 208, "RemoteBhv", gLastRemoteBhv);
 
     // sounds
-#ifdef HAVE_SDL2
     if (SDL_WasInit(SDL_INIT_AUDIO) || SDL_InitSubSystem(SDL_INIT_AUDIO) == 0) {
         SDL_AudioSpec want, have;
         want.freq = 32000;
@@ -704,20 +705,19 @@ static void crash_handler(const int signalNum, siginfo_t *info, UNUSED ucontext_
             SDL_PauseAudioDevice(device, 0);
         }
     }
-#endif
 
     // In case the game crashed before the game window opened
     if (!gGfxInited) {
-        gfx_init(&WAPI, &RAPI, TITLE);
-        WAPI.set_keyboard_callbacks(keyboard_on_key_down, keyboard_on_key_up, keyboard_on_all_keys_up,
+        gfx_init(gWindowApi, gRenderApi, TITLE);
+        gWindowApi->set_keyboard_callbacks(keyboard_on_key_down, keyboard_on_key_up, keyboard_on_all_keys_up,
             keyboard_on_text_input, keyboard_on_text_editing);
-        WAPI.set_scroll_callback(mouse_on_scroll);
+        gWindowApi->set_scroll_callback(mouse_on_scroll);
     }
     if (!gGameInited) djui_unicode_init();
 
     // Main loop
     while (true) {
-        WAPI.main_loop(crash_handler_produce_one_frame);
+        gWindowApi->main_loop(crash_handler_produce_one_frame);
     }
     exit(0);
 }

@@ -35,7 +35,7 @@ void bobomb_act_explode(void) {
         cur_obj_scale(1.0 + (f32) o->oTimer / 5.0);
         return;
     }
-    
+
     struct Object *explosion = spawn_object(o, MODEL_EXPLOSION, bhvExplosion);
     if (explosion != NULL) {
         explosion->oGraphYOffset += 100.0f;
@@ -300,9 +300,9 @@ void bhv_bobomb_buddy_init(void) {
 
     if (o->oBobombBuddyRole == BOBOMB_BUDDY_ROLE_CANNON) {
         sync_object_init(o, SYNC_DISTANCE_ONLY_EVENTS);
-        sync_object_init_field(o, &o->oBobombBuddyHasTalkedToMario);
-        sync_object_init_field(o, &o->oBobombBuddyCannonStatus);
-        sync_object_init_field(o, &forceCannonOpen);
+        sync_object_init_field(o, o->oBobombBuddyHasTalkedToMario);
+        sync_object_init_field(o, o->oBobombBuddyCannonStatus);
+        sync_object_init_field(o, forceCannonOpen);
     }
 }
 

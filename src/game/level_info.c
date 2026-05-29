@@ -153,7 +153,7 @@ static const char *ascii_to_sm64_char(u8 *str64, const char *strAscii, bool menu
         if (menu && !ch->menu) {
             continue;
         }
-        if (memcmp(strAscii, ch->str, ch->len) == 0) {
+        if (strncmp(strAscii, ch->str, ch->len) == 0) {
             *str64 = ch->c;
             return strAscii + ch->len;
         }
@@ -250,7 +250,7 @@ static void capitalize_string_ascii(char *strAscii) {
     }
 }
 
-static void capitalize_string_sm64(u8 *str64) {
+UNUSED static void capitalize_string_sm64(u8 *str64) {
     for (; *str64 != 0xFF; str64++) {
         if (*str64 >= 0x24 && *str64 <= 0x3D) {
             *str64 -= 26;
@@ -272,7 +272,7 @@ static void decapitalize_string_ascii(char *strAscii) {
     }
 }
 
-static void decapitalize_string_sm64(u8 *str64) {
+UNUSED static void decapitalize_string_sm64(u8 *str64) {
     for (bool decap = false; *str64 != 0xFF; str64++) {
         if (*str64 >= 0x0A && *str64 <= 0x23) {
             if (decap) {
@@ -351,7 +351,7 @@ const char *get_level_name_ascii(s16 courseNum, s16 levelNum, s16 areaIndex, s16
         struct CustomLevelInfo* info = smlua_level_util_get_info(levelNum);
         if (info) {
             hasCustomName = true;
-            snprintf(output, 256, info->fullName);
+            snprintf(output, 256, "%s", info->fullName);
         }
     }
 

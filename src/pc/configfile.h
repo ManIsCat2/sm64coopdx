@@ -12,6 +12,7 @@
 #define MAX_VOLUME 127
 #define MAX_CONFIG_STRING 64
 #define MAX_SAVE_NAME_STRING 32
+#define MAX_SAVE_LOCATION_STRING 256
 
 #define DEFAULT_PORT 7777
 #define DEFAULT_COOPNET_IP "net.coop64.us"
@@ -184,6 +185,8 @@ extern unsigned int configRulesVersion;
 extern bool         configHideSocketWarning;
 extern bool         configCompressOnStartup;
 extern bool         configSkipPackGeneration;
+// custom save-file directory; empty = stock behavior (save lives in the user dir)
+extern char         configSaveLocation[MAX_SAVE_LOCATION_STRING];
 #ifdef TOUCH_CONTROLS
 extern bool         configAutohideTouch;
 extern bool         configSlideTouch;

@@ -9,7 +9,7 @@
 #include "game/save_file.h"
 #include "game/level_update.h"
 #include "game/hardcoded.h"
-#include "pc/fs/fs.h"
+#include "pc/save_location.h"
 #include "PR/os_eeprom.h"
 #include "pc/network/version.h"
 #include "pc/djui/djui.h"
@@ -100,11 +100,9 @@ void network_send_join(struct Packet* joinRequestPacket) {
     // do connection event
     network_player_connected(NPT_CLIENT, globalIndex, sJoinRequestPlayerModel, &sJoinRequestPlayerPalette, sJoinRequestPlayerName, sJoinRequestDiscordId);
 
-    fs_file_t* fp = fs_open(SAVE_FILENAME);
-    if (fp != NULL) {
-        fs_read(fp, eeprom, 512);
-        fs_close(fp);
-    }
+    // send the host's active save file, honoring a configured custom save
+    // location; on failure the previous snapshot bytes are left untouched
+    save_location_read_eeprom(eeprom, sizeof(eeprom));
 
     char version[MAX_VERSION_LENGTH] = { 0 };
     snprintf(version, MAX_VERSION_LENGTH, "%s", get_version());

@@ -5,6 +5,18 @@
 #include <string.h>
 #include <assert.h>
 #include <ctype.h>
+#include <errno.h>
+
+#if defined(_WIN32)
+#include <fcntl.h>
+#include <io.h>
+#include <process.h>
+#include <sys/stat.h> // _S_IREAD / _S_IWRITE for _open
+#include <windows.h>
+#else
+#include <fcntl.h>
+#include <unistd.h>
+#endif
 
 #include "platform.h"
 #include "configfile.h"
@@ -13,6 +25,7 @@
 #include "gfx/gfx_window_manager_api.h"
 #include "controller/controller_api.h"
 #include "fs/fs.h"
+#include "save_path.h"
 #include "mods/mods.h"
 #include "network/ban_list.h"
 #include "crash_handler.h"
@@ -56,6 +69,7 @@ struct ConfigOption {
         u8 (*colorValue)[3];
     };
     int maxStringLength;
+    bool allowSpaces; // string option whose value may contain spaces (written quoted)
 };
 
 struct FunctionConfigOption {
@@ -289,6 +303,7 @@ unsigned int configRulesVersion                   = 0;
 bool         configHideSocketWarning              = false;
 bool         configCompressOnStartup              = false;
 bool         configSkipPackGeneration             = false;
+char         configSaveLocation[MAX_SAVE_LOCATION_STRING] = "";
 #ifdef TOUCH_CONTROLS
 bool         configAutohideTouch                  = false;
 bool         configSlideTouch                     = true;
@@ -485,6 +500,7 @@ static const struct ConfigOption options[] = {
     {.name = "hide_socket_warning",            .type = CONFIG_TYPE_BOOL,   .boolValue   = &configHideSocketWarning},
     {.name = "compress_on_startup",            .type = CONFIG_TYPE_BOOL,   .boolValue   = &configCompressOnStartup},
     {.name = "skip_pack_generation",           .type = CONFIG_TYPE_BOOL,   .boolValue   = &configSkipPackGeneration},
+    {.name = "save_location",                  .type = CONFIG_TYPE_STRING, .stringValue = (char*)&configSaveLocation, .maxStringLength = MAX_SAVE_LOCATION_STRING, .allowSpaces = true},
 };
 
 struct SecretConfigOption {
@@ -805,6 +821,18 @@ static void configfile_load_internal(const char *filename, bool* error) {
             continue;
         }
 
+        // save_location values may contain spaces; parse them from the raw line
+        // (quoted or not) instead of the whitespace-delimited tokens, so the
+        // value round-trips unchanged
+        {
+            char saveLocationValue[MAX_SAVE_LOCATION_STRING];
+            if (save_path_parse_config_value(saveLocationValue, sizeof(saveLocationValue), p)) {
+                snprintf(configSaveLocation, MAX_SAVE_LOCATION_STRING, "%s", saveLocationValue);
+                free(line);
+                continue;
+            }
+        }
+
         numTokens = tokenize_string(p, sizeof(tokens) / sizeof(tokens[0]), tokens);
         if (numTokens != 0) {
             if (numTokens >= 2) {
@@ -1029,7 +1057,14 @@ static void configfile_save_option(FILE *file, const struct ConfigOption *option
             break;
 #endif
         case CONFIG_TYPE_STRING:
-            fprintf(file, "%s %s\n", option->name, option->stringValue);
+            if (option->allowSpaces) {
+                // quote values containing whitespace so they survive loading
+                char value[MAX_SAVE_LOCATION_STRING + 4];
+                save_path_format_config_value(value, sizeof(value), option->stringValue);
+                fprintf(file, "%s %s\n", option->name, value);
+            } else {
+                fprintf(file, "%s %s\n", option->name, option->stringValue);
+            }
             break;
         case CONFIG_TYPE_U64:
             fprintf(file, "%s %llu\n", option->name, *option->u64Value);
@@ -1043,32 +1078,100 @@ static void configfile_save_option(FILE *file, const struct ConfigOption *option
     }
 }
 
-// Writes the config file to 'filename'
-void configfile_save(const char *filename) {
-    FILE *file;
+static unsigned int sConfigTempCounter;
 
-    file = fopen(fs_get_write_path(filename), "w");
-    if (file == NULL) {
-        // error
-        return;
+static FILE *configfile_create_temp(const char *destination, char *temp, size_t tempSize) {
+#if defined(_WIN32)
+    unsigned long processId = (unsigned long) _getpid();
+#else
+    unsigned long processId = (unsigned long) getpid();
+#endif
+    for (unsigned int attempt = 0; attempt < 100; attempt++) {
+        unsigned int id = ++sConfigTempCounter;
+        int len = snprintf(temp, tempSize, "%s.tmp.%lu.%u", destination, processId, id);
+        if (len < 0 || (size_t) len >= tempSize)
+            return NULL;
+#if defined(_WIN32)
+        int fd = _open(temp, _O_WRONLY | _O_CREAT | _O_EXCL | _O_BINARY, _S_IREAD | _S_IWRITE);
+        if (fd >= 0) {
+            FILE *file = _fdopen(fd, "w");
+            if (file != NULL)
+                return file;
+            _close(fd);
+            remove(temp);
+            return NULL;
+        }
+#else
+        int fd = open(temp, O_WRONLY | O_CREAT | O_EXCL, 384);
+        if (fd >= 0) {
+            FILE *file = fdopen(fd, "w");
+            if (file != NULL)
+                return file;
+            close(fd);
+            remove(temp);
+            return NULL;
+        }
+#endif
+        if (errno != EEXIST)
+            return NULL;
     }
+    return NULL;
+}
+
+static bool configfile_sync(FILE *file) {
+#if defined(_WIN32)
+    return _commit(_fileno(file)) == 0;
+#else
+    return fsync(fileno(file)) == 0;
+#endif
+}
+
+static bool configfile_publish(const char *temp, const char *destination) {
+#if defined(_WIN32)
+    return MoveFileExA(temp, destination, MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH) != 0;
+#else
+    return rename(temp, destination) == 0;
+#endif
+}
+
+bool configfile_save_checked(const char *filename) {
+    const char *writePath = fs_get_write_path(filename);
+    if (writePath == NULL || strlen(writePath) >= SYS_MAX_PATH)
+        return false;
+
+    char destination[SYS_MAX_PATH];
+    char temp[SYS_MAX_PATH];
+    snprintf(destination, sizeof(destination), "%s", writePath);
+    FILE *file = configfile_create_temp(destination, temp, sizeof(temp));
+    if (file == NULL)
+        return false;
 
     printf("Saving configuration to '%s'\n", filename);
-
     for (unsigned int i = 0; i < ARRAY_LEN(options); i++) {
-        const struct ConfigOption *option = &options[i];
-        configfile_save_option(file, option, false);
+        configfile_save_option(file, &options[i], false);
     }
-
     for (unsigned int i = 0; i < ARRAY_LEN(secret_options); i++) {
         const struct ConfigOption *option = (const struct ConfigOption *) &secret_options[i];
         configfile_save_option(file, option, true);
     }
-
-    // save function options
     for (unsigned int i = 0; i < ARRAY_LEN(functionOptions); i++) {
         functionOptions[i].write(file);
     }
 
-    fclose(file);
+    bool ok = !ferror(file) && fflush(file) == 0;
+    if (ok)
+        ok = configfile_sync(file);
+    if (fclose(file) != 0)
+        ok = false;
+    if (ok)
+        ok = configfile_publish(temp, destination);
+    if (!ok)
+        remove(temp);
+    return ok;
+}
+
+// Compatibility wrapper for callers that historically ignored persistence
+// errors. Save-location switching uses the checked API above.
+void configfile_save(const char *filename) {
+    (void) configfile_save_checked(filename);
 }

@@ -3,7 +3,7 @@
 #include "lib/src/libultra_internal.h"
 #include "macros.h"
 #include "platform.h"
-#include "fs/fs.h"
+#include "save_location.h"
 
 u8* gOverrideEeprom = NULL;
 
@@ -133,15 +133,15 @@ s32 osEepromLongRead(UNUSED OSMesgQueue *mq, u8 address, u8 *buffer, int nbytes)
     u8 content[512];
     s32 ret = -1;
 
-    fs_file_t *fp = fs_open(SAVE_FILENAME);
+    FILE *fp = fopen(save_location_resolve(), "rb");
     if (fp == NULL) {
         return -1;
     }
-    if (fs_read(fp, content, 512) == 512) {
+    if (fread(content, 1, 512, fp) == 512) {
         memcpy(buffer, content + address * 8, nbytes);
         ret = 0;
     }
-    fs_close(fp);
+    fclose(fp);
 
     return ret;
 }
@@ -158,7 +158,7 @@ s32 osEepromLongWrite(UNUSED OSMesgQueue *mq, u8 address, u8 *buffer, int nbytes
     }
     memcpy(content + address * 8, buffer, nbytes);
 
-    FILE *fp = fopen(fs_get_write_path(SAVE_FILENAME), "wb");
+    FILE *fp = fopen(save_location_resolve(), "wb");
     if (fp == NULL) {
         return -1;
     }

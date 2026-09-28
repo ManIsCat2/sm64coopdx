@@ -331,28 +331,36 @@ static const char *get_top_external_storage_path(void) {
     return extPath;
 }
 
+static bool privileged_write = false;
+static bool privileged_manage = false;
+
+static void SDLCALL permission_callback(void *userdata, const char *permission, bool granted) {
+    bool *result = (bool *)userdata;
+    *result = granted;
+}
+
 const char *get_gamedir(void) {
-    bool privileged_write = false, privileged_manage = false;
-    static char gamedir_unprivileged[SYS_MAX_PATH] = { 0 }, gamedir_privileged[SYS_MAX_PATH] = { 0 };
+    static char gamedir_unprivileged[SYS_MAX_PATH] = { 0 };
+    static char gamedir_privileged[SYS_MAX_PATH] = { 0 };
+
     const char *basedir_unprivileged = SDL_GetAndroidExternalStoragePath();
     const char *basedir_privileged = get_top_external_storage_path();
 
-    snprintf(gamedir_unprivileged, sizeof(gamedir_unprivileged), 
-             "%s", basedir_unprivileged);
-    snprintf(gamedir_privileged, sizeof(gamedir_privileged), 
-             "%s/%s", basedir_privileged, ANDROID_APPNAME);
+    snprintf(gamedir_unprivileged, sizeof(gamedir_unprivileged), "%s", basedir_unprivileged);
+    snprintf(gamedir_privileged, sizeof(gamedir_privileged), "%s/%s", basedir_privileged, ANDROID_APPNAME);
 
     SDL_RequestAndroidPermission(
         "android.permission.WRITE_EXTERNAL_STORAGE",
-        true,
+        permission_callback,
         &privileged_write
     );
 
     SDL_RequestAndroidPermission(
         "android.permission.MANAGE_EXTERNAL_STORAGE",
-        true,
+        permission_callback,
         &privileged_manage
     );
+
     return (privileged_write || privileged_manage) ? gamedir_privileged : gamedir_unprivileged;
 }
 

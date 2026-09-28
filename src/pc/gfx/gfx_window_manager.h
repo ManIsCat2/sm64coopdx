@@ -40,6 +40,9 @@ SDL_Window *gfx_wm_get_window(void);
 void gfx_wm_init(const char *window_title);
 void gfx_wm_set_keyboard_callbacks(kb_callback_t on_key_down, kb_callback_t on_key_up, void (*on_all_keys_up)(void),
     void (*on_text_input)(char*), void (*on_text_editing)(char*, int));
+#ifdef TOUCH_CONTROLS
+void gfx_wm_set_touchscreen_callbacks(void (*down)(void* event), void (*motion)(void* event), void (*up)(void* event));
+#endif
 void gfx_wm_set_scroll_callback(void (*on_scroll)(float, float));
 void gfx_wm_main_loop(void (*run_one_game_iter)(void));
 void gfx_wm_get_dimensions(uint32_t *width, uint32_t *height);

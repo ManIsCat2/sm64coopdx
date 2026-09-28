@@ -16,6 +16,10 @@
 #include "pc/configfile.h"
 #include "pc/cliopts.h"
 #include "pc/controller/controller_keyboard.h"
+#ifdef TOUCH_CONTROLS
+#include "pc/controller/controller_touchscreen.h"
+#include "pc/djui/djui_interactable.h"
+#endif
 #include "pc/controller/controller_sdl.h"
 #include "pc/controller/controller_bind_mapping.h"
 #include "pc/utils/misc.h"
@@ -40,6 +44,11 @@ static kb_callback_t kb_key_up = NULL;
 static void (*kb_all_keys_up)(void) = NULL;
 static void (*kb_text_input)(char*) = NULL;
 static void (*kb_text_editing)(char*, int) = NULL;
+#ifdef TOUCH_CONTROLS
+static void (*touch_down_callback)(void* event);
+static void (*touch_motion_callback)(void* event);
+static void (*touch_up_callback)(void* event);
+#endif
 
 static void (*m_scroll)(float, float) = NULL;
 
@@ -193,6 +202,38 @@ static void gfx_wm_ondropfile(char* path) {
 #endif
 }
 
+#ifdef TOUCH_CONTROLS
+static void gfx_wm_fingerdown(SDL_TouchFingerEvent sdl_event) {
+    struct TouchEvent event;
+    event.x = sdl_event.x;
+    event.y = sdl_event.y;
+    event.touchID = sdl_event.fingerID + 1;
+    if (touch_down_callback != NULL) {
+        touch_down_callback((void*)&event);
+    }
+}
+
+static void gfx_wm_fingermotion(SDL_TouchFingerEvent sdl_event) {
+    struct TouchEvent event;
+    event.x = sdl_event.x;
+    event.y = sdl_event.y;
+    event.touchID = sdl_event.fingerID + 1;
+    if (touch_motion_callback != NULL) {
+        touch_motion_callback((void*)&event);
+    }
+}
+
+static void gfx_wm_fingerup(SDL_TouchFingerEvent sdl_event) {
+    struct TouchEvent event;
+    event.x = sdl_event.x;
+    event.y = sdl_event.y;
+    event.touchID = sdl_event.fingerID + 1;
+    if (touch_up_callback != NULL) {
+        touch_up_callback((void*)&event);
+    }
+}
+#endif
+
 void gfx_wm_handle_events(void) {
     if (currBackend == GFX_WINDOW_BACKEND_DUMMY) { return; }
     SDL_Event event;
@@ -210,6 +251,17 @@ void gfx_wm_handle_events(void) {
             case SDL_EVENT_KEY_UP:
                 gfx_wm_onkeyup(event.key.scancode);
                 break;
+#ifdef TOUCH_CONTROLS
+            case SDL_EVENT_FINGER_DOWN:
+                gfx_wm_fingerdown(event.tfinger);
+                break;
+            case SDL_EVENT_FINGER_MOTION:
+                gfx_wm_fingermotion(event.tfinger);
+                break;
+            case SDL_EVENT_FINGER_UP:
+                gfx_wm_fingerup(event.tfinger);
+                break;
+#endif
             case SDL_EVENT_MOUSE_WHEEL:
                 gfx_wm_onscroll(event.wheel.x, event.wheel.y);
                 break;
@@ -252,6 +304,15 @@ void gfx_wm_set_keyboard_callbacks(kb_callback_t on_key_down, kb_callback_t on_k
     kb_text_editing = on_text_editing;
 }
 
+#ifdef TOUCH_CONTROLS
+void gfx_wm_set_touchscreen_callbacks(void (*down)(void* event), void (*motion)(void* event), void (*up)(void* event)) {
+    if (currBackend == GFX_WINDOW_BACKEND_DUMMY) { return; }
+    touch_down_callback = down;
+    touch_motion_callback = motion;
+    touch_up_callback = up;
+}
+#endif
+
 void gfx_wm_set_scroll_callback(void (*on_scroll)(float, float)) {
     if (currBackend == GFX_WINDOW_BACKEND_DUMMY) { return; }
     m_scroll = on_scroll;
@@ -283,12 +344,16 @@ int gfx_wm_get_max_msaa(void) {
 
 void gfx_wm_set_window_title(const char *title) {
     if (currBackend == GFX_WINDOW_BACKEND_DUMMY) { return; }
+#ifndef __ANDROID__
     SDL_SetWindowTitle(sSdlWindow, title);
+#endif
 }
 
 void gfx_wm_reset_window_title(void) {
     if (currBackend == GFX_WINDOW_BACKEND_DUMMY) { return; }
+#ifndef __ANDROID__
     SDL_SetWindowTitle(sSdlWindow, TITLE);
+#endif
 }
 
 void gfx_wm_shutdown(void) {

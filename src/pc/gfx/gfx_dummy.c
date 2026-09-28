@@ -24,11 +24,6 @@ static void gfx_dummy_wm_init(UNUSED const char *game_name) {
 static void gfx_dummy_wm_set_fullscreen(void) {
 }
 
-#ifdef TOUCH_CONTROLS
-static void gfx_dummy_wm_set_touchscreen_callbacks(UNUSED void (*down)(void* event), UNUSED void (*motion)(void* event), UNUSED void (*up)(void* event)) {
-}
-#endif
-
 static void gfx_dummy_wm_handle_events(UNUSED SDL_Event event) {
 }
 
@@ -133,9 +128,6 @@ static void gfx_dummy_renderer_shutdown(void) {
 struct GfxWindowBackendAPI gfx_window_dummy = {
     gfx_dummy_wm_init,
     gfx_dummy_wm_set_fullscreen,
-#ifdef TOUCH_CONTROLS
-    gfx_dummy_wm_set_touchscreen_callbacks,
-#endif
     gfx_dummy_wm_handle_events,
     gfx_dummy_wm_start_frame,
     gfx_dummy_wm_swap_buffers_begin,

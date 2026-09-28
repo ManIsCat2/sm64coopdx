@@ -595,7 +595,9 @@ int main(int argc, char *argv[]) {
         gfx_wm_set_keyboard_callbacks(keyboard_on_key_down, keyboard_on_key_up, keyboard_on_all_keys_up,
             keyboard_on_text_input, keyboard_on_text_editing);
         gfx_wm_set_scroll_callback(mouse_on_scroll);
+#ifdef TOUCH_CONTROLS
         gfx_wm_set_touchscreen_callbacks((void *)touch_down, (void *)touch_motion, (void *)touch_up);
+#endif
     }
 
     // render the rom setup screen

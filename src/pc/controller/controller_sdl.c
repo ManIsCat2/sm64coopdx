@@ -117,7 +117,7 @@ static void controller_sdl_init(void) {
     }
     sBackgroundGamepad = configBackgroundGamepad;
 #ifdef TOUCH_CONTROLS
-    SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
+    //SDL_SetHint(SDL_HINT_ACCELEROMETER_AS_JOYSTICK, "0");
 #endif
 
     if (!SDL_Init(SDL_INIT_GAMEPAD | SDL_INIT_EVENTS)) {

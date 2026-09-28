@@ -1838,6 +1838,37 @@ public class SDLActivity extends Activity implements View.OnSystemUiVisibilityCh
         }
     }
 
+    public void copyFile(String filename, String destpath) {
+        AssetManager assetManager = this.getAssets();
+
+        InputStream in = null;
+        OutputStream out = null;
+        String newFileName = null;
+        try {
+            Log.i("tag", "copyFile() "+filename);
+            in = assetManager.open(filename);
+            if (filename.endsWith(".jpg")) // extension was added to avoid compression on APK file
+                newFileName = destpath + filename.substring(0, filename.length()-4);
+            else
+                newFileName = destpath + filename;
+            out = new FileOutputStream(newFileName);
+
+            byte[] buffer = new byte[1024];
+            int read;
+            while ((read = in.read(buffer)) != -1) {
+                out.write(buffer, 0, read);
+            }
+            in.close();
+            in = null;
+            out.flush();
+            out.close();
+            out = null;
+        } catch (Exception e) {
+            Log.e("tag", "Exception in copyFile() of "+newFileName);
+            Log.e("tag", "Exception in copyFile() "+e.toString());
+        }
+    }
+
     public static boolean openURL(String url)
     {
         try {

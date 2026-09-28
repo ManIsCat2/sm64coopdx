@@ -71,7 +71,7 @@ USE_APP ?= 1
 # Enable touchscreen controls
 TOUCH_CONTROLS ?= 0
 # Minimum macOS Version
-MIN_MACOS_VERSION ?= 11
+MIN_MACOS_VERSION ?= 15
 # Make some small adjustments for handheld devices
 HANDHELD ?= 0
 
@@ -367,11 +367,11 @@ endif
 
 # Check for certain target types.
 
-ifeq ($(TARGET_RPI),1) # Define RPi to change SDL2 title & GLES2 hints
+ifeq ($(TARGET_RPI),1) # Define RPi to change SDL3 title & GLES2 hints
   DEFINES += USE_GLES=1
 endif
 
-ifeq ($(TARGET_RK3588),1) # Define RK3588 to change SDL2 title & GLES2 hints
+ifeq ($(TARGET_RK3588),1) # Define RK3588 to change SDL3 title & GLES2 hints
   DEFINES += USE_GLES=1
 endif
 
@@ -379,7 +379,7 @@ ifeq ($(TARGET_ANDROID),1) # Define Android to change SDL2 title & GLES hints
   DEFINES += TARGET_ANDROID=1 USE_GLES=1 _LANGUAGE_C=1
 endif
 
-ifeq ($(OSX_BUILD),1) # Modify GFX & SDL2 for OSX GL
+ifeq ($(OSX_BUILD),1) # Modify GFX & SDL3 for OSX GL
   DEFINES += OSX_BUILD=1
 endif
 
@@ -506,6 +506,10 @@ endif
 
 ifeq ($(DISCORD_SDK),1)
   SRC_DIRS += src/pc/discord
+endif
+
+ifeq ($(WINDOWS_BUILD),0)
+  SRC_DIRS += src/pc/linenoise
 endif
 
 SRC_DIRS += src/pc/mumble
@@ -704,12 +708,7 @@ else
   OBJCOPY := $(CROSS)objcopy
 endif
 
-# thank you apple very cool
-ifeq ($(HOST_OS),Darwin)
-  CP := gcp
-else
-  CP := cp
-endif
+CP := cp
 
 ifeq ($(DISCORD_SDK),1)
   LD := $(CXX)
@@ -749,7 +748,24 @@ endif
 
 # Configure backend flags
 
-BACKEND_LDFLAGS :=
+BACKEND_CFLAGS += -DHAVE_SDL3=1
+
+ifeq ($(OSX_BUILD),1)
+  BACKEND_CFLAGS += $(shell pkg-config sdl3 --cflags)
+  BACKEND_LDFLAGS += $(shell pkg-config sdl3 --libs)
+else ifeq ($(WINDOWS_BUILD),1)
+  BACKEND_CFLAGS += $(shell pkg-config sdl3 --cflags)
+  BACKEND_LDFLAGS += $(shell pkg-config sdl3 --static --libs)
+else
+  BACKEND_CFLAGS += -Ilib/sdl3/include
+  ifeq ($(TARGET_RPI),1)
+    BACKEND_LDFLAGS += -Llib/sdl3/linux -l:libSDL3_arm.a
+  else ifeq ($(TARGET_RK3588),1)
+    BACKEND_LDFLAGS += -Llib/sdl3/linux -l:libSDL3_arm.a
+  else
+    BACKEND_LDFLAGS += -Llib/sdl3/linux -l:libSDL3.a
+  endif
+endif
 
 # D3D11 flags
 ifeq ($(WINDOWS_BUILD),1)
@@ -758,9 +774,9 @@ ifeq ($(WINDOWS_BUILD),1)
   BACKEND_LDFLAGS += -lsetupapi -ldinput8 -luser32 -lgdi32 -limm32 -lole32 -loleaut32 -lshell32 -lwinmm -lversion -luuid -static
 endif
 
-# SDL2 Flags
+# SDL3 Flags
 ifeq ($(WINDOWS_BUILD),1)
-  BACKEND_LDFLAGS += -lglew32 -lglu32 -lopengl32
+  BACKEND_LDFLAGS += -lglew32 -lglu32 -lopengl32 -lshlwapi
 else ifeq ($(TARGET_ANDROID),1)
   BACKEND_LDFLAGS += -lGLESv3 -llog
 else ifeq ($(TARGET_RPI),1)
@@ -772,25 +788,6 @@ else ifeq ($(OSX_BUILD),1)
   EXTRA_CPP_FLAGS += -stdlib=libc++ -std=c++17 -mmacosx-version-min=$(MIN_MACOS_VERSION)
 else
   BACKEND_LDFLAGS += -lGL
-endif
-
-# SDL can be used by different systems, so we consolidate all of that shit into this
-
-SDLCONFIG := $(CROSS)sdl2-config
-BACKEND_CFLAGS += -DHAVE_SDL2=1
-
-ifeq ($(OSX_BUILD),1)
-  # on OSX at least the homebrew version of sdl-config gives include path as `.../include/SDL2` instead of `.../include`
-  OSX_PREFIX := $(shell $(SDLCONFIG) --prefix)
-  BACKEND_CFLAGS += -I$(OSX_PREFIX)/include $(shell $(SDLCONFIG) --cflags)
-else
-  BACKEND_CFLAGS += `$(SDLCONFIG) --cflags`
-endif
-
-ifeq ($(WINDOWS_BUILD),1)
-  BACKEND_LDFLAGS += `$(SDLCONFIG) --static-libs` -lsetupapi -luser32 -limm32 -lole32 -loleaut32 -lshell32 -lshlwapi -lwinmm -lversion
-else
-  BACKEND_LDFLAGS += `$(SDLCONFIG) --libs`
 endif
 
 C_DEFINES += $(foreach d,$(DEFINES),-D$(d))
@@ -990,7 +987,11 @@ ifeq ($(WINDOWS_BUILD),1)
   endif
 else
   ifeq ($(DISCORD_SDK),1)
-    LDFLAGS += -ldiscord_game_sdk -Wl,-rpath . -Wl,-rpath lib/discordsdk
+    ifeq ($(OSX_BUILD),1)
+      LDFLAGS += -ldiscord_game_sdk -Wl,-rpath,@executable_path
+    else
+      LDFLAGS += -ldiscord_game_sdk -Wl,-rpath . -Wl,-rpath lib/discordsdk
+    endif
   endif
 endif
 
@@ -1087,7 +1088,7 @@ endif
 
 # Check for unsafe mode option
 ifeq ($(LUA_UNSAFE),1)
-  ifeq ($(DEVELOPMENT),1)
+  ifneq ($(or $(filter 1,$(DEVELOPMENT)),$(filter dev,$(MAKECMDGOALS))),)
     CC_CHECK_CFLAGS += -DLUA_UNSAFE
     CFLAGS += -DLUA_UNSAFE
   else
@@ -1633,8 +1634,10 @@ APP_MACOS_DIR = $(APP_CONTENTS_DIR)/MacOS
 APP_RESOURCES_DIR = $(APP_CONTENTS_DIR)/Resources
 
 ifeq ($(OSX_BUILD),1)
-  GLEW_LIB := $(shell find $(BREW_PREFIX)/lib/ | grep libGLEW.2.2.0 | sort -n | uniq)
-  SDL2_LIB := $(shell find $(BREW_PREFIX)/lib/ | grep libSDL2- | sort -n | uniq)
+  GLEW_LIB := $(shell find $(BREW_PREFIX)/lib/ | grep "libGLEW\." | sort -n | uniq | head -n 1)
+  GLEW_ID  := $(shell otool -D $(GLEW_LIB) | tail -n1)
+  SDL_LIB := $(shell find $(BREW_PREFIX)/lib/ | grep "libSDL3\." | sort -n | uniq | head -n 1)
+  SDL_ID  := $(shell otool -D $(SDL_LIB) | tail -n1)
 endif
 
 all:
@@ -1655,17 +1658,16 @@ all:
     cp build/us_pc/libdiscord_game_sdk.dylib $(APP_MACOS_DIR); \
     cp build/us_pc/libcoopnet.dylib $(APP_MACOS_DIR); \
     cp build/us_pc/coopdx_updater $(APP_MACOS_DIR); \
+    codesign --force --deep --sign - $(APP_MACOS_DIR)/coopdx_updater > /dev/null 2>&1; \
     cp build/us_pc/libjuice.1.6.2.dylib $(APP_MACOS_DIR); \
-    cp $(SDL2_LIB) $(APP_MACOS_DIR)/libSDL2.dylib; \
-    install_name_tool -change $(BREW_PREFIX)/lib/libSDL2-2.0.0.dylib @executable_path/libSDL2.dylib $(APP_MACOS_DIR)/sm64coopdx > /dev/null 2>&1; \
-    install_name_tool -change $(BREW_PREFIX)/opt/sdl2/lib/libSDL2-2.0.0.dylib @executable_path/libSDL2.dylib $(APP_MACOS_DIR)/sm64coopdx > /dev/null 2>&1; \
-		install_name_tool -id @executable_path/libSDL2.dylib $(APP_MACOS_DIR)/libSDL2.dylib > /dev/null 2>&1; \
-    codesign --force --deep --sign - $(APP_MACOS_DIR)/libSDL2.dylib; \
+    cp $(SDL_LIB) $(APP_MACOS_DIR)/libSDL3.dylib; \
+    install_name_tool -change $(SDL_ID) @executable_path/libSDL3.dylib $(APP_MACOS_DIR)/sm64coopdx > /dev/null 2>&1; \
+		install_name_tool -id @executable_path/libSDL3.dylib $(APP_MACOS_DIR)/libSDL3.dylib > /dev/null 2>&1; \
+    codesign --force --deep --sign - $(APP_MACOS_DIR)/libSDL3.dylib > /dev/null 2>&1; \
     cp $(GLEW_LIB) $(APP_MACOS_DIR)/libGLEW.dylib; \
-    install_name_tool -change $(BREW_PREFIX)/lib/libGLEW.2.2.0.dylib @executable_path/libGLEW.dylib $(APP_MACOS_DIR)/sm64coopdx > /dev/null 2>&1; \
-    install_name_tool -change $(BREW_PREFIX)/opt/glew/lib/libGLEW.2.2.0.dylib @executable_path/libGLEW.dylib $(APP_MACOS_DIR)/sm64coopdx > /dev/null 2>&1; \
+    install_name_tool -change $(GLEW_ID) @executable_path/libGLEW.dylib $(APP_MACOS_DIR)/sm64coopdx > /dev/null 2>&1; \
 		install_name_tool -id @executable_path/libGLEW.dylib $(APP_MACOS_DIR)/libGLEW.dylib > /dev/null 2>&1; \
-    codesign --force --deep --sign - $(APP_MACOS_DIR)/libGLEW.dylib; \
+    codesign --force --deep --sign - $(APP_MACOS_DIR)/libGLEW.dylib > /dev/null 2>&1; \
     mkdir res/build; \
     xcrun actool res/icon.icon --compile res/build --app-icon icon --output-partial-info-plist res/build/Info.plist --minimum-deployment-target $(MIN_MACOS_VERSION) --platform macosx > /dev/null 2>&1; \
     mv res/build/Assets.car $(APP_RESOURCES_DIR)/; \
@@ -1684,7 +1686,6 @@ all:
 		echo '    <string>icon</string>' >> $(APP_CONTENTS_DIR)/Info.plist; \
 		echo '    <key>CFBundleDisplayName</key>' >> $(APP_CONTENTS_DIR)/Info.plist; \
 		echo '    <string>sm64coopdx</string>' >> $(APP_CONTENTS_DIR)/Info.plist; \
-		echo '    <!-- Add other keys and values here -->' >> $(APP_CONTENTS_DIR)/Info.plist; \
 		echo '</dict>' >> $(APP_CONTENTS_DIR)/Info.plist; \
 		echo '</plist>' >> $(APP_CONTENTS_DIR)/Info.plist; \
 		chmod +x $(APP_MACOS_DIR)/sm64coopdx; \

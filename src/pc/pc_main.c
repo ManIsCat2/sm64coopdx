@@ -70,13 +70,15 @@
 #include "pc/discord/discord.h"
 #endif
 
+#include "pc/terminal.h"
+
 #include "pc/mumble/mumble.h"
 
 #if defined(_WIN32)
 #include <windows.h>
 #endif
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 extern Vp gViewportFullscreen;
 
@@ -113,7 +115,6 @@ u8 gLuaVolumeSfx = 127;
 u8 gLuaVolumeEnv = 127;
 
 struct AudioAPI* gAudioApi = &audio_null;
-struct GfxWindowManagerAPI* gWindowApi = &gfx_dummy_wm_api;
 struct GfxRenderingAPI* gRenderApi = &gfx_dummy_renderer_api;
 
 extern void gfx_run(Gfx *commands);
@@ -143,6 +144,7 @@ extern void patch_title_screen_before(void);
 extern void patch_dialog_before(void);
 extern void patch_hud_before(void);
 extern void patch_paintings_before(void);
+extern void patch_carpet_before(void);
 extern void patch_bubble_particles_before(void);
 extern void patch_snow_particles_before(void);
 extern void patch_djui_before(void);
@@ -155,6 +157,7 @@ extern void patch_title_screen_interpolated(f32 delta);
 extern void patch_dialog_interpolated(f32 delta);
 extern void patch_hud_interpolated(f32 delta);
 extern void patch_paintings_interpolated(f32 delta);
+extern void patch_carpet_interpolated(f32 delta);
 extern void patch_bubble_particles_interpolated(f32 delta);
 extern void patch_snow_particles_interpolated(f32 delta);
 extern void patch_djui_interpolated(f32 delta);
@@ -168,6 +171,7 @@ static void patch_interpolations_before(void) {
     patch_dialog_before();
     patch_hud_before();
     patch_paintings_before();
+    patch_carpet_before();
     patch_bubble_particles_before();
     patch_snow_particles_before();
     patch_djui_before();
@@ -182,6 +186,7 @@ static inline void patch_interpolations(f32 delta) {
     patch_dialog_interpolated(delta);
     patch_hud_interpolated(delta);
     patch_paintings_interpolated(delta);
+    patch_carpet_interpolated(delta);
     patch_bubble_particles_interpolated(delta);
     patch_snow_particles_interpolated(delta);
     patch_djui_interpolated(delta);
@@ -207,14 +212,22 @@ static s32 get_num_frames_to_draw(f64 t, u32 frameLimit) {
 
 static u32 get_display_refresh_rate(void) {
     static u32 refreshRate = 0;
+
     if (!refreshRate) {
-        SDL_DisplayMode mode;
-        if (SDL_GetCurrentDisplayMode(0, &mode) == 0) {
-            if (mode.refresh_rate > 0) { refreshRate = (u32) mode.refresh_rate; }
+        SDL_DisplayID display = SDL_GetPrimaryDisplay();
+        const SDL_DisplayMode *mode = SDL_GetCurrentDisplayMode(display);
+
+        if (mode && mode->refresh_rate > 0.f) {
+            refreshRate = (u32)roundf(mode->refresh_rate);
         } else {
             refreshRate = 60;
         }
     }
+
+    if (refreshRate < 30) {
+        refreshRate = 30;
+    }
+
     return refreshRate;
 }
 
@@ -230,30 +243,31 @@ static void select_graphics_backend(void) {
     }
 
 #if defined(_WIN32)
-    if (configGraphicsBackend == GAPI_GL && !gfx_sdl_check_opengl_compatibility()) {
-        configGraphicsBackend = GAPI_D3D11;
+    if (configGraphicsBackend == GFX_WINDOW_BACKEND_OPENGL && !gfx_window_opengl_check_compatibility()) {
+        configGraphicsBackend = GFX_WINDOW_BACKEND_DIRECTX;
     }
 #endif
-    int backend = configGraphicsBackend;
+    enum GfxWindowBackend backend = configGraphicsBackend;
 #if defined(_WIN32)
-    if (gCLIOpts.backend != -1) { backend = gCLIOpts.backend; }
+    if (gCLIOpts.backend != GFX_WINDOW_BACKEND_COUNT) { backend = gCLIOpts.backend; }
 #endif
 
     switch (backend) {
-        case GAPI_GL:
-            gWindowApi = &gfx_sdl;
+        case GFX_WINDOW_BACKEND_DUMMY:
+            gRenderApi = &gfx_dummy_renderer_api;
+            gAudioApi  = &audio_null;
+            break;
+        case GFX_WINDOW_BACKEND_OPENGL:
             gRenderApi = &gfx_opengl_api;
             gAudioApi  = &audio_sdl;
             break;
 #if defined(_WIN32)
-        case GAPI_D3D11:
-            gWindowApi = &gfx_dxgi;
+        case GFX_WINDOW_BACKEND_DIRECTX:
             gRenderApi = &gfx_direct3d11_api;
             gAudioApi  = &audio_sdl;
             break;
 #endif
         default:
-            gWindowApi = &gfx_sdl;
             gRenderApi = &gfx_opengl_api;
             gAudioApi  = &audio_sdl;
             break;
@@ -270,8 +284,9 @@ void produce_interpolation_frames_and_delay(void) {
     gRenderingInterpolated = true;
 
     u32 displayRefreshRate = get_display_refresh_rate();
-    bool shouldDelay = configFramerateMode != RRM_UNLIMITED;
-    if (configWindow.vsync && displayRefreshRate <= refreshRate) {
+    bool isPacedGrid = configFramerateMode != RRM_UNLIMITED;
+    bool shouldDelay = isPacedGrid;
+    if (gRenderApi == &gfx_dummy_renderer_api && configWindow.vsync && displayRefreshRate <= refreshRate) {
         shouldDelay = false;
         refreshRate = displayRefreshRate;
     }
@@ -293,7 +308,7 @@ void produce_interpolation_frames_and_delay(void) {
         ++framesDrawn;
 
         // when we know how many frames to draw, use a precise delta
-        f64 idealTime = shouldDelay ? (sFrameTimeStart + interpFrameTime * framesDrawn) : curTime;
+        f64 idealTime = isPacedGrid ? (sFrameTimeStart + interpFrameTime * framesDrawn) : curTime;
         f32 delta = clamp((idealTime - sFrameTimeStart) / sFrameTime, 0.f, 1.f);
         gFramePercentage = clamp((curTime - sFrameTimeStart) / sFrameTime, 0.f, 1.f);
         gRenderingDelta = delta;
@@ -316,7 +331,7 @@ void produce_interpolation_frames_and_delay(void) {
         }
 
         sDrawnFrames++;
-        if (shouldDelay) { numFramesToDraw--; }
+        if (isPacedGrid) { numFramesToDraw--; }
     } while ((curTime = clock_elapsed_f64()) < targetTime && numFramesToDraw > 0);
 
     // compute and update the frame rate every second
@@ -339,7 +354,9 @@ void produce_interpolation_frames_and_delay(void) {
 static s16 sAudioBuffer[SAMPLES_HIGH * 2 * 2] = { 0 };
 
 inline static void buffer_audio(void) {
-    bool shouldMute = (configMuteFocusLoss && !gWindowApi->has_focus()) || (gMasterVolume == 0);
+    bool shouldMute = (configMuteFocusLoss && !gfx_wm_has_focus()) || (gMasterVolume == 0);
+    audio_custom_update_volume();
+
     if (!shouldMute) {
         set_sequence_player_volume(SEQ_PLAYER_LEVEL, (f32)configMusicVolume / 127.0f * (f32)gLuaVolumeLevel / 127.0f);
         set_sequence_player_volume(SEQ_PLAYER_SFX,   (f32)configSfxVolume / 127.0f * (f32)gLuaVolumeSfx / 127.0f);
@@ -377,7 +394,7 @@ void *audio_thread(UNUSED void *arg) {
         f64 actualDelta = now - curTime;
         if (actualDelta < targetDelta) {
             f64 delay = ((targetDelta - actualDelta) * 1000.0);
-            gWindowApi->delay((u32)delay);
+            gfx_wm_delay((u32)delay);
         }
     }
 
@@ -443,7 +460,7 @@ void produce_one_dummy_frame(void (*callback)(), u8 clearColorR, u8 clearColorG,
     f64 elapsed = frameEnd - frameStart;
     f64 remaining = targetFrameTime - elapsed;
     if (remaining > 0) {
-        gWindowApi->delay((u32)(remaining * 1000.0));
+        gfx_wm_delay((u32)(remaining * 1000.0));
     }
 
     gfx_end_frame();
@@ -533,7 +550,20 @@ int main(int argc, char *argv[]) {
 
 #ifdef _WIN32
     // handle Windows console
+    bool console = false;
     if (gCLIOpts.console || gCLIOpts.headless) {
+        console = true;
+    } else {
+        // detect if the game should keep the console open
+        DWORD pids[2];
+        DWORD pcount = GetConsoleProcessList(pids, 2);
+        console = pcount > 1;
+    }
+    if (console) {
+        HANDLE out = GetStdHandle(STD_OUTPUT_HANDLE);
+        DWORD mode = 0;
+        GetConsoleMode(out, &mode);
+        SetConsoleMode(out, mode | ENABLE_VIRTUAL_TERMINAL_PROCESSING);
         SetConsoleOutputCP(CP_UTF8);
     } else {
         FreeConsole();
@@ -561,13 +591,11 @@ int main(int argc, char *argv[]) {
 
     // create the window almost straight away
     if (!gGfxInited) {
-        gfx_init(gWindowApi, gRenderApi, TITLE);
-        gWindowApi->set_keyboard_callbacks(keyboard_on_key_down, keyboard_on_key_up, keyboard_on_all_keys_up,
+        gfx_init(gRenderApi, TITLE);
+        gfx_wm_set_keyboard_callbacks(keyboard_on_key_down, keyboard_on_key_up, keyboard_on_all_keys_up,
             keyboard_on_text_input, keyboard_on_text_editing);
-#ifdef TOUCH_CONTROLS
-        gWindowApi->set_touchscreen_callbacks((void *)touch_down, (void *)touch_motion, (void *)touch_up);
-#endif
-        gWindowApi->set_scroll_callback(mouse_on_scroll);
+        gfx_wm_set_scroll_callback(mouse_on_scroll);
+        gfx_wm_set_touchscreen_callbacks((void *)touch_down, (void *)touch_motion, (void *)touch_up);
     }
 
     // render the rom setup screen
@@ -575,7 +603,7 @@ int main(int argc, char *argv[]) {
         if (!gCLIOpts.hideLoadingScreen) {
             render_rom_setup_screen(); // holds the game load until a valid rom is provided
         } else {
-            printf("ERROR: could not find valid vanilla us sm64 rom in game's user folder\n");
+            log_to_terminal("ERROR: could not find valid vanilla us sm64 rom in game's user folder\n");
             return 0;
         }
     }
@@ -642,17 +670,21 @@ int main(int argc, char *argv[]) {
         network_init(NT_NONE, false);
     }
 
+    // initialize terminal
+    terminal_init();
+
     // main loop
     while (true) {
         debug_context_reset();
         CTX_BEGIN(CTX_TOTAL);
-        gWindowApi->main_loop(produce_one_frame);
+        gfx_wm_main_loop(produce_one_frame);
 #ifdef DISCORD_SDK
         discord_update();
 #endif
 #ifndef TARGET_ANDROID
         mumble_update();
 #endif
+        terminal_update();
 #ifdef DEBUG
         fflush(stdout);
         fflush(stderr);

@@ -81,72 +81,6 @@ function SOUND_ARG_LOAD(bank, soundID, priority, flags)
     )
 end
 
--------------
--- courses --
--------------
-
---- @type integer
-COURSE_NONE     = 0
---- @type integer
-COURSE_BOB      = 1
---- @type integer
-COURSE_WF       = 2
---- @type integer
-COURSE_JRB      = 3
---- @type integer
-COURSE_CCM      = 4
---- @type integer
-COURSE_BBH      = 5
---- @type integer
-COURSE_HMC      = 6
---- @type integer
-COURSE_LLL      = 7
---- @type integer
-COURSE_SSL      = 8
---- @type integer
-COURSE_DDD      = 9
---- @type integer
-COURSE_SL       = 10
---- @type integer
-COURSE_WDW      = 11
---- @type integer
-COURSE_TTM      = 12
---- @type integer
-COURSE_THI      = 13
---- @type integer
-COURSE_TTC      = 14
---- @type integer
-COURSE_RR       = 15
---- @type integer
-COURSE_BITDW    = 16
---- @type integer
-COURSE_BITFS    = 17
---- @type integer
-COURSE_BITS     = 18
---- @type integer
-COURSE_PSS      = 19
---- @type integer
-COURSE_COTMC    = 20
---- @type integer
-COURSE_TOTWC    = 21
---- @type integer
-COURSE_VCUTM    = 22
---- @type integer
-COURSE_WMOTR    = 23
---- @type integer
-COURSE_SA       = 24
---- @type integer
-COURSE_CAKE_END = 25
---- @type integer
-COURSE_END = 26
---- @type integer
-COURSE_MAX = 25
---- @type integer
-COURSE_COUNT = 25
---- @type integer
-COURSE_MIN = 1
-
-
 ------------------------------
 -- player palette functions --
 ------------------------------
@@ -177,15 +111,11 @@ function network_player_get_override_palette_color(np, part)
     return color
 end
 
---------------------------
--- local math functions --
---------------------------
 local __math_min, __math_max, __math_sqrt, __math_floor, __math_ceil, __math_cos, __math_sin, __math_pi  = math.min, math.max, math.sqrt, math.floor, math.ceil, math.cos, math.sin, math.pi
 
 ------------
 -- tweens --
 ------------
--- Unrelated to SM64, but these are for `math.tween`
 
 ---@param x number
 ---@return number
@@ -617,6 +547,31 @@ WARP_TRANSITION_FADE_FROM_BOWSER = 0x12
 
 --- @type integer
 WARP_TRANSITION_FADE_INTO_BOWSER = 0x13
+
+MENU_OPT_NONE               =                                  0 --- @type MenuOption
+MENU_OPT_1                  =                                  1 --- @type MenuOption
+MENU_OPT_2                  =                                  2 --- @type MenuOption
+MENU_OPT_3                  =                                  3 --- @type MenuOption
+MENU_OPT_DEFAULT            =                         MENU_OPT_1 --- @type MenuOption
+MENU_OPT_CONTINUE           =                         MENU_OPT_1 --- @type MenuOption
+MENU_OPT_EXIT_COURSE        =          ((MENU_OPT_CONTINUE) + 1) --- @type MenuOption
+MENU_OPT_CAMERA_ANGLE_R     =          ((MENU_OPT_CONTINUE) + 2) --- @type MenuOption
+MENU_OPT_EXIT_TO_CASTLE     =          ((MENU_OPT_CONTINUE) + 3) --- @type MenuOption
+MENU_OPT_SAVE_AND_CONTINUE  =                         MENU_OPT_1 --- @type MenuOption
+MENU_OPT_CONTINUE_DONT_SAVE = ((MENU_OPT_SAVE_AND_CONTINUE) + 1) --- @type MenuOption
+
+--- @alias MenuOption
+--- | `MENU_OPT_NONE`
+--- | `MENU_OPT_1`
+--- | `MENU_OPT_2`
+--- | `MENU_OPT_3`
+--- | `MENU_OPT_DEFAULT`
+--- | `MENU_OPT_CONTINUE`
+--- | `MENU_OPT_EXIT_COURSE`
+--- | `MENU_OPT_CAMERA_ANGLE_R`
+--- | `MENU_OPT_EXIT_TO_CASTLE`
+--- | `MENU_OPT_SAVE_AND_CONTINUE`
+--- | `MENU_OPT_CONTINUE_DONT_SAVE`
 
 --- @type string
 VERSION_REGION = "US"
@@ -2200,38 +2155,32 @@ DOOR_LEAVING_SPECIAL = 1
 --- @type integer
 DOOR_ENTER_LOBBY = 2
 
---- @type integer
-CAM_FOV_SET_45 = 1
+CAM_FOV_NONE    =  0 --- @type CameraFov
+CAM_FOV_SET_45  =  1 --- @type CameraFov
+CAM_FOV_DEFAULT =  2 --- @type CameraFov
+CAM_FOV_APP_45  =  4 --- @type CameraFov
+CAM_FOV_SET_30  =  5 --- @type CameraFov
+CAM_FOV_APP_20  =  6 --- @type CameraFov
+CAM_FOV_BBH     =  7 --- @type CameraFov
+CAM_FOV_APP_80  =  9 --- @type CameraFov
+CAM_FOV_APP_30  = 10 --- @type CameraFov
+CAM_FOV_APP_60  = 11 --- @type CameraFov
+CAM_FOV_ZOOM_30 = 12 --- @type CameraFov
+CAM_FOV_SET_29  = 13 --- @type CameraFov
 
---- @type integer
-CAM_FOV_DEFAULT = 2
-
---- @type integer
-CAM_FOV_APP_45 = 4
-
---- @type integer
-CAM_FOV_SET_30 = 5
-
---- @type integer
-CAM_FOV_APP_20 = 6
-
---- @type integer
-CAM_FOV_BBH = 7
-
---- @type integer
-CAM_FOV_APP_80 = 9
-
---- @type integer
-CAM_FOV_APP_30 = 10
-
---- @type integer
-CAM_FOV_APP_60 = 11
-
---- @type integer
-CAM_FOV_ZOOM_30 = 12
-
---- @type integer
-CAM_FOV_SET_29 = 13
+--- @alias CameraFov
+--- | `CAM_FOV_NONE`
+--- | `CAM_FOV_SET_45`
+--- | `CAM_FOV_DEFAULT`
+--- | `CAM_FOV_APP_45`
+--- | `CAM_FOV_SET_30`
+--- | `CAM_FOV_APP_20`
+--- | `CAM_FOV_BBH`
+--- | `CAM_FOV_APP_80`
+--- | `CAM_FOV_APP_30`
+--- | `CAM_FOV_APP_60`
+--- | `CAM_FOV_ZOOM_30`
+--- | `CAM_FOV_SET_29`
 
 --- @type integer
 CAM_EVENT_CANNON = 1
@@ -2403,6 +2352,69 @@ M_MOUSE_BUTTON = MOUSE_BUTTON_2
 
 --- @type integer
 R_MOUSE_BUTTON = MOUSE_BUTTON_3
+
+COURSE_NONE     =              0 --- @type CourseNum
+COURSE_BOB      =              1 --- @type CourseNum
+COURSE_WF       =              2 --- @type CourseNum
+COURSE_JRB      =              3 --- @type CourseNum
+COURSE_CCM      =              4 --- @type CourseNum
+COURSE_BBH      =              5 --- @type CourseNum
+COURSE_HMC      =              6 --- @type CourseNum
+COURSE_LLL      =              7 --- @type CourseNum
+COURSE_SSL      =              8 --- @type CourseNum
+COURSE_DDD      =              9 --- @type CourseNum
+COURSE_SL       =             10 --- @type CourseNum
+COURSE_WDW      =             11 --- @type CourseNum
+COURSE_TTM      =             12 --- @type CourseNum
+COURSE_THI      =             13 --- @type CourseNum
+COURSE_TTC      =             14 --- @type CourseNum
+COURSE_RR       =             15 --- @type CourseNum
+COURSE_BITDW    =             16 --- @type CourseNum
+COURSE_BITFS    =             17 --- @type CourseNum
+COURSE_BITS     =             18 --- @type CourseNum
+COURSE_PSS      =             19 --- @type CourseNum
+COURSE_COTMC    =             20 --- @type CourseNum
+COURSE_TOTWC    =             21 --- @type CourseNum
+COURSE_VCUTM    =             22 --- @type CourseNum
+COURSE_WMOTR    =             23 --- @type CourseNum
+COURSE_SA       =             24 --- @type CourseNum
+COURSE_CAKE_END =             25 --- @type CourseNum
+COURSE_END      =             26 --- @type CourseNum
+COURSE_COUNT    = COURSE_END - 1 --- @type CourseNum
+COURSE_MAX      =   COURSE_COUNT --- @type CourseNum
+COURSE_MIN      =              1 --- @type CourseNum
+
+--- @alias CourseNum
+--- | `COURSE_NONE`
+--- | `COURSE_BOB`
+--- | `COURSE_WF`
+--- | `COURSE_JRB`
+--- | `COURSE_CCM`
+--- | `COURSE_BBH`
+--- | `COURSE_HMC`
+--- | `COURSE_LLL`
+--- | `COURSE_SSL`
+--- | `COURSE_DDD`
+--- | `COURSE_SL`
+--- | `COURSE_WDW`
+--- | `COURSE_TTM`
+--- | `COURSE_THI`
+--- | `COURSE_TTC`
+--- | `COURSE_RR`
+--- | `COURSE_BITDW`
+--- | `COURSE_BITFS`
+--- | `COURSE_BITS`
+--- | `COURSE_PSS`
+--- | `COURSE_COTMC`
+--- | `COURSE_TOTWC`
+--- | `COURSE_VCUTM`
+--- | `COURSE_WMOTR`
+--- | `COURSE_SA`
+--- | `COURSE_CAKE_END`
+--- | `COURSE_END`
+--- | `COURSE_COUNT`
+--- | `COURSE_MAX`
+--- | `COURSE_MIN`
 
 DIALOG_NONE  =  -1 --- @type DialogId
 DIALOG_000   =   0 --- @type DialogId
@@ -2750,6 +2762,9 @@ DIALOG_COUNT = 170 --- @type DialogId
 --- | `DIALOG_168`
 --- | `DIALOG_169`
 --- | `DIALOG_COUNT`
+
+--- @type integer
+MAX_CONSOLE_INPUT_LENGTH = 500
 
 CONSOLE_MESSAGE_INFO    = 0 --- @type ConsoleMessageLevel
 CONSOLE_MESSAGE_WARNING = 1 --- @type ConsoleMessageLevel
@@ -3113,80 +3128,56 @@ GRAPH_EXTRA_ROTATE_HELD = (1 << 1)
 --- @type integer
 GRAPH_NODE_TYPE_FUNCTIONAL = 0x100
 
---- @type integer
-GRAPH_NODE_TYPE_400 = 0x400
+GRAPH_NODE_TYPE_ROOT                 =                              0x001 --- @type GraphNodeType
+GRAPH_NODE_TYPE_ORTHO_PROJECTION     =                              0x002 --- @type GraphNodeType
+GRAPH_NODE_TYPE_PERSPECTIVE          = 0x003 | GRAPH_NODE_TYPE_FUNCTIONAL --- @type GraphNodeType
+GRAPH_NODE_TYPE_MASTER_LIST          =                              0x004 --- @type GraphNodeType
+GRAPH_NODE_TYPE_START                =                              0x00A --- @type GraphNodeType
+GRAPH_NODE_TYPE_LEVEL_OF_DETAIL      =                              0x00B --- @type GraphNodeType
+GRAPH_NODE_TYPE_SWITCH_CASE          = 0x00C | GRAPH_NODE_TYPE_FUNCTIONAL --- @type GraphNodeType
+GRAPH_NODE_TYPE_CAMERA               = 0x014 | GRAPH_NODE_TYPE_FUNCTIONAL --- @type GraphNodeType
+GRAPH_NODE_TYPE_TRANSLATION_ROTATION =                              0x015 --- @type GraphNodeType
+GRAPH_NODE_TYPE_TRANSLATION          =                              0x016 --- @type GraphNodeType
+GRAPH_NODE_TYPE_ROTATION             =                              0x017 --- @type GraphNodeType
+GRAPH_NODE_TYPE_OBJECT               =                              0x018 --- @type GraphNodeType
+GRAPH_NODE_TYPE_ANIMATED_PART        =                              0x019 --- @type GraphNodeType
+GRAPH_NODE_TYPE_BILLBOARD            =                              0x01A --- @type GraphNodeType
+GRAPH_NODE_TYPE_DISPLAY_LIST         =                              0x01B --- @type GraphNodeType
+GRAPH_NODE_TYPE_SCALE                =                              0x01C --- @type GraphNodeType
+GRAPH_NODE_TYPE_SCALE_XYZ            =                              0x01D --- @type GraphNodeType
+GRAPH_NODE_TYPE_SHADOW               =                              0x028 --- @type GraphNodeType
+GRAPH_NODE_TYPE_OBJECT_PARENT        =                              0x029 --- @type GraphNodeType
+GRAPH_NODE_TYPE_GENERATED_LIST       = 0x02A | GRAPH_NODE_TYPE_FUNCTIONAL --- @type GraphNodeType
+GRAPH_NODE_TYPE_BACKGROUND           = 0x02C | GRAPH_NODE_TYPE_FUNCTIONAL --- @type GraphNodeType
+GRAPH_NODE_TYPE_HELD_OBJ             = 0x02E | GRAPH_NODE_TYPE_FUNCTIONAL --- @type GraphNodeType
+GRAPH_NODE_TYPE_CULLING_RADIUS       =                              0x02F --- @type GraphNodeType
+GRAPH_NODE_TYPE_BONE                 =                              0x030 --- @type GraphNodeType
 
---- @type integer
-GRAPH_NODE_TYPE_ROOT = 0x001
-
---- @type integer
-GRAPH_NODE_TYPE_ORTHO_PROJECTION = 0x002
-
---- @type integer
-GRAPH_NODE_TYPE_PERSPECTIVE = (0x003 | GRAPH_NODE_TYPE_FUNCTIONAL)
-
---- @type integer
-GRAPH_NODE_TYPE_MASTER_LIST = 0x004
-
---- @type integer
-GRAPH_NODE_TYPE_START = 0x00A
-
---- @type integer
-GRAPH_NODE_TYPE_LEVEL_OF_DETAIL = 0x00B
-
---- @type integer
-GRAPH_NODE_TYPE_SWITCH_CASE = (0x00C | GRAPH_NODE_TYPE_FUNCTIONAL)
-
---- @type integer
-GRAPH_NODE_TYPE_CAMERA = (0x014 | GRAPH_NODE_TYPE_FUNCTIONAL)
-
---- @type integer
-GRAPH_NODE_TYPE_TRANSLATION_ROTATION = 0x015
-
---- @type integer
-GRAPH_NODE_TYPE_TRANSLATION = 0x016
-
---- @type integer
-GRAPH_NODE_TYPE_ROTATION = 0x017
-
---- @type integer
-GRAPH_NODE_TYPE_OBJECT = 0x018
-
---- @type integer
-GRAPH_NODE_TYPE_ANIMATED_PART = 0x019
-
---- @type integer
-GRAPH_NODE_TYPE_BILLBOARD = 0x01A
-
---- @type integer
-GRAPH_NODE_TYPE_DISPLAY_LIST = 0x01B
-
---- @type integer
-GRAPH_NODE_TYPE_SCALE = 0x01C
-
---- @type integer
-GRAPH_NODE_TYPE_SCALE_XYZ = 0x01D
-
---- @type integer
-GRAPH_NODE_TYPE_SHADOW = 0x028
-
---- @type integer
-GRAPH_NODE_TYPE_OBJECT_PARENT = 0x029
-
---- @type integer
-GRAPH_NODE_TYPE_GENERATED_LIST = (0x02A | GRAPH_NODE_TYPE_FUNCTIONAL)
-
---- @type integer
-GRAPH_NODE_TYPE_BACKGROUND = (0x02C | GRAPH_NODE_TYPE_FUNCTIONAL)
-
---- @type integer
-GRAPH_NODE_TYPE_HELD_OBJ = (0x02E | GRAPH_NODE_TYPE_FUNCTIONAL)
-
---- @type integer
-GRAPH_NODE_TYPE_CULLING_RADIUS = 0x02F
-
---- @type integer
-GRAPH_NODE_TYPE_BONE = 0x030
+--- @alias GraphNodeType
+--- | `GRAPH_NODE_TYPE_ROOT`
+--- | `GRAPH_NODE_TYPE_ORTHO_PROJECTION`
+--- | `GRAPH_NODE_TYPE_PERSPECTIVE`
+--- | `GRAPH_NODE_TYPE_MASTER_LIST`
+--- | `GRAPH_NODE_TYPE_START`
+--- | `GRAPH_NODE_TYPE_LEVEL_OF_DETAIL`
+--- | `GRAPH_NODE_TYPE_SWITCH_CASE`
+--- | `GRAPH_NODE_TYPE_CAMERA`
+--- | `GRAPH_NODE_TYPE_TRANSLATION_ROTATION`
+--- | `GRAPH_NODE_TYPE_TRANSLATION`
+--- | `GRAPH_NODE_TYPE_ROTATION`
+--- | `GRAPH_NODE_TYPE_OBJECT`
+--- | `GRAPH_NODE_TYPE_ANIMATED_PART`
+--- | `GRAPH_NODE_TYPE_BILLBOARD`
+--- | `GRAPH_NODE_TYPE_DISPLAY_LIST`
+--- | `GRAPH_NODE_TYPE_SCALE`
+--- | `GRAPH_NODE_TYPE_SCALE_XYZ`
+--- | `GRAPH_NODE_TYPE_SHADOW`
+--- | `GRAPH_NODE_TYPE_OBJECT_PARENT`
+--- | `GRAPH_NODE_TYPE_GENERATED_LIST`
+--- | `GRAPH_NODE_TYPE_BACKGROUND`
+--- | `GRAPH_NODE_TYPE_HELD_OBJ`
+--- | `GRAPH_NODE_TYPE_CULLING_RADIUS`
+--- | `GRAPH_NODE_TYPE_BONE`
 
 --- @type integer
 GFX_NUM_MASTER_LISTS = 8
@@ -3208,6 +3199,23 @@ GEO_CONTEXT_AREA_INIT = 4
 
 --- @type integer
 GEO_CONTEXT_HELD_OBJ = 5
+
+PAUSE_EXIT_VANILLA   = 0 --- @type PauseExitMode
+PAUSE_EXIT_COURSE    = 1 --- @type PauseExitMode
+PAUSE_EXIT_TO_CASTLE = 2 --- @type PauseExitMode
+PAUSE_EXIT_BOTH      = 3 --- @type PauseExitMode
+
+--- @alias PauseExitMode
+--- | `PAUSE_EXIT_VANILLA`
+--- | `PAUSE_EXIT_COURSE`
+--- | `PAUSE_EXIT_TO_CASTLE`
+--- | `PAUSE_EXIT_BOTH`
+
+--- @type integer
+STARS_NEEDED_FOR_DIALOG_COUNT = 6
+
+--- @type integer
+EXCLAMATION_BOX_MAX_SIZE = 99
 
 INTERACT_HOOT           =  (1 << 0) --- @type InteractionType
 INTERACT_GRABBABLE      =  (1 << 1) --- @type InteractionType
@@ -3526,86 +3534,85 @@ LEVEL_COUNT            = 39 --- @type LevelNum
 --- | `LEVEL_UNKNOWN_38`
 --- | `LEVEL_COUNT`
 
---- @type integer
-TIMER_CONTROL_SHOW = 0
+TIMER_CONTROL_SHOW  = 0 --- @type TimerControl
+TIMER_CONTROL_START = 1 --- @type TimerControl
+TIMER_CONTROL_STOP  = 2 --- @type TimerControl
+TIMER_CONTROL_HIDE  = 3 --- @type TimerControl
 
---- @type integer
-TIMER_CONTROL_START = 1
+--- @alias TimerControl
+--- | `TIMER_CONTROL_SHOW`
+--- | `TIMER_CONTROL_START`
+--- | `TIMER_CONTROL_STOP`
+--- | `TIMER_CONTROL_HIDE`
 
---- @type integer
-TIMER_CONTROL_STOP = 2
+WARP_OP_NONE                  =    0 --- @type WarpOperation
+WARP_OP_LOOK_UP               =    1 --- @type WarpOperation
+WARP_OP_SPIN_SHRINK           =    2 --- @type WarpOperation
+WARP_OP_WARP_DOOR             =    3 --- @type WarpOperation
+WARP_OP_WARP_OBJECT           =    4 --- @type WarpOperation
+WARP_OP_TELEPORT              =    5 --- @type WarpOperation
+WARP_OP_TRIGGERS_LEVEL_SELECT = 0x10 --- @type WarpOperation
+WARP_OP_STAR_EXIT             =   17 --- @type WarpOperation
+WARP_OP_DEATH                 =   18 --- @type WarpOperation
+WARP_OP_WARP_FLOOR            =   19 --- @type WarpOperation
+WARP_OP_GAME_OVER             =   20 --- @type WarpOperation
+WARP_OP_CREDITS_END           =   21 --- @type WarpOperation
+WARP_OP_DEMO_NEXT             =   22 --- @type WarpOperation
+WARP_OP_CREDITS_START         =   23 --- @type WarpOperation
+WARP_OP_CREDITS_NEXT          =   24 --- @type WarpOperation
+WARP_OP_DEMO_END              =   25 --- @type WarpOperation
+WARP_OP_FORCE_SYNC            =   26 --- @type WarpOperation
+WARP_OP_EXIT                  =   27 --- @type WarpOperation
 
---- @type integer
-TIMER_CONTROL_HIDE = 3
+--- @alias WarpOperation
+--- | `WARP_OP_NONE`
+--- | `WARP_OP_LOOK_UP`
+--- | `WARP_OP_SPIN_SHRINK`
+--- | `WARP_OP_WARP_DOOR`
+--- | `WARP_OP_WARP_OBJECT`
+--- | `WARP_OP_TELEPORT`
+--- | `WARP_OP_TRIGGERS_LEVEL_SELECT`
+--- | `WARP_OP_STAR_EXIT`
+--- | `WARP_OP_DEATH`
+--- | `WARP_OP_WARP_FLOOR`
+--- | `WARP_OP_GAME_OVER`
+--- | `WARP_OP_CREDITS_END`
+--- | `WARP_OP_DEMO_NEXT`
+--- | `WARP_OP_CREDITS_START`
+--- | `WARP_OP_CREDITS_NEXT`
+--- | `WARP_OP_DEMO_END`
+--- | `WARP_OP_FORCE_SYNC`
+--- | `WARP_OP_EXIT`
 
---- @type integer
-WARP_OP_NONE = 0x00
+WARP_SPECIAL_LEVEL_SELECT        = -9 --- @type SpecialWarpDestination
+WARP_SPECIAL_INTRO_SPLASH_SCREEN = -8 --- @type SpecialWarpDestination
+WARP_SPECIAL_SWITCH_FILE         = -7 --- @type SpecialWarpDestination
+WARP_SPECIAL_MARIO_HEAD_DIZZY    = -3 --- @type SpecialWarpDestination
+WARP_SPECIAL_MARIO_HEAD_REGULAR  = -2 --- @type SpecialWarpDestination
+WARP_SPECIAL_ENDING              = -1 --- @type SpecialWarpDestination
+WARP_SPECIAL_NONE                =  0 --- @type SpecialWarpDestination
 
---- @type integer
-WARP_OP_LOOK_UP = 0x01
+--- @alias SpecialWarpDestination
+--- | `WARP_SPECIAL_LEVEL_SELECT`
+--- | `WARP_SPECIAL_INTRO_SPLASH_SCREEN`
+--- | `WARP_SPECIAL_SWITCH_FILE`
+--- | `WARP_SPECIAL_MARIO_HEAD_DIZZY`
+--- | `WARP_SPECIAL_MARIO_HEAD_REGULAR`
+--- | `WARP_SPECIAL_ENDING`
+--- | `WARP_SPECIAL_NONE`
 
---- @type integer
-WARP_OP_SPIN_SHRINK = 0x02
+WARP_FLAG_NONE            = (0 << 0) --- @type WarpFlags
+WARP_FLAG_DOOR_PULLED     = (1 << 0) --- @type WarpFlags
+WARP_FLAG_DOOR_FLIP_MARIO = (1 << 1) --- @type WarpFlags
+WARP_FLAG_DOOR_IS_WARP    = (1 << 2) --- @type WarpFlags
+WARP_FLAG_EXIT_COURSE     = (1 << 3) --- @type WarpFlags
 
---- @type integer
-WARP_OP_WARP_DOOR = 0x03
-
---- @type integer
-WARP_OP_WARP_OBJECT = 0x04
-
---- @type integer
-WARP_OP_TELEPORT = 0x05
-
---- @type integer
-WARP_OP_STAR_EXIT = 0x11
-
---- @type integer
-WARP_OP_DEATH = 0x12
-
---- @type integer
-WARP_OP_WARP_FLOOR = 0x13
-
---- @type integer
-WARP_OP_GAME_OVER = 0x14
-
---- @type integer
-WARP_OP_CREDITS_END = 0x15
-
---- @type integer
-WARP_OP_DEMO_NEXT = 0x16
-
---- @type integer
-WARP_OP_CREDITS_START = 0x17
-
---- @type integer
-WARP_OP_CREDITS_NEXT = 0x18
-
---- @type integer
-WARP_OP_DEMO_END = 0x19
-
---- @type integer
-WARP_OP_FORCE_SYNC = 0x20
-
---- @type integer
-WARP_OP_EXIT = 0x21
-
---- @type integer
-WARP_OP_TRIGGERS_LEVEL_SELECT = 0x10
-
---- @type integer
-SPECIAL_WARP_CAKE = -1
-
---- @type integer
-SPECIAL_WARP_GODDARD = -2
-
---- @type integer
-SPECIAL_WARP_GODDARD_GAMEOVER = -3
-
---- @type integer
-SPECIAL_WARP_TITLE = -8
-
---- @type integer
-SPECIAL_WARP_LEVEL_SELECT = -9
+--- @alias WarpFlags
+--- | `WARP_FLAG_NONE`
+--- | `WARP_FLAG_DOOR_PULLED`
+--- | `WARP_FLAG_DOOR_FLIP_MARIO`
+--- | `WARP_FLAG_DOOR_IS_WARP`
+--- | `WARP_FLAG_EXIT_COURSE`
 
 MARIO_SPAWN_NONE                  =    0 --- @type MarioSpawnType
 MARIO_SPAWN_DOOR_WARP             =    1 --- @type MarioSpawnType
@@ -3652,53 +3659,37 @@ MARIO_SPAWN_FADE_FROM_BLACK       =   39 --- @type MarioSpawnType
 --- | `MARIO_SPAWN_UNUSED_38`
 --- | `MARIO_SPAWN_FADE_FROM_BLACK`
 
---- @type integer
-MARIO_SPAWN_UNKNOWN_02 = 0x02
+WARP_NODE_MAIN_ENTRY    = 0x0A --- @type WarpNodes
+WARP_NODE_DEFAULT       = 0xF0 --- @type WarpNodes
+WARP_NODE_DEATH         = 0xF1 --- @type WarpNodes
+WARP_NODE_LOOK_UP       = 0xF2 --- @type WarpNodes
+WARP_NODE_WARP_FLOOR    = 0xF3 --- @type WarpNodes
+WARP_NODE_CREDITS_MIN   = 0xF8 --- @type WarpNodes
+WARP_NODE_CREDITS_START = 0xF8 --- @type WarpNodes
+WARP_NODE_CREDITS_NEXT  = 0xF9 --- @type WarpNodes
+WARP_NODE_CREDITS_END   = 0xFA --- @type WarpNodes
 
---- @type integer
-MARIO_SPAWN_UNKNOWN_03 = 0x03
+--- @alias WarpNodes
+--- | `WARP_NODE_MAIN_ENTRY`
+--- | `WARP_NODE_DEFAULT`
+--- | `WARP_NODE_DEATH`
+--- | `WARP_NODE_LOOK_UP`
+--- | `WARP_NODE_WARP_FLOOR`
+--- | `WARP_NODE_CREDITS_MIN`
+--- | `WARP_NODE_CREDITS_START`
+--- | `WARP_NODE_CREDITS_NEXT`
+--- | `WARP_NODE_CREDITS_END`
 
---- @type integer
-MARIO_SPAWN_UNKNOWN_27 = 0x27
+WARP_TYPE_NOT_WARPING  = 0 --- @type WarpType
+WARP_TYPE_CHANGE_LEVEL = 1 --- @type WarpType
+WARP_TYPE_CHANGE_AREA  = 2 --- @type WarpType
+WARP_TYPE_SAME_AREA    = 3 --- @type WarpType
 
---- @type integer
-WARP_NODE_F0 = 0xF0
-
---- @type integer
-WARP_NODE_DEATH = 0xF1
-
---- @type integer
-WARP_NODE_F2 = 0xF2
-
---- @type integer
-WARP_NODE_WARP_FLOOR = 0xF3
-
---- @type integer
-WARP_NODE_CREDITS_START = 0xF8
-
---- @type integer
-WARP_NODE_CREDITS_NEXT = 0xF9
-
---- @type integer
-WARP_NODE_CREDITS_END = 0xFA
-
---- @type integer
-WARP_NODE_CREDITS_MIN = 0xF8
-
---- @type integer
-WARP_TYPE_NOT_WARPING = 0
-
---- @type integer
-WARP_TYPE_CHANGE_LEVEL = 1
-
---- @type integer
-WARP_TYPE_CHANGE_AREA = 2
-
---- @type integer
-WARP_TYPE_SAME_AREA = 3
-
---- @type integer
-WARP_ARG_EXIT_COURSE = -1
+--- @alias WarpType
+--- | `WARP_TYPE_NOT_WARPING`
+--- | `WARP_TYPE_CHANGE_LEVEL`
+--- | `WARP_TYPE_CHANGE_AREA`
+--- | `WARP_TYPE_SAME_AREA`
 
 --- @type integer
 PRESS_START_DEMO_TIMER = 800
@@ -4674,19 +4665,71 @@ MOD_FS_COMPRESSION_MAX = 9
 MOD_FS_COMPRESSION_DEFAULT = 1
 
 --- @type integer
-MOD_FS_MAX_SIZE = 0x2000000
+MOD_FS_MAX_SIZE = 0x8000000
 
 --- @type integer
-MOD_FS_MAX_FILES = 0x200
+MOD_FS_MAX_FILES = 0x400
 
 --- @type integer
 MOD_FS_MAX_PATH = 0x100
+
+--- @type integer
+MOD_FS_MAX_PROPERTIES_SIZE = (MOD_FS_MAX_FILES * MOD_FS_MAX_PATH * 2)
 
 --- @type string
 MOD_FS_URI_PREFIX = "modfs:/"
 
 --- @type string
 MOD_FS_URI_FORMAT = "modfs:/%s/%s"
+
+MOD_FS_ERR_NONE                       =  0 --- @type ModFsErrorCode
+MOD_FS_ERR_ALLOC_FAILED               =  1 --- @type ModFsErrorCode
+MOD_FS_ERR_ALREADY_EXISTS             =  2 --- @type ModFsErrorCode
+MOD_FS_ERR_NOT_FOUND                  =  3 --- @type ModFsErrorCode
+MOD_FS_ERR_INVALID_POINTER            =  4 --- @type ModFsErrorCode
+MOD_FS_ERR_INVALID_PARAMETER          =  5 --- @type ModFsErrorCode
+MOD_FS_ERR_FILE_INVALID_INDEX         =  6 --- @type ModFsErrorCode
+MOD_FS_ERR_FILE_TYPE_NOT_ALLOWED      =  7 --- @type ModFsErrorCode
+MOD_FS_ERR_TOTAL_SIZE_EXCEEDED        =  8 --- @type ModFsErrorCode
+MOD_FS_ERR_NUM_FILES_EXCEEDED         =  9 --- @type ModFsErrorCode
+MOD_FS_ERR_FILEPATH_EMPTY             = 10 --- @type ModFsErrorCode
+MOD_FS_ERR_FILEPATH_LEN_EXCEEDED      = 11 --- @type ModFsErrorCode
+MOD_FS_ERR_FILEPATH_RESERVED          = 12 --- @type ModFsErrorCode
+MOD_FS_ERR_FILEPATH_INVALID_CHAR      = 13 --- @type ModFsErrorCode
+MOD_FS_ERR_FILEPATH_MALFORMED         = 14 --- @type ModFsErrorCode
+MOD_FS_ERR_FILEPATH_INVALID_EXTENSION = 15 --- @type ModFsErrorCode
+MOD_FS_ERR_READ_INVALID_MODPATH       = 16 --- @type ModFsErrorCode
+MOD_FS_ERR_READ_ZIP                   = 17 --- @type ModFsErrorCode
+MOD_FS_ERR_READ_PROPERTIES            = 18 --- @type ModFsErrorCode
+MOD_FS_ERR_READ_FILE_TRUNCATED        = 19 --- @type ModFsErrorCode
+MOD_FS_ERR_READ_EOF                   = 20 --- @type ModFsErrorCode
+MOD_FS_ERR_WRITE_ZIP                  = 21 --- @type ModFsErrorCode
+MOD_FS_ERR_WRITE_NOT_ACTIVE_MOD       = 22 --- @type ModFsErrorCode
+
+--- @alias ModFsErrorCode
+--- | `MOD_FS_ERR_NONE`
+--- | `MOD_FS_ERR_ALLOC_FAILED`
+--- | `MOD_FS_ERR_ALREADY_EXISTS`
+--- | `MOD_FS_ERR_NOT_FOUND`
+--- | `MOD_FS_ERR_INVALID_POINTER`
+--- | `MOD_FS_ERR_INVALID_PARAMETER`
+--- | `MOD_FS_ERR_FILE_INVALID_INDEX`
+--- | `MOD_FS_ERR_FILE_TYPE_NOT_ALLOWED`
+--- | `MOD_FS_ERR_TOTAL_SIZE_EXCEEDED`
+--- | `MOD_FS_ERR_NUM_FILES_EXCEEDED`
+--- | `MOD_FS_ERR_FILEPATH_EMPTY`
+--- | `MOD_FS_ERR_FILEPATH_LEN_EXCEEDED`
+--- | `MOD_FS_ERR_FILEPATH_RESERVED`
+--- | `MOD_FS_ERR_FILEPATH_INVALID_CHAR`
+--- | `MOD_FS_ERR_FILEPATH_MALFORMED`
+--- | `MOD_FS_ERR_FILEPATH_INVALID_EXTENSION`
+--- | `MOD_FS_ERR_READ_INVALID_MODPATH`
+--- | `MOD_FS_ERR_READ_ZIP`
+--- | `MOD_FS_ERR_READ_PROPERTIES`
+--- | `MOD_FS_ERR_READ_FILE_TRUNCATED`
+--- | `MOD_FS_ERR_READ_EOF`
+--- | `MOD_FS_ERR_WRITE_ZIP`
+--- | `MOD_FS_ERR_WRITE_NOT_ACTIVE_MOD`
 
 INT_TYPE_U8  = 0 --- @type ModFsFileIntType
 INT_TYPE_U16 = 1 --- @type ModFsFileIntType
@@ -5178,6 +5221,15 @@ BOBOMB_ACT_LAVA_DEATH = 100
 
 --- @type integer
 BOBOMB_ACT_DEATH_PLANE_DEATH = 101
+
+COIN_TYPE_NONE   = 0 --- @type CoinType
+COIN_TYPE_YELLOW = 1 --- @type CoinType
+COIN_TYPE_BLUE   = 2 --- @type CoinType
+
+--- @alias CoinType
+--- | `COIN_TYPE_NONE`
+--- | `COIN_TYPE_YELLOW`
+--- | `COIN_TYPE_BLUE`
 
 --- @type integer
 HIDDEN_BLUE_COIN_ACT_INACTIVE = 0
@@ -8195,17 +8247,32 @@ VALID_BUTTONS = (A_BUTTON | B_BUTTON | Z_TRIG | START_BUTTON | U_JPAD | D_JPAD |
 --- @type integer
 C_BUTTONS = (U_CBUTTONS | D_CBUTTONS | L_CBUTTONS | R_CBUTTONS )
 
---- @type integer
-MOD_AUDIO_CHANNEL_MASTER = 0
+MA_TYPE_NONE   = 0 --- @type ModAudioType
+MA_TYPE_SAMPLE = 1 --- @type ModAudioType
+MA_TYPE_STREAM = 2 --- @type ModAudioType
 
---- @type integer
-MOD_AUDIO_CHANNEL_MUSIC = 1
+--- @alias ModAudioType
+--- | `MA_TYPE_NONE`
+--- | `MA_TYPE_SAMPLE`
+--- | `MA_TYPE_STREAM`
 
---- @type integer
-MOD_AUDIO_CHANNEL_SFX = 2
+MA_FLAGS_LOADED = (1 << 2) --- @type ModAudioFlags
+MA_FLAGS_COPY   = (1 << 6) --- @type ModAudioFlags
 
---- @type integer
-MOD_AUDIO_CHANNEL_ENV = 3
+--- @alias ModAudioFlags
+--- | `MA_FLAGS_LOADED`
+--- | `MA_FLAGS_COPY`
+
+MA_CHANNEL_MUSIC  = 0 --- @type ModAudioChannel
+MA_CHANNEL_SFX    = 1 --- @type ModAudioChannel
+MA_CHANNEL_ENV    = 2 --- @type ModAudioChannel
+MA_CHANNEL_MASTER = 3 --- @type ModAudioChannel
+
+--- @alias ModAudioChannel
+--- | `MA_CHANNEL_MUSIC`
+--- | `MA_CHANNEL_SFX`
+--- | `MA_CHANNEL_ENV`
+--- | `MA_CHANNEL_MASTER`
 
 HOOK_UPDATE                                 =  0 --- @type LuaHookedEventType
 HOOK_MARIO_UPDATE                           =  1 --- @type LuaHookedEventType
@@ -8394,14 +8461,14 @@ HUD_DISPLAY_FLAGS_EMPHASIZE_POWER  = 0x8000 --- @type HudDisplayFlags
 --- | `HUD_DISPLAY_FLAGS_POWER`
 --- | `HUD_DISPLAY_FLAGS_EMPHASIZE_POWER`
 
-ACT_SELECT_HUD_SCORE            =                                                                                                                                                            1 << 0 --- @type ActSelectHudPart
-ACT_SELECT_HUD_LEVEL_NAME       =                                                                                                                                                            1 << 1 --- @type ActSelectHudPart
-ACT_SELECT_HUD_COURSE_NUM       =                                                                                                                                                            1 << 2 --- @type ActSelectHudPart
-ACT_SELECT_HUD_ACT_NAME         =                                                                                                                                                            1 << 3 --- @type ActSelectHudPart
-ACT_SELECT_HUD_STAR_NUM         =                                                                                                                                                            1 << 4 --- @type ActSelectHudPart
-ACT_SELECT_HUD_PLAYERS_IN_LEVEL =                                                                                                                                                            1 << 5 --- @type ActSelectHudPart
-ACT_SELECT_HUD_NONE             =                                                                                                                                                                 0 --- @type ActSelectHudPart
-ACT_SELECT_HUD_ALL              = ACT_SELECT_HUD_SCORE | ACT_SELECT_HUD_LEVEL_NAME | ACT_SELECT_HUD_COURSE_NUM | ACT_SELECT_HUD_ACT_NAME |ACT_SELECT_HUD_STAR_NUM | ACT_SELECT_HUD_PLAYERS_IN_LEVEL --- @type ActSelectHudPart
+ACT_SELECT_HUD_SCORE            =                                                                                                                                                             1 << 0 --- @type ActSelectHudPart
+ACT_SELECT_HUD_LEVEL_NAME       =                                                                                                                                                             1 << 1 --- @type ActSelectHudPart
+ACT_SELECT_HUD_COURSE_NUM       =                                                                                                                                                             1 << 2 --- @type ActSelectHudPart
+ACT_SELECT_HUD_ACT_NAME         =                                                                                                                                                             1 << 3 --- @type ActSelectHudPart
+ACT_SELECT_HUD_STAR_NUM         =                                                                                                                                                             1 << 4 --- @type ActSelectHudPart
+ACT_SELECT_HUD_PLAYERS_IN_LEVEL =                                                                                                                                                             1 << 5 --- @type ActSelectHudPart
+ACT_SELECT_HUD_NONE             =                                                                                                                                                                  0 --- @type ActSelectHudPart
+ACT_SELECT_HUD_ALL              = ACT_SELECT_HUD_SCORE | ACT_SELECT_HUD_LEVEL_NAME | ACT_SELECT_HUD_COURSE_NUM | ACT_SELECT_HUD_ACT_NAME | ACT_SELECT_HUD_STAR_NUM | ACT_SELECT_HUD_PLAYERS_IN_LEVEL --- @type ActSelectHudPart
 
 --- @alias ActSelectHudPart
 --- | `ACT_SELECT_HUD_SCORE`
@@ -9179,6 +9246,25 @@ E_MODEL_MAX                                = 381 --- @type ModelExtendedId
 --- | `E_MODEL_WARIOS_WING_CAP`
 --- | `E_MODEL_WARIOS_WINGED_METAL_CAP`
 --- | `E_MODEL_MAX`
+
+--- @type integer
+MAX_ACTS = 6
+
+--- @type integer
+MAX_ACTS_AND_100_COINS = 7
+
+DIALOG_TYPE_DEFAULT    = 0 --- @type DialogType
+DIALOG_TYPE_BOSS_START = 1 --- @type DialogType
+DIALOG_TYPE_BOSS_STOP  = 2 --- @type DialogType
+DIALOG_TYPE_RACE       = 3 --- @type DialogType
+DIALOG_TYPE_STAR_SOUND = 4 --- @type DialogType
+
+--- @alias DialogType
+--- | `DIALOG_TYPE_DEFAULT`
+--- | `DIALOG_TYPE_BOSS_START`
+--- | `DIALOG_TYPE_BOSS_STOP`
+--- | `DIALOG_TYPE_RACE`
+--- | `DIALOG_TYPE_STAR_SOUND`
 
 --- @type integer
 SOUNDARGS_MASK_BANK = 0xF0000000
@@ -11252,16 +11338,10 @@ ANIM_FLAG_BONE_SCALE = (1 << 9)
 OBJECT_MAX_BHV_STACK = 16
 
 --- @type integer
-OBJECT_NUM_REGULAR_FIELDS = 0x50
+OBJECT_NUM_FIELDS = 0x50
 
 --- @type integer
-OBJECT_NUM_CUSTOM_FIELDS = 0x40
-
---- @type integer
-OBJECT_CUSTOM_FIELDS_START = (OBJECT_NUM_REGULAR_FIELDS)
-
---- @type integer
-OBJECT_NUM_FIELDS = (OBJECT_CUSTOM_FIELDS_START + OBJECT_NUM_CUSTOM_FIELDS)
+OBJECT_CUSTOM_FIELDS_START = (OBJECT_NUM_FIELDS)
 
 MARIO_ANIM_PART_NONE          =  0 --- @type MarioAnimPart
 MARIO_ANIM_PART_ROOT          =  1 --- @type MarioAnimPart
@@ -11341,16 +11421,16 @@ COOP_OBJ_FLAG_NON_SYNC = (1 << 2)
 COOP_OBJ_FLAG_INITIALIZED = (1 << 3)
 
 --- @type string
-SM64COOPDX_VERSION = "v1.5.1"
+SM64COOPDX_VERSION = "v1.6"
 
 --- @type string
 VERSION_TEXT = "v"
 
 --- @type integer
-VERSION_NUMBER = 42
+VERSION_NUMBER = 43
 
 --- @type integer
-MINOR_VERSION_NUMBER = 1
+MINOR_VERSION_NUMBER = 0
 
 --- @type string
 GAME_NAME = "sm64coopdx"

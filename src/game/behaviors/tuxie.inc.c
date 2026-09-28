@@ -76,15 +76,6 @@ void tuxies_mother_act_1(void) {
             break;
         case 1:
             if (o->prevObj && o->prevObj->oHeldState == HELD_FREE) {
-                //! This line is was almost certainly supposed to be something
-                // like o->prevObj->oInteractionSubtype &= ~INT_SUBTYPE_DROP_IMMEDIATELY;
-                // however, this code uses the value of o->oInteractionSubtype
-                // rather than its offset to rawData. For this object,
-                // o->oInteractionSubtype is always 0, so the result is this:
-                // o->prevObj->oUnknownUnk88 &= ~INT_SUBTYPE_DROP_IMMEDIATELY
-                // which has no effect as o->prevObj->oUnknownUnk88 is always 0
-                // or 1, which is not affected by the bitwise AND.
-                o->prevObj->OBJECT_FIELD_S32(o->oInteractionSubtype) &= ~INT_SUBTYPE_DROP_IMMEDIATELY;
                 obj_set_behavior(o->prevObj, bhvUnused20E0);
 
                 f32* starPos = gLevelValues.starPositions.TuxieMotherStarPos;
@@ -99,8 +90,6 @@ void tuxies_mother_act_1(void) {
             break;
         case 2:
             if (o->prevObj && o->prevObj->oHeldState == HELD_FREE) {
-                //! Same bug as above
-                o->prevObj->OBJECT_FIELD_S32(o->oInteractionSubtype) &= ~INT_SUBTYPE_DROP_IMMEDIATELY;
                 obj_set_behavior(o->prevObj, bhvPenguinBaby);
                 o->oAction = 2;
             }
@@ -131,7 +120,7 @@ void tuxies_mother_act_0(void) {
     } else {
         switch (o->oSubAction) {
             case 0:
-                if (cur_obj_can_mario_activate_textbox_2(marioState, 300.0f, 100.0f))
+                if (cur_obj_can_mario_activate_textbox(marioState, 300.0f, 100.0f, 0x1000))
                     if (sp2C == 0)
                         o->oSubAction++;
                 break;
@@ -146,7 +135,7 @@ void tuxies_mother_act_0(void) {
         }
     }
     if (cur_obj_check_anim_frame(1))
-        cur_obj_play_sound_2(SOUND_OBJ_BIG_PENGUIN_YELL);
+        cur_obj_play_sound_and_rumble_if_visible(SOUND_OBJ_BIG_PENGUIN_YELL);
 }
 
 void (*sTuxiesMotherActions[])(void) = { tuxies_mother_act_0, tuxies_mother_act_1,
@@ -212,7 +201,7 @@ void small_penguin_act_1(void) {
 void small_penguin_act_3(void) {
     if (o->oTimer > 5) {
         if (o->oTimer == 6)
-            cur_obj_play_sound_2(SOUND_OBJ_BABY_PENGUIN_DIVE);
+            cur_obj_play_sound_and_rumble_if_visible(SOUND_OBJ_BABY_PENGUIN_DIVE);
         cur_obj_init_animation_with_sound(1);
         if (o->oTimer > 25) {
             if (o->heldByPlayerIndex < MAX_PLAYERS && !mario_is_dive_sliding(&gMarioStates[o->heldByPlayerIndex])) {

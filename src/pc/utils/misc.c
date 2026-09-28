@@ -121,7 +121,7 @@ void precise_delay_f64(f64 delaySec) {
     for (f64 remaining = end - clock_elapsed_f64(); remaining > sleepMargin; remaining = end - clock_elapsed_f64()) {
         u32 sleepMs = (u32) ((remaining - sleepMargin) * 1000.0);
         if (sleepMs < 1) { break; } // not enough time to sleep
-        gWindowApi->delay(sleepMs);
+        gfx_wm_delay(sleepMs);
     }
 
     // busy-wait until the target time is hit
@@ -171,6 +171,11 @@ f32 delta_interpolate_f32(f32 a, f32 b, f32 delta) {
 
 s32 delta_interpolate_s32(s32 a, s32 b, f32 delta) {
     return a * (1.0f - delta) + b * delta;
+}
+
+s16 delta_interpolate_angle(s16 a, s16 b, f32 delta) {
+    s32 normalizedDiff = (((s32) b - (s32) a + 0x8000) & 0xFFFF) - 0x8000; // Fix modular overflow/underflow
+    return a + normalizedDiff * delta;
 }
 
 void delta_interpolate_vec3f(VEC_OUT Vec3f res, Vec3f a, Vec3f b, f32 delta) {
@@ -746,9 +751,9 @@ void update_game(void) {
     }
     exit(0);
 #else
-    fclose(stdin);
-    fclose(stdout);
-    fclose(stderr);
+    freopen("/dev/null", "r", stdin);
+    freopen("/dev/null", "w", stdout);
+    freopen("/dev/null", "w", stderr);
     execl(updateExecFilePath, "coopdx_updater", "--game-update", NULL);
     exit(1);
 #endif

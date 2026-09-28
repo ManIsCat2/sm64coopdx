@@ -35,6 +35,10 @@ bool dynos_warp_to_warpnode(s32 aLevel, s32 aArea, s32 aAct, s32 aWarpId) {
     return DynOS_Warp_ToWarpNode(aLevel, aArea, aAct, aWarpId);
 }
 
+bool dynos_warp_with_transition(s32 aLevel, s32 aArea, s32 aAct, s16 aTransType, s16 aTime, Color aColor, s32 aWarpId) {
+    return DynOS_Warp_WithTransition(aLevel, aArea, aAct, aTransType, aTime, aColor, aWarpId);
+}
+
 bool dynos_warp_to_level(s32 aLevel, s32 aArea, s32 aAct) {
     return DynOS_Warp_ToLevel(aLevel, aArea, aAct);
 }
@@ -109,6 +113,24 @@ void dynos_generate_packs(const char* directory) {
     DynOS_Gfx_GeneratePacks(directory);
 }
 
+// -- audio -- //
+
+void dynos_audio_reset_mods() {
+    DynOS_Audio_ResetMods();
+}
+
+bool dynos_audio_override(u8 sequenceId, s32* bankId, void** seqData) {
+    return DynOS_Audio_Override(sequenceId, bankId, seqData);
+}
+
+void dynos_audio_create_override(u8 sequenceId, u8 bankId, u8 defaultVolume, const char *filepath) {
+    DynOS_Audio_CreateOverride(sequenceId, bankId, defaultVolume, filepath, false);
+}
+
+u8 dynos_audio_alloc_sequence(void) {
+    return DynOS_Audio_AllocSequence();
+}
+
 // -- geos -- //
 
 void dynos_actor_override(struct Object* obj, void** aSharedChild) {
@@ -119,8 +141,12 @@ bool dynos_add_actor_custom(s32 modIndex, s32 modFileIndex, const char *filePath
     return DynOS_Actor_AddCustom(modIndex, modFileIndex, filePath, geoName);
 }
 
-const void* dynos_geolayout_get(const char *name) {
+const void *dynos_geolayout_get(const char *name) {
     return DynOS_Actor_GetLayoutFromName(name);
+}
+
+const char *dynos_geolayout_get_name(const void *geoLayout) {
+    return DynOS_Actor_GetNameFromLayout(geoLayout);
 }
 
 bool dynos_actor_get_mod_index_and_token(struct GraphNode *graphNode, u32 tokenIndex, s32 *modIndex, s32 *modFileIndex, const char **token) {
@@ -216,16 +242,16 @@ u64 dynos_level_cmd_get(void *cmd, u64 offset) {
     return DynOS_Level_CmdGet(cmd, offset);
 }
 
-void dynos_level_cmd_next(void *cmd) {
-    DynOS_Level_CmdNext((LvlCmd*) cmd);
-}
-
 void dynos_level_parse_script(const void *script, s32 (*aPreprocessFunction)(u8, void *)) {
     DynOS_Level_ParseScript(script, aPreprocessFunction);
 }
 
 void* dynos_level_get_script(s32 level) {
     return (void *) DynOS_Level_GetScript(level);
+}
+
+const void *dynos_level_get_vanilla_script(s32 level) {
+    return DynOS_Level_GetVanillaScript(level);
 }
 
 s32 dynos_level_get_mod_index(s32 level) {
@@ -238,6 +264,10 @@ bool dynos_level_is_vanilla_level(s32 level) {
 
 Collision *dynos_level_get_collision(u32 level, u16 area) {
     return DynOS_Level_GetCollision(level, area);
+}
+
+u8 dynos_level_get_command_size(u8 cmdType) {
+    return DynOS_Lvl_GetCommandSize(cmdType);
 }
 
 // -- Behaviors -- //
@@ -278,6 +308,10 @@ u32 dynos_model_get_id_from_asset(void* aAsset) {
 
 u32 dynos_model_get_id_from_graph_node(struct GraphNode* aGraphNode) {
     return DynOS_Model_GetIdFromGraphNode(aGraphNode);
+}
+
+const char *dynos_model_get_name_from_vanilla_asset(const void *asset) {
+    return DynOS_Model_GetNameFromVanillaAsset(asset);
 }
 
 void dynos_model_clear_pool(enum ModelPool aModelPool) {

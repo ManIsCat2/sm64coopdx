@@ -297,7 +297,7 @@ static void sys_fatal_impl(const char *msg) {
 #ifdef __ANDROID__
 #include <jni.h>
 #endif
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 #include "platform.h"
 

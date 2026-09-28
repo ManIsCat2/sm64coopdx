@@ -1,4 +1,5 @@
 #include <string.h>
+#include <ctype.h>
 #include "djui.h"
 #include "djui_unicode.h"
 #include "djui_hud_utils.h"
@@ -323,6 +324,11 @@ static void djui_text_read_line(struct DjuiText* text, char** message, f32* line
             break;
         }
 
+        // check for tab
+        if (*c == '\t') {
+            charWidth = 4 * text->font->char_width(" ");
+        }
+
         // check to see if this character would exceed size
         if (*lineWidth + charWidth >= maxLineWidth) {
             break;
@@ -426,7 +432,9 @@ static void djui_text_render_line(struct DjuiText* text, char* c1, char* c2, f32
         }
 
         f32 charWidth = text->font->char_width(c);
-        if (*c != '\n' && *c != ' ') {
+        if (*c == '\t') {
+            charWidth = 4 * text->font->char_width(" ");
+        } else if (*c != '\n' && *c != ' ') {
             djui_text_render_char(text, c);
         }
 

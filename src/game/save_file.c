@@ -5,6 +5,7 @@
 #include "engine/math_util.h"
 #include "area.h"
 #include "level_update.h"
+#include "level_commands.h"
 #include "save_file.h"
 #include "sound_init.h"
 #include "level_table.h"
@@ -462,8 +463,7 @@ void save_file_erase_current_backup_save(void) {
     save_file_do_save(gCurrSaveFileNum - 1, TRUE);
 }
 
-//! Needs to be s32 to match on -O2, despite no return value.
-BAD_RETURN(s32) save_file_copy(s32 srcFileIndex, s32 destFileIndex) {
+void save_file_copy(s32 srcFileIndex, s32 destFileIndex) {
     if (INVALID_FILE_INDEX(srcFileIndex)) { return; }
     if (INVALID_FILE_INDEX(destFileIndex)) { return; }
 
@@ -864,7 +864,7 @@ void disable_warp_checkpoint(void) {
  * game should set a warp checkpoint.
  */
 void check_if_should_set_warp_checkpoint(struct WarpNode *warpNode) {
-    if (warpNode->destLevel & 0x80) {
+    if (warpNode->destLevel & WARP_CHECKPOINT) {
         // Overwrite the warp checkpoint variables.
         gWarpCheckpoint.actNum = gCurrActNum;
         gWarpCheckpoint.courseNum = gCurrCourseNum;

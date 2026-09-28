@@ -5,14 +5,14 @@ char gLastRemoteBhv[256] = "";
 
 #if defined(_WIN32) || defined(__linux__)
 
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 
 #include <PR/ultratypes.h>
 #include <PR/gbi.h>
 #include "config.h"
-#include "pc/gfx/gfx_window_manager_api.h"
-#include "pc/gfx/gfx_dxgi.h"
-#include "pc/gfx/gfx_sdl.h"
+#include "pc/gfx/gfx_window_manager.h"
+#include "pc/gfx/gfx_window_opengl.h"
+#include "pc/gfx/gfx_window_dxgi.h"
 #include "pc/gfx/gfx_pc.h"
 #include "game/game_init.h"
 #include "game/ingame_menu.h"
@@ -692,32 +692,26 @@ static void crash_handler(const int signalNum, siginfo_t *info, UNUSED ucontext_
     crash_handler_add_info_str(&pText, 8, 208, "RemoteBhv", gLastRemoteBhv);
 
     // sounds
-    if (SDL_WasInit(SDL_INIT_AUDIO) || SDL_InitSubSystem(SDL_INIT_AUDIO) == 0) {
-        SDL_AudioSpec want, have;
-        want.freq = 32000;
-        want.format = AUDIO_S16SYS;
-        want.channels = 1;
-        want.samples = 0x200;
-        want.callback = NULL;
-        want.userdata = NULL;
-        s32 device = SDL_OpenAudioDevice(NULL, 0, &want, &have, 0);
-        if (device) {
-            SDL_PauseAudioDevice(device, 0);
+    if (!SDL_WasInit(SDL_INIT_AUDIO) && SDL_InitSubSystem(SDL_INIT_AUDIO)) {
+        const SDL_AudioSpec spec = { SDL_AUDIO_S16, 1, 32000 };
+        SDL_AudioDeviceID device = SDL_OpenAudioDevice(SDL_AUDIO_DEVICE_DEFAULT_PLAYBACK, &spec);
+        if (device != 0) {
+            SDL_ResumeAudioDevice(device);
         }
     }
 
     // In case the game crashed before the game window opened
     if (!gGfxInited) {
-        gfx_init(gWindowApi, gRenderApi, TITLE);
-        gWindowApi->set_keyboard_callbacks(keyboard_on_key_down, keyboard_on_key_up, keyboard_on_all_keys_up,
+        gfx_init(gRenderApi, TITLE);
+        gfx_wm_set_keyboard_callbacks(keyboard_on_key_down, keyboard_on_key_up, keyboard_on_all_keys_up,
             keyboard_on_text_input, keyboard_on_text_editing);
-        gWindowApi->set_scroll_callback(mouse_on_scroll);
+        gfx_wm_set_scroll_callback(mouse_on_scroll);
     }
     if (!gGameInited) djui_unicode_init();
 
     // Main loop
     while (true) {
-        gWindowApi->main_loop(crash_handler_produce_one_frame);
+        gfx_wm_main_loop(crash_handler_produce_one_frame);
     }
     exit(0);
 }

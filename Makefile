@@ -375,7 +375,7 @@ ifeq ($(TARGET_RK3588),1) # Define RK3588 to change SDL3 title & GLES2 hints
   DEFINES += USE_GLES=1
 endif
 
-ifeq ($(TARGET_ANDROID),1) # Define Android to change SDL2 title & GLES hints
+ifeq ($(TARGET_ANDROID),1) # Define Android to change SDL3 title & GLES hints
   DEFINES += TARGET_ANDROID=1 USE_GLES=1 _LANGUAGE_C=1
 endif
 
@@ -743,7 +743,7 @@ else
 endif
 
 ifeq ($(TARGET_ANDROID),1)
-  INCLUDE_DIRS += lib/sdl2/include include/android_execinfo $(JNI_H_INCLUDE)
+  INCLUDE_DIRS += include/android_execinfo $(JNI_H_INCLUDE)
 endif
 
 # Configure backend flags
@@ -762,6 +762,8 @@ else
     BACKEND_LDFLAGS += -Llib/sdl3/linux -l:libSDL3_arm.a
   else ifeq ($(TARGET_RK3588),1)
     BACKEND_LDFLAGS += -Llib/sdl3/linux -l:libSDL3_arm.a
+  else ifeq ($(TARGET_ANDROID),1)
+    BACKEND_LDFLAGS += -Llib/sdl3/android/$(ANDROID_ARCH) -l:libSDL3.a
   else
     BACKEND_LDFLAGS += -Llib/sdl3/linux -l:libSDL3.a
   endif
@@ -861,7 +863,7 @@ else ifeq ($(TARGET_ANDROID),1)
     $(error $(ANDROID_ARCH) is not supported)
   endif
   CFLAGS  += -fPIC
-  LDFLAGS := -L ./lib/sdl2/android/$(ANDROID_ARCH)/ -L ./lib/curl/android/$(ANDROID_ARCH)/ -lm $(BACKEND_LDFLAGS) -shared
+  LDFLAGS := -L ./lib/curl/android/$(ANDROID_ARCH)/ -lm $(BACKEND_LDFLAGS) -shared
 else ifeq ($(TARGET_RK3588),1)
   LDFLAGS := $(OPT_FLAGS) -lm $(BACKEND_LDFLAGS) -no-pie
 else ifeq ($(OSX_BUILD),1)
@@ -1061,7 +1063,7 @@ ifeq ($(DOCKERBUILD),1)
   CFLAGS += -DDOCKERBUILD
 endif
 
-# Check for SDL2 touch controls
+# Check for SDL3 touch controls
 ifeq ($(TOUCH_CONTROLS),1)
   CC_CHECK_CFLAGS += -DTOUCH_CONTROLS
   CFLAGS += -DTOUCH_CONTROLS
@@ -1599,7 +1601,7 @@ else
 	cp -r mods lang palettes dynos $(BUILD_DIR)/platform/android/app/assets/ >/dev/null 2>&1 && \
   mkdir -p $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH) >/dev/null 2>&1 && \
 	cp $(PREFIX)/lib/libc++_shared.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
-  cp lib/sdl2/android/$(ANDROID_ARCH)/libSDL2.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
+  cp lib/sdl3/android/$(ANDROID_ARCH)/libSDL3.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
   cp lib/curl/android/$(ANDROID_ARCH)/libcurl.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
 	cp $(EXE) $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
 	cd $(BUILD_DIR)/platform/android/app >/dev/null 2>&1 && \

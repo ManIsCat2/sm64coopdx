@@ -44,6 +44,7 @@ int sys_strcasecmp(const char *s1, const char *s2);
 #ifdef TARGET_ANDROID
 const char* get_gamedir(void);
 void open_file_picker(void);
+void copy_assets_to_dir(const char *destpath);
 bool is_file_picker_open(void);
 #endif
 #ifdef _WIN32

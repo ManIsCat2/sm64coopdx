@@ -19,7 +19,7 @@
 #include <ctype.h>
 #ifdef __ANDROID__
 #include <jni.h>
-#include <SDL2/SDL.h>
+#include <SDL3/SDL.h>
 #endif
 
 #include "misc.h"

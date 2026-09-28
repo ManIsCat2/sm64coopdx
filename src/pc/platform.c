@@ -302,11 +302,40 @@ static void sys_fatal_impl(const char *msg) {
 #include "platform.h"
 
 #ifdef __ANDROID__
+
+static const char *get_top_external_storage_path(void) {
+    static char *extPath = NULL;
+
+    if (extPath) {
+        return extPath;
+    }
+
+    JNIEnv *env = (JNIEnv *)SDL_GetAndroidJNIEnv();
+    jclass envClass = (*env)->FindClass(env, "android/os/Environment");
+    jmethodID getExtStorageMethod = (*env)->GetStaticMethodID(env, envClass, "getExternalStorageDirectory", "()Ljava/io/File;");
+    jobject fileObj = (*env)->CallStaticObjectMethod(env, envClass, getExtStorageMethod);
+    jclass fileClass = (*env)->GetObjectClass(env, fileObj);
+    jmethodID getAbsPathMethod = (*env)->GetMethodID(env, fileClass, "getAbsolutePath", "()Ljava/lang/String;");
+    jstring pathStr = (jstring)(*env)->CallObjectMethod(env, fileObj, getAbsPathMethod);
+
+    const char *path = (*env)->GetStringUTFChars(env, pathStr, NULL);
+    extPath = SDL_strdup(path);
+
+    (*env)->ReleaseStringUTFChars(env, pathStr, path);
+
+    (*env)->DeleteLocalRef(env, pathStr);
+    (*env)->DeleteLocalRef(env, fileClass);
+    (*env)->DeleteLocalRef(env, fileObj);
+    (*env)->DeleteLocalRef(env, envClass);
+
+    return extPath;
+}
+
 const char *get_gamedir(void) {
-    SDL_bool privileged_write = SDL_FALSE, privileged_manage = SDL_FALSE;
+    bool privileged_write = SDL_FALSE, privileged_manage = SDL_FALSE;
     static char gamedir_unprivileged[SYS_MAX_PATH] = { 0 }, gamedir_privileged[SYS_MAX_PATH] = { 0 };
-    const char *basedir_unprivileged = SDL_AndroidGetExternalStoragePath();
-    const char *basedir_privileged = SDL_AndroidGetTopExternalStoragePath();
+    const char *basedir_unprivileged = SDL_GetAndroidExternalStoragePath();
+    const char *basedir_privileged = get_top_external_storage_path();
 
     snprintf(gamedir_unprivileged, sizeof(gamedir_unprivileged), 
              "%s", basedir_unprivileged);
@@ -314,23 +343,37 @@ const char *get_gamedir(void) {
              "%s/%s", basedir_privileged, ANDROID_APPNAME);
 
     //Android 10 and below
-    privileged_write = SDL_AndroidRequestPermission("android.permission.WRITE_EXTERNAL_STORAGE");
+    privileged_write = SDL_RequestAndroidPermission("android.permission.WRITE_EXTERNAL_STORAGE");
     //Android 11 and up
-    privileged_manage = SDL_AndroidRequestPermission("android.permission.MANAGE_EXTERNAL_STORAGE");
+    privileged_manage = SDL_RequestAndroidPermission("android.permission.MANAGE_EXTERNAL_STORAGE");
     return (privileged_write || privileged_manage) ? gamedir_privileged : gamedir_unprivileged;
 }
 
 static bool sFilePickerActive = false;
 
 void open_file_picker(void) {
-    JNIEnv* env = (JNIEnv*)SDL_AndroidGetJNIEnv();
-    jobject activity = (jobject)SDL_AndroidGetActivity();
+    JNIEnv* env = (JNIEnv*)SDL_GetAndroidJNIEnv();
+    jobject activity = (jobject)SDL_GetAndroidActivity();
 
     jclass cls = (*env)->GetObjectClass(env, activity);
     jmethodID method = (*env)->GetMethodID(env, cls, "openFilePicker", "()V");
 
     (*env)->CallVoidMethod(env, activity, method);
     sFilePickerActive = true;
+}
+
+void copy_assets_to_dir(const char *destpath) {
+    JNIEnv *env = (JNIEnv *)SDL_GetAndroidJNIEnv();
+    jobject activity = (jobject)SDL_GetAndroidActivity();
+    jclass cls = (*env)->GetObjectClass(env, activity);
+
+    jmethodID method = (*env)->GetStaticMethodID(env, cls, "copyAssetFilesToDir", "(Ljava/lang/String;)V");
+
+    jstring jdestpath = (*env)->NewStringUTF(env, destpath);
+    (*env)->CallStaticVoidMethod(env, cls, method, jdestpath);
+
+    (*env)->DeleteLocalRef(env, jdestpath);
+    (*env)->DeleteLocalRef(env, cls);
 }
 
 bool is_file_picker_open(void) {

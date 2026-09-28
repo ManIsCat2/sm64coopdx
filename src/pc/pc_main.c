@@ -542,7 +542,7 @@ int main(int argc, char *argv[]) {
         mkdir(gamedir, 0770);
     }
     // TODO: some way to inhibit this on launch if the apk doesn't contain updated/differing files?
-    SDL_AndroidCopyAssetFilesToDir(basedir);
+    copy_assets_to_dir(basedir);
 #endif
 
     // handle terminal arguments

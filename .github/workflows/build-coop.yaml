@@ -123,7 +123,7 @@ jobs:
             - name: Install dependencies
               run: |
                 sudo apt update
-                sudo apt install -y sdl3 build-essential git python3 libglew-dev libz-dev libcurl4-openssl-dev g++ zip unzip wget apksigner
+                sudo apt install -y build-essential git python3 libglew-dev libz-dev libcurl4-openssl-dev g++ zip unzip wget apksigner
                 mkdir -p $HOME/android-sdk/cmdline-tools
                 cd $HOME/android-sdk/cmdline-tools
                 wget https://dl.google.com/android/repository/commandlinetools-linux-9477386_latest.zip -O tools.zip

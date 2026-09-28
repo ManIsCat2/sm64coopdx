@@ -1,6 +1,6 @@
 #include <stdio.h>
 #include <pthread.h>
-#if !defined(_WIN32) && !defined(_WIN64)
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(__ANDROID__)
 #include <sys/select.h>
 #include <unistd.h>
 #include <termios.h>
@@ -13,7 +13,7 @@
 
 #define TERMINAL_BUFFER_SIZE 1024
 
-#if !defined(_WIN32) && !defined(_WIN64)
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(__ANDROID__)
 static struct linenoiseState sLinenoiseState;
 #endif
 static char sTerminalInput[TERMINAL_BUFFER_SIZE] = { 0 };
@@ -26,13 +26,13 @@ void log_to_terminal(const char* fmt, ...) {
     va_list args;
     va_start(args, fmt);
 
-#if !defined(_WIN32) && !defined(_WIN64)
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(__ANDROID__)
     if (sTerminalActive) { linenoiseHide(&sLinenoiseState); }
 #endif
 
     vprintf(fmt, args);
 
-#if !defined(_WIN32) && !defined(_WIN64)
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(__ANDROID__)
     if (sTerminalActive) { linenoiseShow(&sLinenoiseState); }
 #endif
 
@@ -41,7 +41,7 @@ void log_to_terminal(const char* fmt, ...) {
 }
 
 static void terminal_stop() {
-#if !defined(_WIN32) && !defined(_WIN64)
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(__ANDROID__)
     if (!sTerminalInitialized) { return; }
     linenoiseEditStop(&sLinenoiseState);
     sTerminalActive = false;
@@ -49,7 +49,7 @@ static void terminal_stop() {
 }
 
 void terminal_init() {
-#if !defined(_WIN32) && !defined(_WIN64)
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(__ANDROID__)
     if (!isatty(STDIN_FILENO)) {
         sTerminalActive = false;
         sTerminalInitialized = false;
@@ -73,7 +73,7 @@ void terminal_init() {
 }
 
 void terminal_update() {
-#if !defined(_WIN32) && !defined(_WIN64)
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(__ANDROID__)
     if (!sTerminalInitialized) { return; }
     struct timeval tv = { 0L, 0L };
     fd_set fds;
@@ -103,7 +103,7 @@ void terminal_update() {
 }
 
 void terminal_clear() {
-#if !defined(_WIN32) && !defined(_WIN64)
+#if !defined(_WIN32) && !defined(_WIN64) && !defined(__ANDROID__)
     if (!sTerminalInitialized) { return; }
     linenoiseClearScreen();
 #endif

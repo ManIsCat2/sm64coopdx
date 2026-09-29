@@ -104,9 +104,13 @@ void rom_on_drop_file(const char *path) {
     if (strlen(path) > 0 && !is_rom_valid(path) && !hasDroppedInvalidFile) {
         hasDroppedInvalidFile = true;
 #ifdef TARGET_ANDROID
-        strcat(gCurrLoadingSegment.str, "\n\\#ffc000\\The file you last selected was not a valid, vanilla SM64 rom.");
-        strcat(gCurrLoadingSegment.str, "\n\\#ffc000\\Filepath: ");
-        strcat(gCurrLoadingSegment.str, path);
+        if (!path) {
+            strcat(gCurrLoadingSegment.str, "\nPath Is NULL");
+        } else {
+            strcat(gCurrLoadingSegment.str, path);
+        }
+
+        // strcat(gCurrLoadingSegment.str, "\n\\#ffc000\\The file you last selected was not a valid, vanilla SM64 rom.");
 #else
         strcat(gCurrLoadingSegment.str, "\n\\#ffc000\\The file you last dropped was not a valid, vanilla SM64 rom.");
 #endif

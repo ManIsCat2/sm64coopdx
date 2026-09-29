@@ -306,24 +306,51 @@ static void sys_fatal_impl(const char *msg) {
 static const char *get_top_external_storage_path(void) {
     static char *extPath = NULL;
 
-    if (extPath) {
-        return extPath;
-    }
+    if (extPath) { return extPath; }
 
     JNIEnv *env = (JNIEnv *)SDL_GetAndroidJNIEnv();
+    if (!env) { return NULL; }
+
     jclass envClass = (*env)->FindClass(env, "android/os/Environment");
+    if (!envClass) {
+        if ((*env)->ExceptionCheck(env)) {
+            (*env)->ExceptionClear(env);
+        }
+        return NULL;
+    }
+
     jmethodID getExtStorageMethod = (*env)->GetStaticMethodID(env, envClass, "getExternalStorageDirectory", "()Ljava/io/File;");
+
+    if (!getExtStorageMethod) {
+        if ((*env)->ExceptionCheck(env)) {
+            (*env)->ExceptionClear(env);
+        }
+        (*env)->DeleteLocalRef(env, envClass);
+        return NULL;
+    }
+
     jobject fileObj = (*env)->CallStaticObjectMethod(env, envClass, getExtStorageMethod);
+    if (!fileObj) {
+        if ((*env)->ExceptionCheck(env)) {
+            (*env)->ExceptionClear(env);
+        }
+        (*env)->DeleteLocalRef(env, envClass);
+        return NULL;
+    }
+
     jclass fileClass = (*env)->GetObjectClass(env, fileObj);
     jmethodID getAbsPathMethod = (*env)->GetMethodID(env, fileClass, "getAbsolutePath", "()Ljava/lang/String;");
     jstring pathStr = (jstring)(*env)->CallObjectMethod(env, fileObj, getAbsPathMethod);
 
-    const char *path = (*env)->GetStringUTFChars(env, pathStr, NULL);
-    extPath = SDL_strdup(path);
+    if (pathStr) {
+        const char *path = (*env)->GetStringUTFChars(env, pathStr, NULL);
+        if (path) {
+            extPath = SDL_strdup(path);
+            (*env)->ReleaseStringUTFChars(env, pathStr, path);
+        }
+        (*env)->DeleteLocalRef(env, pathStr);
+    }
 
-    (*env)->ReleaseStringUTFChars(env, pathStr, path);
-
-    (*env)->DeleteLocalRef(env, pathStr);
     (*env)->DeleteLocalRef(env, fileClass);
     (*env)->DeleteLocalRef(env, fileObj);
     (*env)->DeleteLocalRef(env, envClass);

@@ -1601,6 +1601,7 @@ else
 	cp -r mods lang palettes dynos $(BUILD_DIR)/platform/android/app/assets/ >/dev/null 2>&1 && \
   mkdir -p $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH) >/dev/null 2>&1 && \
 	cp $(PREFIX)/lib/libc++_shared.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
+  cp $(PREFIX)/lib/libEGL.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
   cp lib/curl/android/$(ANDROID_ARCH)/libcurl.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
 	cp $(EXE) $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
 	cd $(BUILD_DIR)/platform/android/app >/dev/null 2>&1 && \

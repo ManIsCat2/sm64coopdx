@@ -121,6 +121,10 @@ void gfx_wm_init(const char *window_title) {
 
     SDL_StopTextInput(sSdlWindow);
 
+#ifdef __ANDROID__
+    SDL_SetHint(SDL_HINT_ORIENTATIONS, "LandscapeLeft LandscapeRight");
+#endif
+
 #if defined(_WIN32)
     currBackend = gCLIOpts.backend != GFX_WINDOW_BACKEND_COUNT ? gCLIOpts.backend : (s32) configGraphicsBackend;
 #else

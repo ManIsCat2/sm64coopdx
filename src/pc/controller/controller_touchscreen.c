@@ -172,14 +172,37 @@ void touch_down(struct TouchEvent* event) {
             pos = get_pos(&configControlElements[i]);
             if (pos.y == HIDE_POS) continue;
             size = configControlElements[i].size * 100;
-            if (!TRIGGER_DETECT(size)) continue;
+            // The joystick is grabbable across its whole visible base (a circle
+            // matching the rendered base), not just the central knob. Other
+            // elements keep the original square hit box.
+            if (controlElements[i].type == Joystick) {
+                f32 hdx = CORRECT_TOUCH_X(event->x) - pos.x;
+                f32 hdy = CORRECT_TOUCH_Y(event->y) - pos.y;
+                // render_texture draws the 32px base at scaling (1 + size), so its
+                // radius in API space is (32 << (1 + size)). Match that for grab.
+                f32 grabRadius = (f32)(32 << (1 + configControlElements[i].size));
+                if (hdx * hdx + hdy * hdy > grabRadius * grabRadius) continue;
+            } else if (!TRIGGER_DETECT(size)) {
+                continue;
+            }
             switch (controlElements[i].type) {
                 case Joystick:
                     controlElements[i].touchID = event->touchID;
                     gSelectedTouchElement = i;
                     if (!gInTouchConfig) {
-                        controlElements[i].joyX = CORRECT_TOUCH_X(event->x) - pos.x;
-                        controlElements[i].joyY = CORRECT_TOUCH_Y(event->y) - pos.y;
+                        // Radial clamp so no direction is preferred (a real analog
+                        // stick has a circular gate). Functional radius is size/2,
+                        // which the N64 stick mapping scales to full tilt.
+                        f32 jx = CORRECT_TOUCH_X(event->x) - pos.x;
+                        f32 jy = CORRECT_TOUCH_Y(event->y) - pos.y;
+                        f32 clampR = size / 2.0f;
+                        f32 jmag = sqrtf(jx * jx + jy * jy);
+                        if (jmag > clampR) {
+                            f32 s = clampR / jmag;
+                            jx *= s; jy *= s;
+                        }
+                        controlElements[i].joyX = (s32)jx;
+                        controlElements[i].joyY = (s32)jy;
                     }
                     break;
                 case Mouse:
@@ -224,16 +247,21 @@ void touch_motion(struct TouchEvent* event) {
                             }
                             x = CORRECT_TOUCH_X(event->x) - pos.x;
                             y = CORRECT_TOUCH_Y(event->y) - pos.y;
-                            if (pos.x + size / 2 < CORRECT_TOUCH_X(event->x))
-                                x = size / 2;
-                            if (pos.x - size / 2 > CORRECT_TOUCH_X(event->x))
-                                x = - size / 2;
-                            if (pos.y + size / 2 < CORRECT_TOUCH_Y(event->y))
-                                y = size / 2;
-                            if (pos.y - size / 2 > CORRECT_TOUCH_Y(event->y))
-                                y = - size / 2;
-                            controlElements[i].joyX = x;
-                            controlElements[i].joyY = y;
+                            // Radial clamp to a circular gate so diagonals are not
+                            // preferred over cardinals. The original per-axis clamp
+                            // let corners reach ~1.41x magnitude, pulling the stick
+                            // toward diagonal directions.
+                            {
+                                f32 fx = x, fy = y;
+                                f32 clampR = size / 2.0f;
+                                f32 mag = sqrtf(fx * fx + fy * fy);
+                                if (mag > clampR) {
+                                    f32 s = clampR / mag;
+                                    fx *= s; fy *= s;
+                                }
+                                controlElements[i].joyX = (s32)fx;
+                                controlElements[i].joyY = (s32)fy;
+                            }
                             break;
                         case Mouse:
                             if (configPhantomTouch && !TRIGGER_DETECT(size)) {

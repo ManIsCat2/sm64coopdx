@@ -303,33 +303,105 @@ static void sys_fatal_impl(const char *msg) {
 
 #ifdef __ANDROID__
 
-static bool sPermissionRequestPending;
+struct InlinePermissionState {
+    bool done;
+    bool granted;
+};
 
-bool request_permission_synchronous(const char *permission) {
-    JNIEnv *env = SDL_GetAndroidJNIEnv();
-    jstring jpermission;
-    const s32 requestCode = 1;
+static void SDLCALL permission_callback(void *userdata, const char *permission, bool granted) {
+    struct InlinePermissionState *state = (struct InlinePermissionState *)userdata;
+    state->granted = granted;
+    state->done = true;
+}
 
-    while (SDL_GetAtomicInt(&sPermissionRequestPending)) {
-        SDL_Delay(10);
+static bool request_permission_sync(const char *permission) {
+    struct InlinePermissionState state = {
+        .done = false,
+        .granted = false
+    };
+
+    if (!SDL_RequestAndroidPermission(permission, permission_callback, &state)) {
+        return false;
     }
-    SDL_SetAtomicInt(&sPermissionRequestPending, true);
 
-    jpermission = (*env)->NewStringUTF(env, permission);
-    (*env)->CallStaticVoidMethod(env, mActivityClass, midRequestPermission, jpermission, requestCode);
-    (*env)->DeleteLocalRef(env, jpermission);
-
-    while (SDL_GetAtomicInt(&sPermissionRequestPending)) {
-        SDL_Delay(10);
+    while (!state.done) {
+        SDL_PumpEvents();
+        SDL_Delay(16);
     }
-    return sPermissionRequestPending;
+
+    return state.granted;
+}
+
+static bool has_all_files_permission(void) {
+    JNIEnv *env = (JNIEnv *)SDL_GetJNIEnv();
+    if (!env) { return false; }
+
+    jclass versionClass = (*env)->FindClass(env, "android/os/Build$VERSION");
+    jfieldID sdkIntField = (*env)->GetStaticFieldID(env, versionClass, "SDK_INT", "I");
+    jint sdkInt = (*env)->GetStaticIntField(env, versionClass, sdkIntField);
+
+    if (sdkInt < 30) { return true; }
+
+    jclass envClass = (*env)->FindClass(env, "android/os/Environment");
+    jmethodID isManagerMethod = (*env)->GetStaticMethodID(env, envClass, "isExternalStorageManager", "()Z");
+    
+    jboolean isGranted = (*env)->CallStaticBooleanMethod(env, envClass, isManagerMethod);
+    return (bool)isGranted;
+}
+
+static void request_all_files_permission_from_settings(void) {
+    if (has_all_files_permission()) { return; }
+
+    JNIEnv *env = (JNIEnv *)SDL_GetJNIEnv();
+    jobject activity = (jobject)SDL_GetAndroidActivity();
+    if (!env || !activity) return;
+
+    jclass activityClass = (*env)->GetObjectClass(env, activity);
+
+    jmethodID getPackageName = (*env)->GetMethodID(env, activityClass, "getPackageName", "()Ljava/lang/String;");
+    jstring packageName = (jstring)(*env)->CallObjectMethod(env, activity, getPackageName);
+
+    jclass uriClass = (*env)->FindClass(env, "android/net/Uri");
+    jmethodID uriParse = (*env)->GetStaticMethodID(env, uriClass, "parse", "(Ljava/lang/String;)Landroid/net/Uri;");
+    
+    const char *pkgStr = (*env)->GetStringUTFChars(env, packageName, NULL);
+    char fullUriStr[256];
+    SDL_snprintf(fullUriStr, sizeof(fullUriStr), "package:%s", pkgStr);
+    (*env)->ReleaseStringUTFChars(env, packageName, pkgStr);
+
+    jstring jFullUri = (*env)->NewStringUTF(env, fullUriStr);
+    jobject uriObj = (*env)->CallStaticObjectMethod(env, uriClass, uriParse, jFullUri);
+
+    jclass intentClass = (*env)->FindClass(env, "android/content/Intent");
+    jmethodID intentConstructor = (*env)->GetMethodID(env, intentClass, "<init>", "(Ljava/lang/String;Landroid/net/Uri;)V");
+    jstring actionStr = (*env)->NewStringUTF(env, "android.settings.MANAGE_APP_ALL_FILES_ACCESS_PERMISSION");
+    
+    jobject intentObj = (*env)->NewObject(env, intentClass, intentConstructor, actionStr, uriObj);
+
+    jmethodID startActivity = (*env)->GetMethodID(env, activityClass, "startActivity", "(Landroid/content/Intent;)V");
+    (*env)->CallVoidMethod(env, activity, startActivity, intentObj);
+}
+
+static bool request_all_files_permission(void) {
+    if (has_all_files_permission()) {
+        return true;
+    }
+
+    request_all_files_permission_from_settings();
+
+    while (!has_all_files_permission()) {
+        SDL_PumpEvents();
+        SDL_Delay(100); 
+    }
+
+    return true;
 }
 
 static const char *get_top_external_storage_path(void) {
-    static char *sAndroidExternalFilePath = NULL;
+    static char *s_AndroidExternalFilesPath = NULL;
 
-    if (sAndroidExternalFilePath) {
-        return sAndroidExternalFilePath;
+    if (s_AndroidExternalFilesPath) {
+        return s_AndroidExternalFilesPath;
     }
 
     JNIEnv *env = (JNIEnv *)SDL_GetAndroidJNIEnv();
@@ -366,7 +438,7 @@ static const char *get_top_external_storage_path(void) {
     if (pathString) {
         const char *path = (*env)->GetStringUTFChars(env, pathString, NULL);
         if (path) {
-            sAndroidExternalFilePath = SDL_strdup(path);
+            s_AndroidExternalFilesPath = SDL_strdup(path);
             (*env)->ReleaseStringUTFChars(env, pathString, path);
         }
         (*env)->DeleteLocalRef(env, pathString);
@@ -376,7 +448,7 @@ static const char *get_top_external_storage_path(void) {
     (*env)->DeleteLocalRef(env, fileObject);
     (*env)->DeleteLocalRef(env, cls);
 
-    return sAndroidExternalFilePath ? sAndroidExternalFilePath : "/storage/emulated/0";
+    return s_AndroidExternalFilesPath ? s_AndroidExternalFilesPath : "/storage/emulated/0";
 }
 
 static bool privileged_write = false;
@@ -392,9 +464,10 @@ const char *get_gamedir(void) {
     snprintf(gamedir_unprivileged, sizeof(gamedir_unprivileged), "%s", basedir_unprivileged);
     snprintf(gamedir_privileged, sizeof(gamedir_privileged), "%s/%s", basedir_privileged, ANDROID_APPNAME);
 
-    request_permission_synchronous("android.permission.READ_EXTERNAL_STORAGE");
-    privileged_write = request_permission_synchronous("android.permission.WRITE_EXTERNAL_STORAGE");
-    privileged_manage = request_permission_synchronous("android.permission.MANAGE_EXTERNAL_STORAGE");
+
+    request_permission_sync("android.permission.READ_EXTERNAL_STORAGE");
+    privileged_write = request_permission_sync("android.permission.WRITE_EXTERNAL_STORAGE");
+    privileged_manage = request_all_files_permission();
 
     return (privileged_write || privileged_manage) ? gamedir_privileged : gamedir_unprivileged;
 }

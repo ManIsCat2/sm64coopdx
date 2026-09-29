@@ -333,7 +333,7 @@ static bool request_permission_sync(const char *permission) {
 }
 
 static bool has_all_files_permission(void) {
-    JNIEnv *env = (JNIEnv *)SDL_GetJNIEnv();
+    JNIEnv *env = (JNIEnv *)SDL_GetAndroidJNIEnv();
     if (!env) { return false; }
 
     jclass versionClass = (*env)->FindClass(env, "android/os/Build$VERSION");
@@ -352,7 +352,7 @@ static bool has_all_files_permission(void) {
 static void request_all_files_permission_from_settings(void) {
     if (has_all_files_permission()) { return; }
 
-    JNIEnv *env = (JNIEnv *)SDL_GetJNIEnv();
+    JNIEnv *env = (JNIEnv *)SDL_GetAndroidJNIEnv();
     jobject activity = (jobject)SDL_GetAndroidActivity();
     if (!env || !activity) return;
 

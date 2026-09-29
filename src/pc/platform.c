@@ -428,15 +428,21 @@ const char *get_gamedir(void) {
 
 static bool sFilePickerActive = false;
 
+static void SDLCALL rom_file_dialog_callback(UNUSED void *userdata, const char *const *filelist, UNUSED int filter) {
+    sFilePickerActive = false;
+
+    if (filelist && filelist[0] != NULL) {
+        const char *chosen_path = filelist[0];
+        if (chosen_path[0] != '\0') {
+            rom_on_drop_file(chosen_path);
+        }
+    }
+}
+
 void open_file_picker(void) {
-    JNIEnv* env = (JNIEnv*)SDL_GetAndroidJNIEnv();
-    jobject activity = (jobject)SDL_GetAndroidActivity();
-
-    jclass cls = (*env)->GetObjectClass(env, activity);
-    jmethodID method = (*env)->GetMethodID(env, cls, "openFilePicker", "()V");
-
-    (*env)->CallVoidMethod(env, activity, method);
+    if (sFilePickerActive) { return; }
     sFilePickerActive = true;
+    SDL_ShowOpenFileDialog(rom_file_dialog_callback, NULL,SDL_ShowOpenFileDialog SDL_GetKeyboardFocus(), NULL, 0, NULL, false);
 }
 
 void copy_assets_to_dir(const char *destpath) {

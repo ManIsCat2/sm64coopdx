@@ -339,6 +339,40 @@ static void SDLCALL permission_callback(void *userdata, const char *permission, 
     *result = granted;
 }
 
+static bool is_permission_granted(const char *perm_name) {
+    JNIEnv *env = (JNIEnv *)SDL_GetAndroidJNIEnv();
+    jobject activity = (jobject)SDL_GetAndroidActivity();
+    if (!env || !activity) return false;
+
+    jclass cls = (*env)->GetObjectClass(env, activity);
+    jmethodID checkMethod = (*env)->GetMethodID(env, cls, "checkSelfPermission", "(Ljava/lang/String;)I");
+    
+    jstring jperm = (*env)->NewStringUTF(env, perm_name);
+    jint result = (*env)->CallIntMethod(env, activity, checkMethod, jperm);
+
+    (*env)->DeleteLocalRef(env, jperm);
+    (*env)->DeleteLocalRef(env, cls);
+
+    return !result;
+}
+
+static bool check_manage_storage_permission(void) {
+    JNIEnv *env = (JNIEnv *)SDL_GetAndroidJNIEnv();
+    if (!env) return false;
+
+    jclass envClass = (*env)->FindClass(env, "android/os/Environment");
+    if (!envClass) return false;
+
+    jmethodID isMgrMethod = (*env)->GetStaticMethodID(env, envClass, "isExternalStorageManager", "()Z");
+    bool is_mgr = false;
+    if (isMgrMethod) {
+        is_mgr = (*env)->CallStaticBooleanMethod(env, envClass, isMgrMethod);
+    }
+
+    (*env)->DeleteLocalRef(env, envClass);
+    return is_mgr;
+}
+
 const char *get_gamedir(void) {
     static char gamedir_unprivileged[SYS_MAX_PATH] = { 0 };
     static char gamedir_privileged[SYS_MAX_PATH] = { 0 };
@@ -349,17 +383,8 @@ const char *get_gamedir(void) {
     snprintf(gamedir_unprivileged, sizeof(gamedir_unprivileged), "%s", basedir_unprivileged);
     snprintf(gamedir_privileged, sizeof(gamedir_privileged), "%s/%s", basedir_privileged, ANDROID_APPNAME);
 
-    SDL_RequestAndroidPermission(
-        "android.permission.WRITE_EXTERNAL_STORAGE",
-        permission_callback,
-        &privileged_write
-    );
-
-    SDL_RequestAndroidPermission(
-        "android.permission.MANAGE_EXTERNAL_STORAGE",
-        permission_callback,
-        &privileged_manage
-    );
+    bool privileged_write = is_permission_granted("android.permission.WRITE_EXTERNAL_STORAGE");
+    bool privileged_manage = check_manage_storage_permission();
 
     return (privileged_write || privileged_manage) ? gamedir_privileged : gamedir_unprivileged;
 }

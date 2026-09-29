@@ -464,7 +464,6 @@ const char *get_gamedir(void) {
     snprintf(gamedir_unprivileged, sizeof(gamedir_unprivileged), "%s", basedir_unprivileged);
     snprintf(gamedir_privileged, sizeof(gamedir_privileged), "%s/%s", basedir_privileged, ANDROID_APPNAME);
 
-
     request_permission_sync("android.permission.READ_EXTERNAL_STORAGE");
     privileged_write = request_permission_sync("android.permission.WRITE_EXTERNAL_STORAGE");
     privileged_manage = request_all_files_permission();
@@ -476,14 +475,46 @@ static bool sFilePickerActive = false;
 
 #include "rom_checker.h"
 
-static void SDLCALL rom_file_dialog_callback(UNUSED void *userdata, const char *const *filelist, UNUSED int filter) {
+static void SDLCALL rom_file_dialog_callback(void *userdata, const char * const *filelist, int filter) {
     sFilePickerActive = false;
 
-    if (filelist && filelist[0]) {
-        const char *chosen_path = filelist[0];
-        if (chosen_path[0] != '\0') {
-            rom_on_drop_file(chosen_path);
+    if (!filelist || !filelist[0] || filelist[0][0] == '\0') { return; }
+
+    const char *selectedPath = filelist[0];
+    char tmpPath[SYS_MAX_PATH];
+    bool tmpFile = false;
+
+    if (strncmp(selectedPath, "content://", 10) == 0) {
+        const char *cache_dir = SDL_GetAndroidCachePath();
+        if (cache_dir && cache_dir[0] != '\0') {
+            snprintf(tmpPath, sizeof(tmpPath), "%s/picked_rom.tmp", cache_dir);
+        } else {
+            snprintf(tmpPath, sizeof(tmpPath), "%s/picked_rom.tmp", SDL_GetAndroidInternalStoragePath());
         }
+        snprintf(tmpPath, sizeof(tmpPath), "picked_rom.tmp");
+        SDL_IOStream *in = SDL_IOFromFile(selectedPath, "rb");
+        if (in != NULL) {
+            SDL_IOStream *out = SDL_IOFromFile(tmpPath, "wb");
+            if (out != NULL) {
+                Uint8 buffer[16384];
+                Sint64 bytesRead = 0;
+
+                while ((bytesRead = SDL_ReadIO(in, buffer, sizeof(buffer))) > 0) {
+                    SDL_WriteIO(out, buffer, (size_t)bytesRead);
+                }
+                SDL_CloseIO(out);
+                tmpFile = true;
+            }
+            SDL_CloseIO(in);
+        }
+    } else {
+        snprintf(tmpPath, sizeof(tmpPath), "%s", selectedPath);
+    }
+
+    rom_on_drop_file(tmpPath);
+
+    if (tmpFile) {
+        remove(tmpPath);
     }
 }
 

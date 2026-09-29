@@ -344,16 +344,12 @@ int gfx_wm_get_max_msaa(void) {
 
 void gfx_wm_set_window_title(const char *title) {
     if (currBackend == GFX_WINDOW_BACKEND_DUMMY) { return; }
-#ifndef __ANDROID__
     SDL_SetWindowTitle(sSdlWindow, title);
-#endif
 }
 
 void gfx_wm_reset_window_title(void) {
     if (currBackend == GFX_WINDOW_BACKEND_DUMMY) { return; }
-#ifndef __ANDROID__
     SDL_SetWindowTitle(sSdlWindow, TITLE);
-#endif
 }
 
 void gfx_wm_shutdown(void) {

@@ -428,10 +428,12 @@ const char *get_gamedir(void) {
 
 static bool sFilePickerActive = false;
 
+#include "rom_checker.h"
+
 static void SDLCALL rom_file_dialog_callback(UNUSED void *userdata, const char *const *filelist, UNUSED int filter) {
     sFilePickerActive = false;
 
-    if (filelist && filelist[0] != NULL) {
+    if (filelist && filelist[0]) {
         const char *chosen_path = filelist[0];
         if (chosen_path[0] != '\0') {
             rom_on_drop_file(chosen_path);
@@ -441,8 +443,10 @@ static void SDLCALL rom_file_dialog_callback(UNUSED void *userdata, const char *
 
 void open_file_picker(void) {
     if (sFilePickerActive) { return; }
+
     sFilePickerActive = true;
-    SDL_ShowOpenFileDialog(rom_file_dialog_callback, NULL,SDL_ShowOpenFileDialog SDL_GetKeyboardFocus(), NULL, 0, NULL, false);
+
+    SDL_ShowOpenFileDialog(rom_file_dialog_callback, NULL, SDL_GetKeyboardFocus(), NULL, 0, NULL, false);
 }
 
 void copy_assets_to_dir(const char *destpath) {
@@ -462,8 +466,6 @@ void copy_assets_to_dir(const char *destpath) {
 bool is_file_picker_open(void) {
     return sFilePickerActive;
 }
-
-#include "rom_checker.h"
 
 JNIEXPORT void JNICALL Java_org_libsdl_app_SDLActivity_nativeFilePicked(JNIEnv* env, jclass cls, jstring jpath) {
     const char* path = (*env)->GetStringUTFChars(env, jpath, NULL);

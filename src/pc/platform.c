@@ -303,24 +303,26 @@ static void sys_fatal_impl(const char *msg) {
 
 #ifdef __ANDROID__
 
+static bool sPermissionRequestPending;
+
 bool request_permission_synchronous(const char *permission) {
     JNIEnv *env = SDL_GetAndroidJNIEnv();
     jstring jpermission;
     const s32 requestCode = 1;
 
-    while (SDL_GetAtomicInt(&bPermissionRequestPending)) {
+    while (SDL_GetAtomicInt(&sPermissionRequestPending)) {
         SDL_Delay(10);
     }
-    SDL_SetAtomicInt(&bPermissionRequestPending, true);
+    SDL_SetAtomicInt(&sPermissionRequestPending, true);
 
     jpermission = (*env)->NewStringUTF(env, permission);
     (*env)->CallStaticVoidMethod(env, mActivityClass, midRequestPermission, jpermission, requestCode);
     (*env)->DeleteLocalRef(env, jpermission);
 
-    while (SDL_GetAtomicInt(&bPermissionRequestPending)) {
+    while (SDL_GetAtomicInt(&sPermissionRequestPending)) {
         SDL_Delay(10);
     }
-    return bPermissionRequestResult;
+    return sPermissionRequestPending;
 }
 
 static const char *get_top_external_storage_path(void) {

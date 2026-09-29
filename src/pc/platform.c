@@ -373,6 +373,7 @@ static bool privileged_manage = false;
 
 static void SDLCALL permission_callback(void *userdata, const char *permission, bool granted) {
     bool *result = (bool *)userdata;
+    SDL_ShowAndroidToast(granted ? "Permission Granted" : "Permission Not Granted", 1, 0, 0, 0);
     *result = granted;
 }
 
@@ -419,6 +420,24 @@ const char *get_gamedir(void) {
 
     snprintf(gamedir_unprivileged, sizeof(gamedir_unprivileged), "%s", basedir_unprivileged);
     snprintf(gamedir_privileged, sizeof(gamedir_privileged), "%s/%s", basedir_privileged, ANDROID_APPNAME);
+
+    SDL_RequestAndroidPermission(
+        "android.permission.READ_EXTERNAL_STORAGE",
+        permission_callback,
+        NULL
+    );
+
+    SDL_RequestAndroidPermission(
+        "android.permission.WRITE_EXTERNAL_STORAGE",
+        permission_callback,
+        NULL
+    );
+
+    SDL_RequestAndroidPermission(
+        "android.permission.MANAGE_EXTERNAL_STORAGE",
+        permission_callback,
+        NULL
+    );
 
     bool privileged_write = is_permission_granted("android.permission.WRITE_EXTERNAL_STORAGE");
     bool privileged_manage = check_manage_storage_permission();

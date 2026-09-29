@@ -491,7 +491,6 @@ static void SDLCALL rom_file_dialog_callback(void *userdata, const char * const 
         } else {
             snprintf(tmpPath, sizeof(tmpPath), "%s/picked_rom.tmp", SDL_GetAndroidInternalStoragePath());
         }
-        snprintf(tmpPath, sizeof(tmpPath), "picked_rom.tmp");
         SDL_IOStream *in = SDL_IOFromFile(selectedPath, "rb");
         if (in != NULL) {
             SDL_IOStream *out = SDL_IOFromFile(tmpPath, "wb");

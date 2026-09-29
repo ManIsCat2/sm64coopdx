@@ -780,7 +780,7 @@ endif
 ifeq ($(WINDOWS_BUILD),1)
   BACKEND_LDFLAGS += -lglew32 -lglu32 -lopengl32 -lshlwapi
 else ifeq ($(TARGET_ANDROID),1)
-  BACKEND_LDFLAGS += -lGLESv3 -llog
+  BACKEND_LDFLAGS += -lEGL -lGLESv1_CM -lGLESv2 -lOpenSLES -lGLESv3 -llog
 else ifeq ($(TARGET_RPI),1)
   BACKEND_LDFLAGS += -lGLESv2
 else ifeq ($(TARGET_RK3588),1)

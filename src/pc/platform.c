@@ -303,59 +303,69 @@ static void sys_fatal_impl(const char *msg) {
 
 #ifdef __ANDROID__
 
-static const char *get_top_external_storage_path(void) {
-    static char *extPath = NULL;
+static JNIEnv *get_jni_env(void) {
+    JNIEnv *env = (JNIEnv *)SDL_GetAndroidJNIEnv();
+    if (env) return env;
 
-    if (extPath) { return extPath; }
+    JavaVM *vm = NULL;
+    jobject activity = (jobject)SDL_GetAndroidActivity();
+    if (!activity) return NULL;
+
+    return env;
+}
+
+static const char *get_top_external_storage_path(void) {
+    static char *s_AndroidExternalFilesPath = NULL;
+
+    if (s_AndroidExternalFilesPath) {
+        return s_AndroidExternalFilesPath;
+    }
 
     JNIEnv *env = (JNIEnv *)SDL_GetAndroidJNIEnv();
-    if (!env) { return NULL; }
-
-    jclass envClass = (*env)->FindClass(env, "android/os/Environment");
-    if (!envClass) {
-        if ((*env)->ExceptionCheck(env)) {
-            (*env)->ExceptionClear(env);
-        }
-        return NULL;
+    if (!env) {
+        return "/storage/emulated/0";
     }
 
-    jmethodID getExtStorageMethod = (*env)->GetStaticMethodID(env, envClass, "getExternalStorageDirectory", "()Ljava/io/File;");
+    if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
 
-    if (!getExtStorageMethod) {
-        if ((*env)->ExceptionCheck(env)) {
-            (*env)->ExceptionClear(env);
-        }
-        (*env)->DeleteLocalRef(env, envClass);
-        return NULL;
+    jclass cls = (*env)->FindClass(env, "android/os/Environment");
+    if (!cls) {
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        return "/storage/emulated/0";
     }
 
-    jobject fileObj = (*env)->CallStaticObjectMethod(env, envClass, getExtStorageMethod);
-    if (!fileObj) {
-        if ((*env)->ExceptionCheck(env)) {
-            (*env)->ExceptionClear(env);
-        }
-        (*env)->DeleteLocalRef(env, envClass);
-        return NULL;
+    jmethodID mid = (*env)->GetStaticMethodID(env, cls, "getExternalStorageDirectory", "()Ljava/io/File;");
+    if (!mid) {
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        (*env)->DeleteLocalRef(env, cls);
+        return "/storage/emulated/0";
     }
 
-    jclass fileClass = (*env)->GetObjectClass(env, fileObj);
-    jmethodID getAbsPathMethod = (*env)->GetMethodID(env, fileClass, "getAbsolutePath", "()Ljava/lang/String;");
-    jstring pathStr = (jstring)(*env)->CallObjectMethod(env, fileObj, getAbsPathMethod);
+    jobject fileObject = (*env)->CallStaticObjectMethod(env, cls, mid);
+    if (!fileObject) {
+        if ((*env)->ExceptionCheck(env)) (*env)->ExceptionClear(env);
+        (*env)->DeleteLocalRef(env, cls);
+        return "/storage/emulated/0";
+    }
 
-    if (pathStr) {
-        const char *path = (*env)->GetStringUTFChars(env, pathStr, NULL);
+    jclass fileCls = (*env)->GetObjectClass(env, fileObject);
+    mid = (*env)->GetMethodID(env, fileCls, "getAbsolutePath", "()Ljava/lang/String;");
+    jstring pathString = (jstring)(*env)->CallObjectMethod(env, fileObject, mid);
+
+    if (pathString) {
+        const char *path = (*env)->GetStringUTFChars(env, pathString, NULL);
         if (path) {
-            extPath = SDL_strdup(path);
-            (*env)->ReleaseStringUTFChars(env, pathStr, path);
+            s_AndroidExternalFilesPath = SDL_strdup(path);
+            (*env)->ReleaseStringUTFChars(env, pathString, path);
         }
-        (*env)->DeleteLocalRef(env, pathStr);
+        (*env)->DeleteLocalRef(env, pathString);
     }
 
-    (*env)->DeleteLocalRef(env, fileClass);
-    (*env)->DeleteLocalRef(env, fileObj);
-    (*env)->DeleteLocalRef(env, envClass);
+    (*env)->DeleteLocalRef(env, fileCls);
+    (*env)->DeleteLocalRef(env, fileObject);
+    (*env)->DeleteLocalRef(env, cls);
 
-    return extPath;
+    return s_AndroidExternalFilesPath ? s_AndroidExternalFilesPath : "/storage/emulated/0";
 }
 
 static bool privileged_write = false;

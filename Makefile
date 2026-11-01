@@ -780,7 +780,12 @@ endif
 ifeq ($(WINDOWS_BUILD),1)
   BACKEND_LDFLAGS += -lglew32 -lglu32 -lopengl32 -lshlwapi
 else ifeq ($(TARGET_ANDROID),1)
-  BACKEND_LDFLAGS += -lEGL -lGLESv1_CM -lGLESv2 -lOpenSLES -lGLESv3 -llog
+  # Termux may provide desktop GLVND libraries with versioned SONAMEs. Link
+  # Android's public EGL/GLES libraries explicitly; never bundle host GLVND.
+  ANDROID_SYSTEM_LIBDIR ?= /system/lib64
+  BACKEND_LDFLAGS += $(ANDROID_SYSTEM_LIBDIR)/libEGL.so \
+    $(ANDROID_SYSTEM_LIBDIR)/libGLESv1_CM.so $(ANDROID_SYSTEM_LIBDIR)/libGLESv2.so
+  BACKEND_LDFLAGS += -lOpenSLES -lGLESv3 -llog -landroid -Wl,-z,defs
 else ifeq ($(TARGET_RPI),1)
   BACKEND_LDFLAGS += -lGLESv2
 else ifeq ($(TARGET_RK3588),1)
@@ -1594,17 +1599,20 @@ else
   ifeq ($(TARGET_ANDROID),1)
     APK_FILES := $(shell find platform/android/ -type f)
 
+  # Relink after Android linker flags change, including existing build trees.
+  $(EXE): Makefile
+
   # Copying Libraries and Assets
-  $(ZIP_UNCOMPRESSED): $(EXE) $(APK_FILES)
+  $(ZIP_UNCOMPRESSED): $(EXE) $(APK_FILES) Makefile
 	@cp -r platform/android $(BUILD_DIR)/platform/ >/dev/null 2>&1 && \
 	mkdir -p $(BUILD_DIR)/platform/android/app/assets/ >/dev/null 2>&1 && \
 	cp -r mods lang palettes dynos $(BUILD_DIR)/platform/android/app/assets/ >/dev/null 2>&1 && \
   mkdir -p $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH) >/dev/null 2>&1 && \
 	cp $(PREFIX)/lib/libc++_shared.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
-  cp $(PREFIX)/lib/libEGL.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
   cp lib/curl/android/$(ANDROID_ARCH)/libcurl.so $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
 	cp $(EXE) $(BUILD_DIR)/platform/android/app/lib/$(ANDROID_ARCH)/ >/dev/null 2>&1 && \
 	cd $(BUILD_DIR)/platform/android/app >/dev/null 2>&1 && \
+	$(RM) ../../../../../$@ && \
 	zip -0 -r ../../../../../$@ ./* >/dev/null 2>&1 && \
 	cd - >/dev/null 2>&1 && \
 	rm -rf $(BUILD_DIR)/platform/android/app >/dev/null 2>&1
